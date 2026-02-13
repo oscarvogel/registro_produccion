@@ -18,11 +18,11 @@
                 Inicio
               </router-link>
               <router-link
-                to="/items"
+                to="/produccion"
                 class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
                 active-class="!bg-primary-light/20 !text-primary-dark"
               >
-                Items
+                Producción
               </router-link>
             </div>
           </div>

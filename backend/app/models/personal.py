@@ -28,6 +28,8 @@ class Personal(Base):
     codigo_kobo = Column(String(50), nullable=False, default="")
     porcentaje = Column(Float, nullable=False)
     activo = Column(SmallInteger, nullable=False)
+    encargado = Column(SmallInteger, nullable=False, default=0)
+    tipo_de_proceso_id = Column(Integer, nullable=True)
     dni = Column(String(8), nullable=True)
     password = Column(String(255), nullable=True)
     user_id = Column(Integer, nullable=True, unique=True)

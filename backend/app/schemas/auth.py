@@ -16,6 +16,8 @@ class UserInfo(BaseModel):
     idPersonal: int
     nombre: str
     dni: str
+    encargado: int = 0
+    tipo_de_proceso_id: int | None = None
 
     class Config:
         from_attributes = True

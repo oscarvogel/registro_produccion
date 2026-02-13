@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import HomeView from '../views/HomeView.vue'
 import ItemsView from '../views/ItemsView.vue'
 import LoginView from '../views/LoginView.vue'
+import ProduccionFormView from '../views/ProduccionFormView.vue'
 
 const routes = [
   {
@@ -12,6 +13,7 @@ const routes = [
     meta: { requiresAuth: false },
   },
   { path: '/', name: 'home', component: HomeView, meta: { requiresAuth: true } },
+  { path: '/produccion', name: 'produccion', component: ProduccionFormView, meta: { requiresAuth: true } },
   { path: '/items', name: 'items', component: ItemsView, meta: { requiresAuth: true } },
 ]
 
