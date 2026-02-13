@@ -1,4 +1,11 @@
-from pydantic_settings import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except Exception:
+    # Fallback for environments with pydantic (v1) or missing pydantic_settings
+    try:
+        from pydantic import BaseSettings
+    except Exception:
+        raise
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "registro_produccion"
