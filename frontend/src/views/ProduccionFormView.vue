@@ -1,7 +1,8 @@
 <template>
-  <div class="max-w-2xl mx-auto px-4 py-6">
+  <div class="max-w-2xl mx-auto px-3 py-4 pb-[7.5rem] md:px-4 md:py-6 md:pb-6">
     <!-- Header -->
-    <div class="flex items-center gap-3 mb-6">
+    <div class="flex items-center justify-between mb-5 px-1">
+      <div class="flex items-center gap-2.5">
       <button
         @click="$router.push({ name: 'home' })"
         class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-200 transition-colors"
@@ -10,7 +11,15 @@
           <path d="m15 18-6-6 6-6" />
         </svg>
       </button>
-      <h1 class="text-xl font-bold text-neutral-900">Carga de Producción</h1>
+      <h1 class="text-2xl font-bold text-neutral-900 leading-none">Carga de Producción</h1>
+      </div>
+      <button class="p-2 text-neutral-500" type="button" aria-label="Más opciones">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="5" r="1.2" />
+          <circle cx="12" cy="12" r="1.2" />
+          <circle cx="12" cy="19" r="1.2" />
+        </svg>
+      </button>
     </div>
 
     <!-- Loading catalogs -->
@@ -41,8 +50,7 @@
             v-model="form.un_id"
             @change="onUnidadChange"
             required
-            class="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-neutral-900
-                   focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+            :class="fieldClass"
           >
             <option value="" disabled>— Seleccionar —</option>
             <option v-for="un in store.unidadesNegocio" :key="un.idUnidadNegocio" :value="un.idUnidadNegocio">
@@ -58,9 +66,7 @@
             @change="onTipoProcesoChange"
             required
             :disabled="!form.un_id || store.tiposProceso.length === 0"
-            class="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-neutral-900
-                   focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary
-                   disabled:bg-neutral-100 disabled:cursor-not-allowed transition-colors"
+            :class="fieldClass"
           >
             <option value="" disabled>
               {{ !form.un_id ? '— Primero seleccioná UN —' : store.tiposProceso.length === 0 ? '— Sin procesos disponibles —' : '— Seleccionar —' }}
@@ -77,7 +83,7 @@
         <!-- Si es operador: bloqueado -->
         <div v-if="!isEncargado">
           <label class="block text-sm font-medium text-neutral-700 mb-1">Operador</label>
-          <div class="w-full px-4 py-2.5 bg-neutral-100 border border-neutral-200 rounded-lg text-neutral-700">
+          <div class="w-full px-4 py-3 bg-neutral-100 border border-neutral-300 rounded-xl text-neutral-700">
             {{ authStore.userName }}
           </div>
         </div>
@@ -89,9 +95,7 @@
             @change="onOperadorChange"
             required
             :disabled="!form.un_id || store.operadores.length === 0"
-            class="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-neutral-900
-                   focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary
-                   disabled:bg-neutral-100 disabled:cursor-not-allowed transition-colors"
+            :class="fieldClass"
           >
             <option value="" disabled>
               {{ !form.un_id ? '— Primero seleccioná UN —' : store.operadores.length === 0 ? '— Sin operadores —' : '— Seleccionar operador —' }}
@@ -312,8 +316,7 @@
           <label class="block text-sm font-medium text-neutral-700 mb-1">Acta</label>
           <select
             v-model="form.acta"
-            class="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-neutral-900
-                   focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+            :class="fieldClass"
           >
             <option value="">— Sin acta —</option>
             <option v-for="a in store.actas" :key="a.id" :value="a.numero">
@@ -327,8 +330,7 @@
           <select
             v-model="form.predio_id"
             @change="onPredioChange"
-            class="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-neutral-900
-                   focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+            :class="fieldClass"
           >
             <option value="">— Sin predio —</option>
             <option v-for="p in store.predios" :key="p.idPredio" :value="p.idPredio">
@@ -342,8 +344,7 @@
           <select
             v-if="store.rodales.length > 0"
             v-model="form.rodal_id"
-            class="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-neutral-900
-                   focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+            :class="fieldClass"
           >
             <option value="">— Seleccionar rodal —</option>
             <option v-for="r in store.rodales" :key="r.idRodal" :value="r.idRodal">
@@ -355,9 +356,7 @@
             type="text"
             v-model="form.rodal_manual"
             placeholder="Ingresá el rodal manualmente"
-            class="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-neutral-900
-                   placeholder:text-neutral-400
-                   focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+            :class="fieldClass"
           />
         </div>
       </SectionCard>
@@ -368,9 +367,7 @@
           v-model="form.observaciones"
           rows="3"
           placeholder="Notas adicionales..."
-          class="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-neutral-900
-                 placeholder:text-neutral-400 resize-none
-                 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+          :class="`${fieldClass} resize-none min-h-32`"
         />
       </SectionCard>
 
@@ -385,15 +382,15 @@
         <span>{{ store.error }}</span>
       </div>
 
-      <!-- Submit -->
+      <!-- Submit desktop -->
       <button
         type="submit"
         :disabled="store.submitting"
-        class="w-full py-3 px-4 bg-primary hover:bg-primary-dark text-white font-bold text-lg
+        class="hidden md:flex w-full py-3 px-4 bg-primary hover:bg-primary-dark text-white font-bold text-lg
                rounded-xl transition-colors duration-200
                focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
                disabled:opacity-60 disabled:cursor-not-allowed
-               flex items-center justify-center gap-2"
+               items-center justify-center gap-2"
       >
         <svg v-if="store.submitting" class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -401,6 +398,28 @@
         </svg>
         <span>{{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}</span>
       </button>
+
+      <!-- Submit mobile sticky -->
+      <div class="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-neutral-200 bg-neutral-100/95 backdrop-blur-sm px-3 py-3">
+        <div class="max-w-2xl mx-auto">
+          <button
+            type="submit"
+            :disabled="store.submitting"
+            class="w-full py-3.5 px-4 bg-primary text-white font-bold text-xl rounded-2xl disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 shadow-[0_8px_18px_rgba(20,61,35,0.25)]"
+          >
+            <svg v-if="store.submitting" class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            <span>{{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}</span>
+          </button>
+        </div>
+      </div>
     </form>
   </div>
 </template>
@@ -420,6 +439,7 @@ const store = useProduccionStore()
 
 const isEncargado = computed(() => authStore.user?.encargado === 1)
 const cargoCombustible = ref(false)
+const fieldClass = 'w-full px-4 py-3 bg-neutral-100 border border-neutral-300 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 disabled:bg-neutral-200 disabled:cursor-not-allowed transition-colors'
 
 // Campos dinámicos según tipo de proceso seleccionado
 const camposActivos = computed(() => {
