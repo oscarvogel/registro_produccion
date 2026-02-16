@@ -60,3 +60,5 @@ docker-compose.override.yml
 .coverage
 htmlcov/
 .tox/
+AGENTS.MD
+migrations.sql

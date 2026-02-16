@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models.personal import Personal
-from app.schemas.auth import LoginRequest, LoginResponse, UserInfo
+from app.schemas.auth import LoginRequest, LoginResponse, SyncRequest, SyncResponse, UserInfo
 from app.core.security import create_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -32,4 +32,25 @@ async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
             encargado=user.encargado,
             tipo_de_proceso_id=user.tipo_de_proceso_id,
         ),
+    )
+
+
+@router.post("/sincronizar", response_model=SyncResponse)
+async def sincronizar(data: SyncRequest, db: Session = Depends(get_db)):
+    user = db.query(Personal).filter(Personal.dni == data.dni).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No se encontró un usuario con ese DNI",
+        )
+
+    return SyncResponse(
+        user=UserInfo(
+            idPersonal=user.idPersonal,
+            nombre=user.Nombre,
+            dni=user.dni,
+            encargado=user.encargado,
+            tipo_de_proceso_id=user.tipo_de_proceso_id,
+        )
     )

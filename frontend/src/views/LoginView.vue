@@ -135,6 +135,76 @@
             <span>{{ authStore.error }}</span>
           </div>
 
+          <div
+            v-if="syncMessage"
+            class="flex items-center gap-2 p-3 bg-success-light text-success-dark rounded-lg text-sm"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-5 h-5 text-success shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+            <span>{{ syncMessage }}</span>
+          </div>
+
+          <button
+            type="button"
+            @click="handleSync"
+            :disabled="authStore.loading || authStore.syncing"
+            class="w-full py-2.5 px-4 border border-primary text-primary font-medium
+                   rounded-lg transition-colors duration-200
+                   hover:bg-primary-light/20
+                   focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
+                   disabled:opacity-60 disabled:cursor-not-allowed
+                   flex items-center justify-center gap-2"
+          >
+            <svg
+              v-if="authStore.syncing"
+              class="w-5 h-5 animate-spin"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              />
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M3 16h4v4" />
+              <path d="M17 4h4v4" />
+            </svg>
+            <span>{{ authStore.syncing ? 'Sincronizando...' : 'Sincronizar' }}</span>
+          </button>
+
           <!-- Submit button -->
           <button
             type="submit"
@@ -185,8 +255,23 @@ const authStore = useAuthStore()
 const dni = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const syncMessage = ref('')
+
+async function handleSync() {
+  syncMessage.value = ''
+  if (!dni.value?.trim()) {
+    authStore.error = 'Ingresá tu DNI para sincronizar'
+    return
+  }
+  const result = await authStore.sincronizar(dni.value.trim())
+  if (result.ok) {
+    authStore.error = null
+    syncMessage.value = `Datos sincronizados: ${result.user.nombre}`
+  }
+}
 
 async function handleLogin() {
+  syncMessage.value = ''
   const success = await authStore.login(dni.value, password.value)
   if (success) {
     router.push({ name: 'home' })
