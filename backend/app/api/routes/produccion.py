@@ -141,7 +141,7 @@ async def get_movil_by_operador(operador_id: int, db: Session = Depends(get_db))
         .filter(
             MovilOperador.operador_id == operador_id,
             MovilOperador.desde <= today,
-            or_(MovilOperador.hasta >= today, MovilOperador.hasta == "0000-00-00"),
+            or_(MovilOperador.hasta >= today, MovilOperador.hasta.is_(None)),
         )
         .first()
     )

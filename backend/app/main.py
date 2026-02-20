@@ -4,10 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.api.routes import items, auth, produccion
-
 import pymysql
-from app.core.config import settings
-from app.api.routes import items, auth
+
 pymysql.install_as_MySQLdb()
 app = FastAPI(title=settings.PROJECT_NAME)
 

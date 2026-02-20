@@ -9,4 +9,4 @@ class MovilOperador(Base):
     operador_id = Column(Integer, nullable=False, default=0)
     movil_id = Column(String(50), nullable=False, default="0")
     desde = Column(Date, nullable=False)
-    hasta = Column(Date, nullable=False)
+    hasta = Column(Date, nullable=True)
