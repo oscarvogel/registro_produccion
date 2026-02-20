@@ -12,11 +12,13 @@ from app.models.movil import Movil
 from app.models.movil_operador import MovilOperador
 from app.models.ubicacion import Acta, Predio, Rodal
 from app.models.produccion import TableroProduccion
+from app.models.asignacion_operativa import AsignacionOperativa
 from app.schemas.produccion import (
     OperadorResponse,
     UnidadNegocioResponse,
     TipoProcesoResponse,
     MovilResponse,
+    AsignacionOperativaResponse,
     ActaResponse,
     PredioResponse,
     RodalResponse,
@@ -86,12 +88,54 @@ async def list_all_tipos_proceso(db: Session = Depends(get_db)):
     return db.query(TipoDeProceso).filter(TipoDeProceso.activo == 1).order_by(TipoDeProceso.nombre).all()
 
 
-# ─── Buscar movil/maquina por operador ───
+# ─── Asignaciones operativas de un operador ───
+@router.get("/asignaciones/{operador_id}", response_model=List[AsignacionOperativaResponse])
+async def list_asignaciones(operador_id: int, db: Session = Depends(get_db)):
+    """Devuelve todas las asignaciones (movil + proceso) del operador."""
+    rows = (
+        db.query(AsignacionOperativa, Movil)
+        .join(Movil, Movil.idMovil == AsignacionOperativa.idMovil)
+        .filter(
+            AsignacionOperativa.idChofer == operador_id,
+            Movil.activo == 1,
+        )
+        .all()
+    )
+    return [
+        AsignacionOperativaResponse(
+            idAsignacion=asig.idAsignacion,
+            idMovil=asig.idMovil,
+            idChofer=asig.idChofer,
+            idProceso=asig.idProceso,
+            patente=movil.Patente,
+            detalle=movil.Detalle,
+        )
+        for asig, movil in rows
+    ]
+
+
+# ─── Buscar movil/maquina por operador (legacy fallback) ───
 @router.get("/movil-by-operador/{operador_id}", response_model=MovilResponse | None)
 async def get_movil_by_operador(operador_id: int, db: Session = Depends(get_db)):
     today = date.today()
 
-    # 1. Buscar en moviles_operadores (asignación con rango de fechas)
+    # 1. Buscar en asignaciones_operativas primero
+    asig = (
+        db.query(AsignacionOperativa)
+        .filter(AsignacionOperativa.idChofer == operador_id)
+        .first()
+    )
+    if asig:
+        movil = db.query(Movil).filter(Movil.idMovil == asig.idMovil, Movil.activo == 1).first()
+        if movil:
+            return MovilResponse(
+                idMovil=movil.idMovil,
+                patente=movil.Patente,
+                detalle=movil.Detalle,
+                idChofer=movil.idChofer,
+            )
+
+    # 2. Buscar en moviles_operadores (asignación con rango de fechas)
     asignacion = (
         db.query(MovilOperador)
         .filter(
@@ -124,7 +168,7 @@ async def get_movil_by_operador(operador_id: int, db: Session = Depends(get_db))
                 idChofer=movil.idChofer,
             )
 
-    # 2. Fallback: buscar en moviles.idChofer
+    # 3. Fallback: buscar en moviles.idChofer
     movil = (
         db.query(Movil)
         .filter(Movil.idChofer == operador_id, Movil.activo == 1)
@@ -139,6 +183,24 @@ async def get_movil_by_operador(operador_id: int, db: Session = Depends(get_db))
         )
 
     return None
+
+
+# ─── Catálogo de máquinas (con filtro opcional por UN) ───
+@router.get("/moviles", response_model=List[MovilResponse])
+async def list_moviles(un_id: int | None = None, db: Session = Depends(get_db)):
+    query = db.query(Movil).filter(Movil.activo == 1)
+    if un_id:
+        query = query.filter(Movil.idUnidadNegocio == un_id)
+    rows = query.order_by(Movil.Detalle, Movil.Patente).all()
+    return [
+        MovilResponse(
+            idMovil=r.idMovil,
+            patente=r.Patente,
+            detalle=r.Detalle,
+            idChofer=r.idChofer,
+        )
+        for r in rows
+    ]
 
 
 # ─── Actas ───

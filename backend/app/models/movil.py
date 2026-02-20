@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Float, SmallInteger, Text, Numeric
+from sqlalchemy import Column, Integer, String, Date, Float, SmallInteger, Text, Numeric, Boolean
 from app.core.database import Base
 
 
@@ -13,10 +13,30 @@ class Movil(Base):
     UltFecha = Column(Date, nullable=True)
     idUnidadNegocio = Column(Integer, nullable=False, default=1)
     tipo_proceso = Column(String(1), nullable=False, default="1")
+    CantNeumaticos = Column(Integer, nullable=False, default=0)
+    CantRepuesto = Column(Integer, nullable=False, default=0)
     Baja = Column(SmallInteger, nullable=False, default=0)
     activo = Column(SmallInteger, nullable=False, default=1)
     FechaBaja = Column(Date, nullable=True)
     fecha_alta = Column(Date, nullable=True)
+    MotivoBaja = Column(String(100), nullable=False, default="")
+    Remolque = Column(String(17), nullable=False, default="")
+    Porcentaje = Column(Numeric(6, 2), nullable=False, default=0.00)
+    VencTecnica = Column(Date, nullable=True)
+    Ruta = Column(Boolean, nullable=False, default=False)
+    VencRuta = Column(Date, nullable=True)
+    nvocodigo = Column(String(17), nullable=False, default="")
+    nro_chasis = Column(String(80), nullable=False, default="")
+    nro_motor = Column(String(80), nullable=False, default="")
+    anio_fabricacion = Column(Integer, nullable=False, default=0)
+    centro_costo = Column(Integer, nullable=False, default=0)
+    codigo_kobo = Column(String(50), nullable=False, default="")
+    codigo_bertotto = Column(Integer, nullable=False, default=0)
     capacidad_tanque = Column(Integer, nullable=False, default=0)
+    consumo_promedio = Column(Float, nullable=False, default=0)
+    forma_actualizacion = Column(String(1), nullable=False, default="")
     tipo_movil = Column(Integer, nullable=False, default=1)
+    estadistica = Column(SmallInteger, nullable=False, default=1)
+    codigo_gestya = Column(String(150), nullable=False, default="")
+    movil_asociado = Column(Integer, nullable=False, default=0)
     observaciones = Column(Text, nullable=True)

@@ -4,6 +4,8 @@ import api from '@/services/api'
 export const useProduccionStore = defineStore('produccion', {
   state: () => ({
     operadores: [],
+    moviles: [],
+    asignaciones: [],
     unidadesNegocio: [],
     tiposProceso: [],
     todosLosTipos: [],
@@ -27,6 +29,19 @@ export const useProduccionStore = defineStore('produccion', {
         this.operadores = data
       } catch (err) {
         console.error('Error loading operadores:', err)
+      }
+    },
+
+    async fetchMoviles(unId) {
+      this.moviles = []
+      if (!unId) return
+      try {
+        const { data } = await api.get('/api/produccion/moviles', {
+          params: { un_id: unId },
+        })
+        this.moviles = data
+      } catch (err) {
+        console.error('Error loading moviles:', err)
       }
     },
 
@@ -69,6 +84,17 @@ export const useProduccionStore = defineStore('produccion', {
         this.movilAsignado = data
       } catch (err) {
         console.error('Error loading movil:', err)
+      }
+    },
+
+    async fetchAsignaciones(operadorId) {
+      this.asignaciones = []
+      if (!operadorId) return
+      try {
+        const { data } = await api.get(`/api/produccion/asignaciones/${operadorId}`)
+        this.asignaciones = data
+      } catch (err) {
+        console.error('Error loading asignaciones:', err)
       }
     },
 

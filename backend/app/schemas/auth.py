@@ -6,10 +6,6 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class SyncRequest(BaseModel):
-    dni: str
-
-
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -29,7 +25,8 @@ class UserInfo(BaseModel):
 
 class SyncResponse(BaseModel):
     synced: bool = True
-    user: UserInfo
+    message: str
+    total_activos: int
 
 
 # Rebuild model to resolve forward ref
