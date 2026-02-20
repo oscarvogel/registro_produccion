@@ -40,22 +40,14 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async sincronizar(dni) {
+    async sincronizar() {
       this.syncing = true
       this.error = null
       try {
-        const { data } = await api.post('/api/auth/sincronizar', { dni })
-        if (this.user?.idPersonal === data.user.idPersonal) {
-          this.user = data.user
-          localStorage.setItem('user', JSON.stringify(data.user))
-        }
-        return { ok: true, user: data.user }
+        const { data } = await api.post('/api/auth/sincronizar')
+        return { ok: true, data }
       } catch (err) {
-        if (err.response?.status === 404) {
-          this.error = 'No se encontró un usuario con ese DNI'
-        } else {
-          this.error = 'No se pudo sincronizar con el servidor'
-        }
+        this.error = 'No se pudo sincronizar con el servidor'
         return { ok: false }
       } finally {
         this.syncing = false

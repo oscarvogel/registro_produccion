@@ -259,14 +259,10 @@ const syncMessage = ref('')
 
 async function handleSync() {
   syncMessage.value = ''
-  if (!dni.value?.trim()) {
-    authStore.error = 'Ingresá tu DNI para sincronizar'
-    return
-  }
-  const result = await authStore.sincronizar(dni.value.trim())
+  const result = await authStore.sincronizar()
   if (result.ok) {
     authStore.error = null
-    syncMessage.value = `Datos sincronizados: ${result.user.nombre}`
+    syncMessage.value = `${result.data.message}. Personal activo: ${result.data.total_activos}`
   }
 }
 

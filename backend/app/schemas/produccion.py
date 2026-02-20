@@ -44,6 +44,19 @@ class MovilResponse(BaseModel):
         from_attributes = True
 
 
+# --- Asignación Operativa ---
+class AsignacionOperativaResponse(BaseModel):
+    idAsignacion: int
+    idMovil: int
+    idChofer: int
+    idProceso: int
+    patente: str = ""
+    detalle: str = ""
+
+    class Config:
+        from_attributes = True
+
+
 # --- Acta ---
 class ActaResponse(BaseModel):
     id: int
