@@ -117,6 +117,8 @@ class TableroProduccionCreate(BaseModel):
     motivo_no_op: str = "0"
     observaciones: str = "0"
     unidad_produccion: str = "0"
+    tabla: str = "tipo_de_proceso"
+    codigo_tabla: int = 0
 
 
 class TableroProduccionResponse(BaseModel):

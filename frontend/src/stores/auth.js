@@ -1,6 +1,21 @@
 import { defineStore } from 'pinia'
 import api from '@/services/api'
 
+function isTokenExpired(token) {
+  if (!token) return true
+  try {
+    const payloadPart = token.split('.')[1]
+    if (!payloadPart) return true
+    const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/')
+    const normalized = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
+    const payload = JSON.parse(atob(normalized))
+    if (!payload.exp) return false
+    return Date.now() >= payload.exp * 1000
+  } catch {
+    return true
+  }
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: JSON.parse(localStorage.getItem('user') || 'null'),
@@ -11,7 +26,7 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.token,
+    isAuthenticated: (state) => !!state.token && !isTokenExpired(state.token),
     userName: (state) => state.user?.nombre || '',
   },
 
@@ -64,8 +79,10 @@ export const useAuthStore = defineStore('auth', {
 
     // Restore auth header on app init
     initAuth() {
-      if (this.token) {
+      if (this.token && !isTokenExpired(this.token)) {
         api.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
+      } else {
+        this.logout()
       }
     },
   },

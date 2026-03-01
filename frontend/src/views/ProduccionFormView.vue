@@ -977,6 +977,8 @@ async function handleSubmit() {
       motivo_no_op: form.motivo_no_op,
       observaciones: form.observaciones,
       unidad_produccion: resolveUnidadProduccion(),
+      tabla: 'tipo_de_proceso',
+      codigo_tabla: form.tipo_de_proceso_id || 0,
     }
 
     await store.submitProduccion(payload)

@@ -270,6 +270,8 @@ async def create_produccion(data: TableroProduccionCreate, db: Session = Depends
         motivo_no_op=data.motivo_no_op,
         observaciones=data.observaciones,
         unidad_produccion=data.unidad_produccion,
+        tabla=data.tabla,
+        codigo_tabla=data.codigo_tabla,
         fecha_hora=datetime.now(),
         origen="web",
     )

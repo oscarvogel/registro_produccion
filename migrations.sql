@@ -63,3 +63,65 @@ ALTER TABLE personal
 --   (1, 2),  -- UN 1 -> EXTRACCION
 --   (1, 3),  -- UN 1 -> PROCESO
 --   (1, 5);  -- UN 1 -> HORAS MAQUINAS
+
+CREATE TABLE `asignaciones_operativas` (
+  `idAsignacion` int(10) UNSIGNED NOT NULL,
+  `idMovil` int(10) UNSIGNED NOT NULL,
+  `idChofer` int(10) UNSIGNED NOT NULL,
+  `idProceso` int(10) UNSIGNED NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Volcado de datos para la tabla `asignaciones_operativas`
+--
+
+INSERT INTO `asignaciones_operativas` (`idAsignacion`, `idMovil`, `idChofer`, `idProceso`) VALUES
+(1, 302, 626, 3);
+
+--
+-- Índices para tablas volcadas
+--
+
+--
+-- Indices de la tabla `asignaciones_operativas`
+--
+ALTER TABLE `asignaciones_operativas`
+  ADD PRIMARY KEY (`idAsignacion`),
+  ADD KEY `idx_asig_movil` (`idMovil`),
+  ADD KEY `idx_asig_chofer` (`idChofer`),
+  ADD KEY `idx_asig_proceso` (`idProceso`);
+
+--
+-- AUTO_INCREMENT de las tablas volcadas
+--
+
+--
+-- AUTO_INCREMENT de la tabla `asignaciones_operativas`
+--
+ALTER TABLE `asignaciones_operativas`
+  MODIFY `idAsignacion` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- Restricciones para tablas volcadas
+--
+
+--
+-- Filtros para la tabla `asignaciones_operativas`
+--
+ALTER TABLE `asignaciones_operativas`
+  ADD CONSTRAINT `fk_chofer_op` FOREIGN KEY (`idChofer`) REFERENCES `personal` (`idPersonal`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_movil_op` FOREIGN KEY (`idMovil`) REFERENCES `moviles` (`idMovil`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_proceso_op` FOREIGN KEY (`idProceso`) REFERENCES `tipo_de_proceso` (`id`) ON UPDATE CASCADE;
+COMMIT;
+
+CREATE TABLE kpi_definicion (
+  id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nombre          VARCHAR(100) NOT NULL COMMENT 'Ej: Toneladas Despachadas',
+  campo_origen    VARCHAR(80)  NOT NULL COMMENT 'Columna en tablero_produccion que se agrega/promedia',
+  agregacion      ENUM('SUM','AVG','COUNT','MAX','CUSTOM') NOT NULL DEFAULT 'SUM',
+  unidad          VARCHAR(20)  NOT NULL DEFAULT '' COMMENT 'Ej: TN, M3, HAS, KM, HS',
+  icono           VARCHAR(50)  NOT NULL DEFAULT '' COMMENT 'Nombre de ícono Lucide',
+  descripcion     VARCHAR(255) NOT NULL DEFAULT '',
+  activo          TINYINT(1)   NOT NULL DEFAULT 1,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -37,6 +37,15 @@
                 >
                   Producción
                 </router-link>
+                <router-link
+                  v-if="authStore.user?.encargado === 1"
+                  to="/dashboard"
+                  class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                  active-class="!bg-primary-light/20 !text-primary-dark"
+                  exact-active-class="!bg-primary-light/20 !text-primary-dark"
+                >
+                  Dashboard
+                </router-link>
               </div>
             </div>
             <div class="flex items-center gap-4">
@@ -57,7 +66,7 @@
       </main>
 
       <nav v-if="!isProduccionRoute" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200">
-        <div class="grid grid-cols-2 h-20 px-5 pb-1.5">
+        <div :class="['h-20 px-5 pb-1.5 grid', authStore.user?.encargado === 1 ? 'grid-cols-3' : 'grid-cols-2']">
           <router-link
             to="/"
             class="group relative flex flex-col items-center justify-center gap-1.5 rounded-xl text-neutral-500"
@@ -87,6 +96,23 @@
               </svg>
             </span>
             <span class="text-sm font-semibold">Producción</span>
+          </router-link>
+          <router-link
+            v-if="authStore.user?.encargado === 1"
+            to="/dashboard"
+            class="group relative flex flex-col items-center justify-center gap-1.5 rounded-xl text-neutral-500"
+            exact-active-class="!text-primary"
+          >
+            <span class="absolute -top-px h-1.5 w-16 rounded-b-xl bg-transparent group-[.router-link-exact-active]:bg-primary"></span>
+            <span class="flex h-12 w-12 items-center justify-center rounded-3xl bg-transparent group-[.router-link-exact-active]:bg-primary-light/30">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" class="h-6 w-6">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+            </span>
+            <span class="text-sm font-semibold">Dashboard</span>
           </router-link>
         </div>
       </nav>

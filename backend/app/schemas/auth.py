@@ -18,6 +18,7 @@ class UserInfo(BaseModel):
     dni: str
     encargado: int = 0
     tipo_de_proceso_id: int | None = None
+    unidad_negocio: int = 1
 
     class Config:
         from_attributes = True

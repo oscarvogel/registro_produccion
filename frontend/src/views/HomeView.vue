@@ -32,6 +32,20 @@
         CARGA DE PRODUCCIÓN
       </button>
 
+      <button
+        v-if="authStore.user?.encargado === 1"
+        @click="$router.push({ name: 'dashboard' })"
+        class="w-full mt-4 py-3.5 px-7 bg-white border-2 border-primary text-primary text-[1.4rem] md:text-[1.8rem] font-extrabold tracking-wide rounded-[1.5rem] active:scale-[0.99] transition-all duration-150 flex items-center justify-center gap-3 hover:bg-primary hover:text-white"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" class="w-6 h-6 md:w-7 md:h-7">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        VER DASHBOARD
+      </button>
+
       <p class="mt-8 text-neutral-400 text-[1.2rem] md:text-[1.7rem]">Pulse para iniciar un nuevo registro</p>
     </div>
   </div>

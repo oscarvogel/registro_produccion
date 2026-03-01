@@ -14,6 +14,12 @@ const routes = [
   },
   { path: '/', name: 'home', component: HomeView, meta: { requiresAuth: true } },
   { path: '/produccion', name: 'produccion', component: ProduccionFormView, meta: { requiresAuth: true } },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: () => import('../views/DashboardView.vue'),
+    meta: { requiresAuth: true, requiresEncargado: true },
+  },
   { path: '/items', name: 'items', component: ItemsView, meta: { requiresAuth: true } },
 ]
 
@@ -27,6 +33,8 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })
+  } else if (to.meta.requiresEncargado && authStore.user?.encargado !== 1) {
+    next({ name: 'home' })
   } else if (to.name === 'login' && authStore.isAuthenticated) {
     next({ name: 'home' })
   } else {

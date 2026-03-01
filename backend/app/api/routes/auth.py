@@ -32,6 +32,7 @@ async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
             dni=user.dni,
             encargado=user.encargado,
             tipo_de_proceso_id=user.tipo_de_proceso_id,
+            unidad_negocio=user.unidad_negocio,
         ),
     )
 
