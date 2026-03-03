@@ -92,29 +92,19 @@ def _base_filters(query, tp_ids: list[int], movil_id: int | None, fecha_desde: d
     return query
 
 
-def _apply_data_filters(base, filter_tp_ids: list[int] | None, movil_id: int | None, fecha_desde: date | None, fecha_hasta: date | None):
-    """Aplica filtros de datos (tipo proceso explícito, móvil, fechas) a un query base."""
-    if filter_tp_ids:
-        base = base.filter(TableroProduccion.codigo_tabla.in_(filter_tp_ids))
+def _compute_kpi_value(db: Session, kpi: KpiDefinicion, tp_ids: list[int], movil_id: int | None, fecha_desde: date | None, fecha_hasta: date | None, un_id: int) -> float:
+    """Calcula el valor de un KPI dado los filtros."""
+    campo = kpi.campo_origen
+
+    base = db.query(TableroProduccion).filter(TableroProduccion.cod_un == un_id)
+    if tp_ids:
+        base = base.filter(TableroProduccion.codigo_tabla.in_(tp_ids))
     if movil_id is not None:
         base = base.filter(TableroProduccion.cod_equipo == movil_id)
     if fecha_desde is not None:
         base = base.filter(TableroProduccion.fecha >= fecha_desde)
     if fecha_hasta is not None:
         base = base.filter(TableroProduccion.fecha <= fecha_hasta)
-    return base
-
-
-def _compute_kpi_value(db: Session, kpi: KpiDefinicion, filter_tp_ids: list[int] | None, movil_id: int | None, fecha_desde: date | None, fecha_hasta: date | None, un_id: int) -> float:
-    """Calcula el valor de un KPI dado los filtros.
-    
-    filter_tp_ids: lista con un solo ID cuando el usuario eligió un tipo de proceso
-                   explícitamente, o None/[] para mostrar todos los datos de la UN.
-    """
-    campo = kpi.campo_origen
-
-    base = db.query(TableroProduccion).filter(TableroProduccion.cod_un == un_id)
-    base = _apply_data_filters(base, filter_tp_ids, movil_id, fecha_desde, fecha_hasta)
 
     if campo == "CUSTOM:horas_trabajadas":
         result = base.with_entities(func.sum(TableroProduccion.hr_fin - TableroProduccion.hr_inicio)).scalar()
@@ -150,7 +140,7 @@ def _compute_kpi_value(db: Session, kpi: KpiDefinicion, filter_tp_ids: list[int]
     return round(float(result or 0), 2)
 
 
-def _compute_variation(db: Session, kpi: KpiDefinicion, filter_tp_ids: list[int] | None, movil_id: int | None, fecha_desde: date | None, fecha_hasta: date | None, un_id: int) -> float | None:
+def _compute_variation(db: Session, kpi: KpiDefinicion, tp_ids: list[int], movil_id: int | None, fecha_desde: date | None, fecha_hasta: date | None, un_id: int) -> float | None:
     """Calcula la variación porcentual comparando con el período anterior equivalente."""
     if fecha_desde is None or fecha_hasta is None:
         return None
@@ -159,8 +149,8 @@ def _compute_variation(db: Session, kpi: KpiDefinicion, filter_tp_ids: list[int]
     prev_hasta = fecha_desde - timedelta(days=1)
     prev_desde = prev_hasta - delta
 
-    current_val = _compute_kpi_value(db, kpi, filter_tp_ids, movil_id, fecha_desde, fecha_hasta, un_id)
-    prev_val = _compute_kpi_value(db, kpi, filter_tp_ids, movil_id, prev_desde, prev_hasta, un_id)
+    current_val = _compute_kpi_value(db, kpi, tp_ids, movil_id, fecha_desde, fecha_hasta, un_id)
+    prev_val = _compute_kpi_value(db, kpi, tp_ids, movil_id, prev_desde, prev_hasta, un_id)
 
     if prev_val == 0:
         return None
@@ -222,85 +212,37 @@ async def get_kpis(
     db: Session = Depends(get_db),
 ):
     _verify_un(user, un_id)
-    # config_tp_ids: tipos de proceso para buscar configuración de KPIs
-    # filter_tp_ids: para filtrar datos de tablero_produccion
-    if tipo_proceso_id is not None:
-        config_tp_ids = [tipo_proceso_id]
-        filter_tp_ids = [tipo_proceso_id]
-    else:
-        config_tp_ids = _get_tipo_proceso_ids(db, un_id)
-        filter_tp_ids = None
+    tp_ids = _get_tipo_proceso_ids(db, un_id, tipo_proceso_id)
 
-    # Obtener KPIs aplicables según el tipo de proceso seleccionado
+    # Obtener KPIs aplicables
     kpi_rows = (
         db.query(KpiDefinicion, TipoProcesoKpi.es_principal, TipoProcesoKpi.orden)
         .join(TipoProcesoKpi, TipoProcesoKpi.kpi_id == KpiDefinicion.id)
-        .filter(TipoProcesoKpi.tipo_proceso_id.in_(config_tp_ids), KpiDefinicion.activo == 1)
+        .filter(TipoProcesoKpi.tipo_proceso_id.in_(tp_ids), KpiDefinicion.activo == 1)
         .order_by(TipoProcesoKpi.es_principal.desc(), TipoProcesoKpi.orden)
         .all()
     )
 
     # Deduplicar KPIs (un KPI puede aparecer en varios tipo_proceso)
-    # Cuando hay múltiples tipos seleccionados ("Todos"), solo mostrar KPIs comunes
-    # y usar Horas Trabajadas como principal del resumen general.
-    is_multi = len(config_tp_ids) > 1
     seen = set()
     kpis_result: list[KpiItem] = []
+    for kpi_def, es_principal, orden in kpi_rows:
+        if kpi_def.id in seen:
+            continue
+        seen.add(kpi_def.id)
 
-    if is_multi:
-        # Contar en cuántos tipos aparece cada KPI
-        from collections import Counter
-        kpi_tp_count = Counter()
-        for kpi_def, _, _ in kpi_rows:
-            kpi_tp_count[kpi_def.id] += 1
-        total_tps = len(config_tp_ids)
+        valor = _compute_kpi_value(db, kpi_def, tp_ids, movil_id, fecha_desde, fecha_hasta, un_id)
+        variacion = _compute_variation(db, kpi_def, tp_ids, movil_id, fecha_desde, fecha_hasta, un_id)
 
-        # Solo KPIs que aparecen en todos los tipos de proceso (comunes)
-        common_kpi_ids = {kid for kid, cnt in kpi_tp_count.items() if cnt >= total_tps}
-
-        for kpi_def, es_principal, orden in kpi_rows:
-            if kpi_def.id in seen:
-                continue
-            if kpi_def.id not in common_kpi_ids:
-                continue
-            seen.add(kpi_def.id)
-
-            # En vista "Todos", Horas Trabajadas es el KPI principal
-            is_hero = (kpi_def.campo_origen == "CUSTOM:horas_trabajadas")
-
-            valor = _compute_kpi_value(db, kpi_def, filter_tp_ids, movil_id, fecha_desde, fecha_hasta, un_id)
-            variacion = _compute_variation(db, kpi_def, filter_tp_ids, movil_id, fecha_desde, fecha_hasta, un_id)
-
-            kpis_result.append(KpiItem(
-                id=kpi_def.id,
-                nombre=kpi_def.nombre,
-                valor=valor,
-                unidad=kpi_def.unidad,
-                icono=kpi_def.icono,
-                es_principal=is_hero,
-                variacion_porcentual=variacion,
-            ))
-
-        # Ordenar: principal primero, luego por orden
-        kpis_result.sort(key=lambda k: (not k.es_principal, 0))
-    else:
-        for kpi_def, es_principal, orden in kpi_rows:
-            if kpi_def.id in seen:
-                continue
-            seen.add(kpi_def.id)
-
-            valor = _compute_kpi_value(db, kpi_def, filter_tp_ids, movil_id, fecha_desde, fecha_hasta, un_id)
-            variacion = _compute_variation(db, kpi_def, filter_tp_ids, movil_id, fecha_desde, fecha_hasta, un_id)
-
-            kpis_result.append(KpiItem(
-                id=kpi_def.id,
-                nombre=kpi_def.nombre,
-                valor=valor,
-                unidad=kpi_def.unidad,
-                icono=kpi_def.icono,
-                es_principal=bool(es_principal),
-                variacion_porcentual=variacion,
-            ))
+        kpis_result.append(KpiItem(
+            id=kpi_def.id,
+            nombre=kpi_def.nombre,
+            valor=valor,
+            unidad=kpi_def.unidad,
+            icono=kpi_def.icono,
+            es_principal=bool(es_principal),
+            variacion_porcentual=variacion,
+        ))
 
     # Nombre del tipo de proceso para filtros_aplicados
     tp_nombre = None
@@ -335,38 +277,31 @@ async def get_evolucion(
     db: Session = Depends(get_db),
 ):
     _verify_un(user, un_id)
-    if tipo_proceso_id is not None:
-        config_tp_ids = [tipo_proceso_id]
-        filter_tp_ids = [tipo_proceso_id]
-    else:
-        config_tp_ids = _get_tipo_proceso_ids(db, un_id)
-        filter_tp_ids = None
+    tp_ids = _get_tipo_proceso_ids(db, un_id, tipo_proceso_id)
 
-    # Obtener el KPI principal del tipo de proceso seleccionado
-    is_multi = len(config_tp_ids) > 1
-    if is_multi:
-        # En vista "Todos", usar Horas Trabajadas como KPI del gráfico
-        kpi_def = db.query(KpiDefinicion).filter(
-            KpiDefinicion.campo_origen == "CUSTOM:horas_trabajadas",
-            KpiDefinicion.activo == 1,
-        ).first()
-        if not kpi_def:
-            return EvolucionResponse(labels=[], datasets=[])
-    else:
-        principal = (
-            db.query(KpiDefinicion, TipoProcesoKpi)
-            .join(TipoProcesoKpi, TipoProcesoKpi.kpi_id == KpiDefinicion.id)
-            .filter(TipoProcesoKpi.tipo_proceso_id.in_(config_tp_ids), TipoProcesoKpi.es_principal == 1, KpiDefinicion.activo == 1)
-            .first()
-        )
-        if not principal:
-            return EvolucionResponse(labels=[], datasets=[])
-        kpi_def = principal[0]
+    # Obtener el KPI principal
+    principal = (
+        db.query(KpiDefinicion, TipoProcesoKpi)
+        .join(TipoProcesoKpi, TipoProcesoKpi.kpi_id == KpiDefinicion.id)
+        .filter(TipoProcesoKpi.tipo_proceso_id.in_(tp_ids), TipoProcesoKpi.es_principal == 1, KpiDefinicion.activo == 1)
+        .first()
+    )
+    if not principal:
+        return EvolucionResponse(labels=[], datasets=[])
+
+    kpi_def = principal[0]
     campo = kpi_def.campo_origen
 
     # Base query
     base = db.query(TableroProduccion).filter(TableroProduccion.cod_un == un_id)
-    base = _apply_data_filters(base, filter_tp_ids, movil_id, fecha_desde, fecha_hasta)
+    if tp_ids:
+        base = base.filter(TableroProduccion.codigo_tabla.in_(tp_ids))
+    if movil_id is not None:
+        base = base.filter(TableroProduccion.cod_equipo == movil_id)
+    if fecha_desde is not None:
+        base = base.filter(TableroProduccion.fecha >= fecha_desde)
+    if fecha_hasta is not None:
+        base = base.filter(TableroProduccion.fecha <= fecha_hasta)
 
     # Agrupar por fecha
     if campo == "CUSTOM:horas_trabajadas":
@@ -409,33 +344,19 @@ async def get_ranking_maquinas(
     db: Session = Depends(get_db),
 ):
     _verify_un(user, un_id)
-    if tipo_proceso_id is not None:
-        config_tp_ids = [tipo_proceso_id]
-        filter_tp_ids = [tipo_proceso_id]
-    else:
-        config_tp_ids = _get_tipo_proceso_ids(db, un_id)
-        filter_tp_ids = None
+    tp_ids = _get_tipo_proceso_ids(db, un_id, tipo_proceso_id)
 
-    # Obtener KPI principal del tipo de proceso seleccionado
-    is_multi = len(config_tp_ids) > 1
-    if is_multi:
-        # En vista "Todos", usar Horas Trabajadas como KPI del ranking
-        kpi_def = db.query(KpiDefinicion).filter(
-            KpiDefinicion.campo_origen == "CUSTOM:horas_trabajadas",
-            KpiDefinicion.activo == 1,
-        ).first()
-        if not kpi_def:
-            return []
-    else:
-        principal = (
-            db.query(KpiDefinicion, TipoProcesoKpi)
-            .join(TipoProcesoKpi, TipoProcesoKpi.kpi_id == KpiDefinicion.id)
-            .filter(TipoProcesoKpi.tipo_proceso_id.in_(config_tp_ids), TipoProcesoKpi.es_principal == 1, KpiDefinicion.activo == 1)
-            .first()
-        )
-        if not principal:
-            return []
-        kpi_def = principal[0]
+    # Obtener KPI principal
+    principal = (
+        db.query(KpiDefinicion, TipoProcesoKpi)
+        .join(TipoProcesoKpi, TipoProcesoKpi.kpi_id == KpiDefinicion.id)
+        .filter(TipoProcesoKpi.tipo_proceso_id.in_(tp_ids), TipoProcesoKpi.es_principal == 1, KpiDefinicion.activo == 1)
+        .first()
+    )
+    if not principal:
+        return []
+
+    kpi_def = principal[0]
     campo = kpi_def.campo_origen
 
     # Base
@@ -444,7 +365,14 @@ async def get_ranking_maquinas(
         .join(Movil, Movil.idMovil == TableroProduccion.cod_equipo)
         .filter(TableroProduccion.cod_un == un_id)
     )
-    base = _apply_data_filters(base, filter_tp_ids, movil_id, fecha_desde, fecha_hasta)
+    if tp_ids:
+        base = base.filter(TableroProduccion.codigo_tabla.in_(tp_ids))
+    if movil_id is not None:
+        base = base.filter(TableroProduccion.cod_equipo == movil_id)
+    if fecha_desde is not None:
+        base = base.filter(TableroProduccion.fecha >= fecha_desde)
+    if fecha_hasta is not None:
+        base = base.filter(TableroProduccion.fecha <= fecha_hasta)
 
     if campo == "CUSTOM:horas_trabajadas":
         agg_expr = func.sum(TableroProduccion.hr_fin - TableroProduccion.hr_inicio)
