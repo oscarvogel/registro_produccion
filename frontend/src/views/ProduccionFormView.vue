@@ -310,6 +310,7 @@
             v-model.number="form.tn_despachadas"
             placeholder="Toneladas"
             min="0"
+            required
           />
 
           <!-- Carros -->
@@ -320,6 +321,7 @@
             v-model.number="form.carros"
             placeholder="Cantidad de carros"
             min="0"
+            required
           />
 
           <!-- Distancia recorrida -->
@@ -330,6 +332,7 @@
             v-model.number="form.mtrs_recorridos"
             placeholder="Metros"
             min="0"
+            required
           />
 
           <!-- M3 -->
@@ -340,6 +343,7 @@
             v-model.number="form.m3"
             placeholder="M³"
             min="0"
+            required
           />
 
           <!-- Plantas -->
@@ -350,6 +354,7 @@
             v-model.number="form.plantas"
             placeholder="Cantidad de plantas"
             min="0"
+            required
           />
 
           <!-- Hora inicio / fin (para HORAS MAQUINAS) -->
@@ -383,6 +388,7 @@
             placeholder="Hectáreas"
             min="0"
             step="0.01"
+            required
           />
 
           <!-- Horas a disposición -->
@@ -393,6 +399,7 @@
             v-model.number="form.hr_disposicion"
             placeholder="Horas"
             min="0"
+            required
           />
 
           <!-- KM -->
@@ -403,6 +410,7 @@
             v-model.number="form.km"
             placeholder="KM"
             min="0"
+            required
           />
         </div>
       </SectionCard>
@@ -450,9 +458,10 @@
           <label class="block text-sm font-medium text-neutral-700 mb-1">Acta</label>
           <select
             v-model="form.acta"
+            required
             :class="fieldClass"
           >
-            <option value="">— Sin acta —</option>
+            <option value="" disabled>— Seleccionar acta —</option>
             <option v-for="a in store.actas" :key="a.id" :value="a.numero">
               {{ a.numero }}
             </option>
@@ -464,9 +473,10 @@
           <select
             v-model="form.predio_id"
             @change="onPredioChange"
+            required
             :class="fieldClass"
           >
-            <option value="">— Sin predio —</option>
+            <option value="" disabled>— Seleccionar predio —</option>
             <option v-for="p in store.predios" :key="p.idPredio" :value="p.idPredio">
               {{ p.nombre }}
             </option>
@@ -478,6 +488,7 @@
           <select
             v-if="store.rodales.length > 0"
             v-model="form.rodal_id"
+            required
             :class="fieldClass"
           >
             <option value="">— Seleccionar rodal —</option>
@@ -490,6 +501,7 @@
             type="text"
             v-model="form.rodal_manual"
             placeholder="Ingresá el rodal manualmente"
+            required
             :class="fieldClass"
           />
         </div>
@@ -547,7 +559,7 @@
           <button
             v-else
             type="submit"
-            :disabled="store.submitting"
+            :disabled="store.submitting || !puedeAvanzar"
             class="flex-1 py-3.5 px-4 bg-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2.5 shadow-[0_8px_18px_rgba(20,61,35,0.25)] disabled:opacity-60 disabled:cursor-not-allowed active:bg-primary-dark transition-colors"
           >
             <svg v-if="store.submitting" class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -594,13 +606,60 @@ const pasoActual = ref(0)
 const pasos = ['Fecha', 'Unidad de Negocio', 'Operador', 'Maquinaria', 'Tiempo', 'Producción', 'Ubicación']
 const totalPasos = pasos.length
 
+function hasPositiveValue(value) {
+  return Number(value) > 0
+}
+
+function validateTiempoStep() {
+  return hasPositiveValue(form.hr_inicio) && hasPositiveValue(form.hr_fin)
+}
+
+function validateProduccionStep() {
+  const validators = {
+    tn_despachadas: () => hasPositiveValue(form.tn_despachadas),
+    carros: () => hasPositiveValue(form.carros),
+    distancia_recorrida: () => hasPositiveValue(form.mtrs_recorridos),
+    m3: () => hasPositiveValue(form.m3),
+    plantas: () => hasPositiveValue(form.plantas),
+    has: () => hasPositiveValue(form.has),
+    horas_disposicion: () => hasPositiveValue(form.hr_disposicion),
+    km: () => hasPositiveValue(form.km),
+    hora_inicio: () => true,
+  }
+
+  const productionComplete = camposActivos.value.every((campo) => {
+    const validator = validators[campo]
+    return validator ? validator() : true
+  })
+
+  if (!productionComplete) {
+    return false
+  }
+
+  return !cargoCombustible.value || hasPositiveValue(form.combustible)
+}
+
+function validateUbicacionStep() {
+  if (!form.acta || !form.predio_id) {
+    return false
+  }
+
+  if (store.rodales.length > 0) {
+    return !!form.rodal_id
+  }
+
+  return !!String(form.rodal_manual || '').trim()
+}
+
 const puedeAvanzar = computed(() => {
   switch (pasoActual.value) {
     case 0: return !!form.fecha
     case 1: return !!form.un_id && !!form.tipo_de_proceso_id
     case 2: return !!form.operador_id
     case 3: return form.cod_equipo > 0
-    case 4: return true
+    case 4: return validateTiempoStep()
+    case 5: return validateProduccionStep()
+    case 6: return validateUbicacionStep()
     default: return true
   }
 })
@@ -936,6 +995,11 @@ async function handleSubmit() {
     avanzar()
     return
   }
+
+  if (!puedeAvanzar.value) {
+    return
+  }
+
   try {
     const nombre = tipoProcesoNombre.value
 
