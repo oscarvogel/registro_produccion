@@ -753,6 +753,69 @@ const form = reactive({
   observaciones: '',
 })
 
+const actaNormalizada = computed(() => String(form.acta ?? '').trim())
+
+const horasValidas = computed(() => {
+  const inicio = Number(form.hr_inicio)
+  const fin = Number(form.hr_fin)
+  return inicio > 0 && fin > 0 && fin > inicio
+})
+
+const produccionValida = computed(() => {
+  if (!form.tipo_de_proceso_id || camposActivos.value.length === 0) return true
+
+  const validadores = {
+    tn_despachadas: () => Number(form.tn_despachadas) > 0,
+    carros: () => Number(form.carros) > 0,
+    distancia_recorrida: () => Number(form.mtrs_recorridos) > 0,
+    m3: () => Number(form.m3) > 0,
+    plantas: () => Number(form.plantas) > 0,
+    has: () => Number(form.has) > 0,
+    horas_disposicion: () => Number(form.hr_disposicion) > 0,
+    km: () => Number(form.km) > 0,
+    hora_inicio: () => horasValidas.value,
+  }
+
+  return camposActivos.value.every((campo) => {
+    const validar = validadores[campo]
+    return typeof validar === 'function' ? validar() : true
+  })
+})
+
+const rodalCompleto = computed(() => {
+  if (form.rodal_id) return true
+  return String(form.rodal_manual ?? '').trim().length > 0
+})
+
+const ubicacionValida = computed(() => {
+  return !!actaNormalizada.value && !!form.predio_id && rodalCompleto.value
+})
+
+const mostrarErrorHoras = computed(() => {
+  return pasoActual.value >= 4 && !horasValidas.value
+})
+
+const mostrarErrorProduccion = computed(() => {
+  return pasoActual.value >= 5 && !produccionValida.value
+})
+
+const mostrarErrorUbicacion = computed(() => {
+  return pasoActual.value >= 6 && !ubicacionValida.value
+})
+
+const mensajePasoIncompleto = computed(() => {
+  if (pasoActual.value === 4 && !horasValidas.value) {
+    return 'Revisá las horas: inicio y fin deben ser mayores a 0, y fin mayor que inicio.'
+  }
+  if (pasoActual.value === 5 && !produccionValida.value) {
+    return 'Completá los campos de producción con valores mayores a 0 para continuar.'
+  }
+  if (pasoActual.value === 6 && !ubicacionValida.value) {
+    return 'Completá Acta, Predio y Rodal para poder guardar el registro.'
+  }
+  return ''
+})
+
 // ─── Load initial data ───
 onMounted(async () => {
   await store.loadCatalogos()
