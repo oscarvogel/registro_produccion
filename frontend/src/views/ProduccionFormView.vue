@@ -462,6 +462,7 @@
             :class="fieldClass"
           >
             <option value="" disabled>— Seleccionar acta —</option>
+            <option value="0">— Sin acta —</option>
             <option v-for="a in store.actas" :key="a.id" :value="a.numero">
               {{ a.numero }}
             </option>
