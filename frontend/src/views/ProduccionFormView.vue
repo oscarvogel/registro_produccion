@@ -318,7 +318,6 @@
             v-model.number="form.tn_despachadas"
             placeholder="Toneladas"
             min="0"
-            :invalid="mostrarErrorProduccion && form.tn_despachadas <= 0"
           />
 
           <!-- Carros -->
@@ -329,7 +328,6 @@
             v-model.number="form.carros"
             placeholder="Cantidad de carros"
             min="0"
-            :invalid="mostrarErrorProduccion && form.carros <= 0"
           />
 
           <!-- Distancia recorrida -->
@@ -340,7 +338,6 @@
             v-model.number="form.mtrs_recorridos"
             placeholder="Metros"
             min="0"
-            :invalid="mostrarErrorProduccion && form.mtrs_recorridos <= 0"
           />
 
           <!-- M3 -->
@@ -351,7 +348,6 @@
             v-model.number="form.m3"
             placeholder="M³"
             min="0"
-            :invalid="mostrarErrorProduccion && form.m3 <= 0"
           />
 
           <!-- Plantas -->
@@ -362,7 +358,6 @@
             v-model.number="form.plantas"
             placeholder="Cantidad de plantas"
             min="0"
-            :invalid="mostrarErrorProduccion && form.plantas <= 0"
           />
 
           <!-- Hora inicio / fin (para HORAS MAQUINAS) -->
@@ -402,7 +397,6 @@
             placeholder="Hectáreas"
             min="0"
             step="0.01"
-            :invalid="mostrarErrorProduccion && form.has <= 0"
           />
 
           <!-- Horas a disposición -->
@@ -413,7 +407,6 @@
             v-model.number="form.hr_disposicion"
             placeholder="Horas"
             min="0"
-            :invalid="mostrarErrorProduccion && form.hr_disposicion <= 0"
           />
 
           <!-- KM -->
@@ -424,7 +417,6 @@
             v-model.number="form.km"
             placeholder="KM"
             min="0"
-            :invalid="mostrarErrorProduccion && form.km <= 0"
           />
         </div>
         <div
@@ -478,13 +470,9 @@
           <label class="block text-sm font-medium text-neutral-700 mb-1">Acta</label>
           <select
             v-model="form.acta"
-            required
-            :class="[
-              fieldClass,
-              mostrarErrorUbicacion && requiereActa && !form.acta ? 'border-error focus:border-error focus:ring-error/30' : '',
-            ]"
+            :class="fieldClass"
           >
-            <option value="" disabled>— Seleccionar acta —</option>
+            <option value="">— Sin acta —</option>
             <option v-for="a in store.actas" :key="a.id" :value="a.numero">
               {{ a.numero }}
             </option>
@@ -496,11 +484,7 @@
           <select
             v-model="form.predio_id"
             @change="onPredioChange"
-            required
-            :class="[
-              fieldClass,
-              mostrarErrorUbicacion && requierePredio && !form.predio_id ? 'border-error focus:border-error focus:ring-error/30' : '',
-            ]"
+            :class="fieldClass"
           >
             <option value="" disabled>— Seleccionar predio —</option>
             <option v-for="p in store.predios" :key="p.idPredio" :value="p.idPredio">
@@ -514,11 +498,7 @@
           <select
             v-if="store.rodales.length > 0"
             v-model="form.rodal_id"
-            required
-            :class="[
-              fieldClass,
-              mostrarErrorUbicacion && requiereRodal && !form.rodal_id ? 'border-error focus:border-error focus:ring-error/30' : '',
-            ]"
+            :class="fieldClass"
           >
             <option value="">— Seleccionar rodal —</option>
             <option v-for="r in store.rodales" :key="r.idRodal" :value="r.idRodal">
@@ -530,10 +510,7 @@
             type="text"
             v-model="form.rodal_manual"
             placeholder="Ingresá el rodal manualmente"
-            :class="[
-              fieldClass,
-              mostrarErrorUbicacion && requiereRodal && !form.rodal_manual?.trim() ? 'border-error focus:border-error focus:ring-error/30' : '',
-            ]"
+            :class="fieldClass"
           />
         </div>
         <div
@@ -596,7 +573,7 @@
           <button
             v-else
             type="submit"
-            :disabled="store.submitting || !formularioCompleto"
+            :disabled="store.submitting"
             class="flex-1 py-3.5 px-4 bg-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2.5 shadow-[0_8px_18px_rgba(20,61,35,0.25)] disabled:opacity-60 disabled:cursor-not-allowed active:bg-primary-dark transition-colors"
           >
             <svg v-if="store.submitting" class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -646,104 +623,13 @@ const pasoActual = ref(0)
 const pasos = ['Fecha', 'Unidad de Negocio', 'Operador', 'Maquinaria', 'Tiempo', 'Producción', 'Ubicación']
 const totalPasos = pasos.length
 
-const horasValidas = computed(() => {
-  return form.hr_inicio > 0 && form.hr_fin > 0 && form.hr_fin > form.hr_inicio
-})
-
-const mostrarErrorHoras = computed(() => {
-  return (form.hr_inicio > 0 || form.hr_fin > 0) && !horasValidas.value
-})
-
-const produccionValida = computed(() => {
-  const campos = camposActivos.value
-
-  if (campos.includes('tn_despachadas') && form.tn_despachadas <= 0) return false
-  if (campos.includes('carros') && form.carros <= 0) return false
-  if (campos.includes('distancia_recorrida') && form.mtrs_recorridos <= 0) return false
-  if (campos.includes('m3') && form.m3 <= 0) return false
-  if (campos.includes('plantas') && form.plantas <= 0) return false
-  if (campos.includes('hora_inicio') && !horasValidas.value) return false
-  if (campos.includes('has') && form.has <= 0) return false
-  if (campos.includes('horas_disposicion') && form.hr_disposicion <= 0) return false
-  if (campos.includes('km') && form.km <= 0) return false
-  if (cargoCombustible.value && form.combustible <= 0) return false
-
-  return true
-})
-
-const mostrarErrorProduccion = computed(() => {
-  return pasoActual.value === 5 && !produccionValida.value
-})
-
-const requiereActa = computed(() => true)
-const requierePredio = computed(() => store.predios.length > 0)
-const requiereRodal = computed(() => !!form.predio_id)
-
-const actaNormalizada = computed(() => String(form.acta ?? '').trim())
-const predioNormalizado = computed(() => String(form.predio_id ?? '').trim())
-const rodalIdNormalizado = computed(() => String(form.rodal_id ?? '').trim())
-const rodalManualNormalizado = computed(() => String(form.rodal_manual ?? '').trim())
-
-const rodalValido = computed(() => {
-  if (!requiereRodal.value) return true
-  if (store.rodales.length > 0) return !!rodalIdNormalizado.value && rodalIdNormalizado.value !== '0'
-  return !!rodalManualNormalizado.value && rodalManualNormalizado.value !== '0'
-})
-
-const ubicacionValida = computed(() => {
-  if (requiereActa.value && (!actaNormalizada.value || actaNormalizada.value === '0')) return false
-  if (requierePredio.value && (!predioNormalizado.value || predioNormalizado.value === '0')) return false
-  if (!rodalValido.value) return false
-  return true
-})
-
-const mostrarErrorUbicacion = computed(() => {
-  return pasoActual.value === 6 && !ubicacionValida.value
-})
-
-const formularioCompleto = computed(() => {
-  if (!form.fecha) return false
-  if (!form.un_id) return false
-  if (!form.tipo_de_proceso_id) return false
-  if (!form.operador_id) return false
-  if (!(form.cod_equipo > 0)) return false
-  if (!horasValidas.value) return false
-  if (!produccionValida.value) return false
-  if (!ubicacionValida.value) return false
-  return true
-})
-
-const mensajePasoIncompleto = computed(() => {
-  switch (pasoActual.value) {
-    case 0:
-      return form.fecha ? '' : 'Seleccioná una fecha para continuar.'
-    case 1:
-      if (!form.un_id) return 'Seleccioná la unidad de negocio.'
-      if (!form.tipo_de_proceso_id) return 'Seleccioná el tipo de proceso.'
-      return ''
-    case 2:
-      return form.operador_id ? '' : 'Seleccioná un operador para continuar.'
-    case 3:
-      return form.cod_equipo > 0 ? '' : 'Seleccioná una máquina para continuar.'
-    case 4:
-      return horasValidas.value ? '' : 'Completá horas válidas: inicio y fin > 0, y fin mayor a inicio.'
-    case 5:
-      return produccionValida.value ? '' : 'Completá los campos de producción requeridos con valores mayores a 0.'
-    case 6:
-      return ubicacionValida.value ? '' : 'Completá Acta, Predio y Rodal cuando sean solicitados.'
-    default:
-      return ''
-  }
-})
-
 const puedeAvanzar = computed(() => {
   switch (pasoActual.value) {
     case 0: return !!form.fecha
     case 1: return !!form.un_id && !!form.tipo_de_proceso_id
     case 2: return !!form.operador_id
     case 3: return form.cod_equipo > 0
-    case 4: return horasValidas.value
-    case 5: return produccionValida.value
+    case 4: return true
     default: return true
   }
 })
@@ -1105,6 +991,11 @@ async function handleSubmit() {
     avanzar()
     return
   }
+
+  if (!puedeAvanzar.value) {
+    return
+  }
+
   try {
     if (!actaNormalizada.value || actaNormalizada.value === '0') {
       await Swal.fire({
