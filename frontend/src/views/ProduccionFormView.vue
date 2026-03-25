@@ -256,7 +256,8 @@
             type="number"
             v-model.number="form.hr_inicio"
             placeholder="Ej: 1200"
-            min="0"
+            min="1"
+            :invalid="mostrarErrorHoras"
             required
           />
           <InputField
@@ -264,9 +265,16 @@
             type="number"
             v-model.number="form.hr_fin"
             placeholder="Ej: 1850"
-            min="0"
+            min="1"
+            :invalid="mostrarErrorHoras"
             required
           />
+        </div>
+        <div
+          v-if="mostrarErrorHoras"
+          class="mt-3 px-3 py-2 bg-error-light/40 border border-error/30 rounded-lg text-sm text-error-dark"
+        >
+          La hora de inicio y fin deben ser mayores a 0, y la hora final debe ser mayor a la inicial.
         </div>
         <div class="grid grid-cols-2 gap-4 mt-3">
           <InputField
@@ -310,7 +318,6 @@
             v-model.number="form.tn_despachadas"
             placeholder="Toneladas"
             min="0"
-            required
           />
 
           <!-- Carros -->
@@ -321,7 +328,6 @@
             v-model.number="form.carros"
             placeholder="Cantidad de carros"
             min="0"
-            required
           />
 
           <!-- Distancia recorrida -->
@@ -332,7 +338,6 @@
             v-model.number="form.mtrs_recorridos"
             placeholder="Metros"
             min="0"
-            required
           />
 
           <!-- M3 -->
@@ -343,7 +348,6 @@
             v-model.number="form.m3"
             placeholder="M³"
             min="0"
-            required
           />
 
           <!-- Plantas -->
@@ -354,7 +358,6 @@
             v-model.number="form.plantas"
             placeholder="Cantidad de plantas"
             min="0"
-            required
           />
 
           <!-- Hora inicio / fin (para HORAS MAQUINAS) -->
@@ -364,19 +367,25 @@
               type="number"
               v-model.number="form.hr_inicio"
               placeholder="Ej: 1200"
-              min="0"
+              min="1"
+              :invalid="mostrarErrorHoras || (mostrarErrorProduccion && form.hr_inicio <= 0)"
             />
             <InputField
               label="Hora Fin Máq."
               type="number"
               v-model.number="form.hr_fin"
               placeholder="Ej: 1850"
-              min="0"
+              min="1"
+              :invalid="mostrarErrorHoras || (mostrarErrorProduccion && form.hr_fin <= form.hr_inicio)"
             />
           </div>
           <div v-if="camposActivos.includes('hora_inicio') && form.hr_fin > form.hr_inicio"
                class="px-3 py-2 bg-info-light/50 border border-info/30 rounded-lg text-sm text-info-dark">
             Horas trabajadas: <strong>{{ form.hr_fin - form.hr_inicio }}</strong>
+          </div>
+          <div v-if="camposActivos.includes('hora_inicio') && mostrarErrorHoras"
+               class="px-3 py-2 bg-error-light/40 border border-error/30 rounded-lg text-sm text-error-dark">
+            La hora de inicio y fin deben ser mayores a 0, y la hora final debe ser mayor a la inicial.
           </div>
 
           <!-- HAS (hectáreas) -->
@@ -388,7 +397,6 @@
             placeholder="Hectáreas"
             min="0"
             step="0.01"
-            required
           />
 
           <!-- Horas a disposición -->
@@ -399,7 +407,6 @@
             v-model.number="form.hr_disposicion"
             placeholder="Horas"
             min="0"
-            required
           />
 
           <!-- KM -->
@@ -410,8 +417,13 @@
             v-model.number="form.km"
             placeholder="KM"
             min="0"
-            required
           />
+        </div>
+        <div
+          v-if="mostrarErrorProduccion"
+          class="mt-3 px-3 py-2 bg-error-light/40 border border-error/30 rounded-lg text-sm text-error-dark"
+        >
+          No se puede continuar con valores en 0. Completá los campos de producción con valores mayores a 0.
         </div>
       </SectionCard>
 
@@ -540,11 +552,9 @@
           <label class="block text-sm font-medium text-neutral-700 mb-1">Acta</label>
           <select
             v-model="form.acta"
-            required
             :class="fieldClass"
           >
-            <option value="" disabled>— Seleccionar acta —</option>
-            <option value="0">— Sin acta —</option>
+            <option value="">— Sin acta —</option>
             <option v-for="a in store.actas" :key="a.id" :value="a.numero">
               {{ a.numero }}
             </option>
@@ -556,7 +566,6 @@
           <select
             v-model="form.predio_id"
             @change="onPredioChange"
-            required
             :class="fieldClass"
           >
             <option value="" disabled>— Seleccionar predio —</option>
@@ -571,7 +580,6 @@
           <select
             v-if="store.rodales.length > 0"
             v-model="form.rodal_id"
-            required
             :class="fieldClass"
           >
             <option value="">— Seleccionar rodal —</option>
@@ -584,9 +592,14 @@
             type="text"
             v-model="form.rodal_manual"
             placeholder="Ingresá el rodal manualmente"
-            required
             :class="fieldClass"
           />
+        </div>
+        <div
+          v-if="mostrarErrorUbicacion"
+          class="mt-3 px-3 py-2 bg-error-light/40 border border-error/30 rounded-lg text-sm text-error-dark"
+        >
+          Completá Acta, Predio y Rodal cuando sean solicitados para poder guardar.
         </div>
       </SectionCard>
 
@@ -642,7 +655,7 @@
           <button
             v-else
             type="submit"
-            :disabled="store.submitting || !puedeAvanzar"
+            :disabled="store.submitting"
             class="flex-1 py-3.5 px-4 bg-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2.5 shadow-[0_8px_18px_rgba(20,61,35,0.25)] disabled:opacity-60 disabled:cursor-not-allowed active:bg-primary-dark transition-colors"
           >
             <svg v-if="store.submitting" class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -657,6 +670,9 @@
             {{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}
           </button>
         </div>
+        <p v-if="mensajePasoIncompleto" class="max-w-2xl mx-auto mt-2 px-1 text-xs text-error-dark">
+          {{ mensajePasoIncompleto }}
+        </p>
       </div>
     </form>
   </div>
@@ -688,51 +704,6 @@ const fieldClass = 'w-full px-4 py-3 bg-neutral-100 border border-neutral-300 ro
 const pasoActual = ref(0)
 const pasos = ['Fecha', 'Unidad de Negocio', 'Operador', 'Maquinaria', 'Tiempo', 'Producción', 'Aceites', 'Mecánica', 'Ubicación']
 const totalPasos = pasos.length
-
-function hasPositiveValue(value) {
-  return Number(value) > 0
-}
-
-function validateTiempoStep() {
-  return hasPositiveValue(form.hr_inicio) && hasPositiveValue(form.hr_fin)
-}
-
-function validateProduccionStep() {
-  const validators = {
-    tn_despachadas: () => hasPositiveValue(form.tn_despachadas),
-    carros: () => hasPositiveValue(form.carros),
-    distancia_recorrida: () => hasPositiveValue(form.mtrs_recorridos),
-    m3: () => hasPositiveValue(form.m3),
-    plantas: () => hasPositiveValue(form.plantas),
-    has: () => hasPositiveValue(form.has),
-    horas_disposicion: () => hasPositiveValue(form.hr_disposicion),
-    km: () => hasPositiveValue(form.km),
-    hora_inicio: () => true,
-  }
-
-  const productionComplete = camposActivos.value.every((campo) => {
-    const validator = validators[campo]
-    return validator ? validator() : true
-  })
-
-  if (!productionComplete) {
-    return false
-  }
-
-  return !cargoCombustible.value || hasPositiveValue(form.combustible)
-}
-
-function validateUbicacionStep() {
-  if (!form.acta || !form.predio_id) {
-    return false
-  }
-
-  if (store.rodales.length > 0) {
-    return !!form.rodal_id
-  }
-
-  return !!String(form.rodal_manual || '').trim()
-}
 
 const puedeAvanzar = computed(() => {
   switch (pasoActual.value) {
@@ -878,6 +849,69 @@ const form = reactive({
   cantidad_cadenas: 0,
 })
 
+const actaNormalizada = computed(() => String(form.acta ?? '').trim())
+
+const horasValidas = computed(() => {
+  const inicio = Number(form.hr_inicio)
+  const fin = Number(form.hr_fin)
+  return inicio > 0 && fin > 0 && fin > inicio
+})
+
+const produccionValida = computed(() => {
+  if (!form.tipo_de_proceso_id || camposActivos.value.length === 0) return true
+
+  const validadores = {
+    tn_despachadas: () => Number(form.tn_despachadas) > 0,
+    carros: () => Number(form.carros) > 0,
+    distancia_recorrida: () => Number(form.mtrs_recorridos) > 0,
+    m3: () => Number(form.m3) > 0,
+    plantas: () => Number(form.plantas) > 0,
+    has: () => Number(form.has) > 0,
+    horas_disposicion: () => Number(form.hr_disposicion) > 0,
+    km: () => Number(form.km) > 0,
+    hora_inicio: () => horasValidas.value,
+  }
+
+  return camposActivos.value.every((campo) => {
+    const validar = validadores[campo]
+    return typeof validar === 'function' ? validar() : true
+  })
+})
+
+const rodalCompleto = computed(() => {
+  if (form.rodal_id) return true
+  return String(form.rodal_manual ?? '').trim().length > 0
+})
+
+const ubicacionValida = computed(() => {
+  return !!actaNormalizada.value && !!form.predio_id && rodalCompleto.value
+})
+
+const mostrarErrorHoras = computed(() => {
+  return pasoActual.value >= 4 && !horasValidas.value
+})
+
+const mostrarErrorProduccion = computed(() => {
+  return pasoActual.value >= 5 && !produccionValida.value
+})
+
+const mostrarErrorUbicacion = computed(() => {
+  return pasoActual.value >= 6 && !ubicacionValida.value
+})
+
+const mensajePasoIncompleto = computed(() => {
+  if (pasoActual.value === 4 && !horasValidas.value) {
+    return 'Revisá las horas: inicio y fin deben ser mayores a 0, y fin mayor que inicio.'
+  }
+  if (pasoActual.value === 5 && !produccionValida.value) {
+    return 'Completá los campos de producción con valores mayores a 0 para continuar.'
+  }
+  if (pasoActual.value === 6 && !ubicacionValida.value) {
+    return 'Completá Acta, Predio y Rodal para poder guardar el registro.'
+  }
+  return ''
+})
+
 // ─── Load initial data ───
 onMounted(async () => {
   await store.loadCatalogos()
@@ -904,6 +938,8 @@ onMounted(async () => {
     if (!form.tipo_de_proceso_id && authStore.user?.tipo_de_proceso_id) {
       form.tipo_de_proceso_id = authStore.user.tipo_de_proceso_id
     }
+
+    await autocompletarHoraInicio({ force: true })
   }
   // Si es encargado, los operadores se cargan al elegir la UN
 })
@@ -972,6 +1008,8 @@ async function onOperadorChange() {
         form.tipo_de_proceso_id = operador.tipo_de_proceso_id
       }
     }
+
+    await autocompletarHoraInicio({ force: true })
   }
 }
 
@@ -1001,6 +1039,8 @@ function onTipoProcesoChange() {
   form.km_perfilado = 0
   form.hr_disposicion = 0
   form.km = 0
+
+  autocompletarHoraInicio({ force: true })
 }
 
 async function onPredioChange() {
@@ -1025,6 +1065,8 @@ function seleccionarMovil(movil) {
   form.cod_equipo = movil.idMovil || 0
   busquedaMovil.value = ''
   mostrandoBuscador.value = false
+
+  autocompletarHoraInicio({ force: true })
 }
 
 function seleccionarDesdeAsignacion(asig) {
@@ -1083,6 +1125,24 @@ function resolveProduccion() {
   return 0
 }
 
+async function autocompletarHoraInicio({ force = false } = {}) {
+  if (!form.operador_id) return
+
+  const params = {
+    cod_operador: form.operador_id,
+    cod_un: form.un_id || undefined,
+    codigo_tabla: form.tipo_de_proceso_id || undefined,
+    cod_equipo: form.cod_equipo || undefined,
+  }
+
+  const data = await store.fetchUltimaHoraFin(params)
+  const ultimaHoraFin = Number(data?.hr_fin || 0)
+
+  if (ultimaHoraFin > 0 && (force || form.hr_inicio <= 0)) {
+    form.hr_inicio = ultimaHoraFin
+  }
+}
+
 // ─── Submit ───
 async function handleSubmit() {
   // Guard: if Enter pressed on non-final step, advance instead
@@ -1096,6 +1156,46 @@ async function handleSubmit() {
   }
 
   try {
+    if (!actaNormalizada.value || actaNormalizada.value === '0') {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Acta obligatoria',
+        text: 'Debés seleccionar un acta para poder guardar el registro.',
+        confirmButtonColor: '#3d935d',
+      })
+      return
+    }
+
+    if (!horasValidas.value) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Horas inválidas',
+        text: 'La hora de inicio y fin deben ser mayores a 0, y la hora final debe ser mayor a la inicial.',
+        confirmButtonColor: '#3d935d',
+      })
+      return
+    }
+
+    if (!produccionValida.value) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Producción inválida',
+        text: 'No se puede guardar con valores de producción en 0. Completá los campos requeridos con valores mayores a 0.',
+        confirmButtonColor: '#3d935d',
+      })
+      return
+    }
+
+    if (!ubicacionValida.value) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Ubicación incompleta',
+        text: 'Completá Acta, Predio y Rodal cuando sean solicitados para poder guardar.',
+        confirmButtonColor: '#3d935d',
+      })
+      return
+    }
+
     const nombre = tipoProcesoNombre.value
 
     // Resolver km según tipo de proceso

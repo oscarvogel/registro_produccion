@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_, func
+from sqlalchemy import or_, and_, func, inspect
+from sqlalchemy.exc import SQLAlchemyError
 from typing import List
 from datetime import date, datetime
 
@@ -23,11 +24,19 @@ from app.schemas.produccion import (
     ActaResponse,
     PredioResponse,
     RodalResponse,
+    UltimaHoraFinResponse,
     TableroProduccionCreate,
     TableroProduccionResponse,
 )
 
 router = APIRouter(prefix="/produccion", tags=["produccion"])
+
+
+def _table_exists(db: Session, table_name: str) -> bool:
+    try:
+        return inspect(db.get_bind()).has_table(table_name)
+    except SQLAlchemyError:
+        return False
 
 
 # ─── Operadores activos (filtrados por unidad de negocio) ───
@@ -52,12 +61,19 @@ async def list_operadores(un_id: int | None = None, db: Session = Depends(get_db
 # ─── Unidades de negocio activas ───
 @router.get("/unidades-negocio", response_model=List[UnidadNegocioResponse])
 async def list_unidades_negocio(db: Session = Depends(get_db)):
+    if not _table_exists(db, "unidadnegocio"):
+        return []
+
     rows = (
         db.query(UnidadNegocio)
         .filter(UnidadNegocio.activo == 1)
         .order_by(UnidadNegocio.Nombre)
         .all()
     )
+
+    if not rows:
+        rows = db.query(UnidadNegocio).order_by(UnidadNegocio.Nombre).all()
+
     return [
         UnidadNegocioResponse(
             idUnidadNegocio=r.idUnidadNegocio,
@@ -93,6 +109,9 @@ async def list_all_tipos_proceso(db: Session = Depends(get_db)):
 @router.get("/asignaciones/{operador_id}", response_model=List[AsignacionOperativaResponse])
 async def list_asignaciones(operador_id: int, db: Session = Depends(get_db)):
     """Devuelve todas las asignaciones (movil + proceso) del operador."""
+    if not _table_exists(db, "asignaciones_operativas") or not _table_exists(db, "moviles"):
+        return []
+
     rows = (
         db.query(AsignacionOperativa, Movil)
         .join(Movil, Movil.idMovil == AsignacionOperativa.idMovil)
@@ -121,44 +140,62 @@ async def get_movil_by_operador(operador_id: int, db: Session = Depends(get_db))
     today = date.today()
 
     # 1. Buscar en asignaciones_operativas primero
-    asig = (
-        db.query(AsignacionOperativa)
-        .filter(AsignacionOperativa.idChofer == operador_id)
-        .first()
-    )
-    if asig:
-        movil = db.query(Movil).filter(Movil.idMovil == asig.idMovil, Movil.activo == 1).first()
-        if movil:
-            return MovilResponse(
-                idMovil=movil.idMovil,
-                patente=movil.Patente,
-                detalle=movil.Detalle,
-                idChofer=movil.idChofer,
-            )
+    if _table_exists(db, "asignaciones_operativas") and _table_exists(db, "moviles"):
+        asig = (
+            db.query(AsignacionOperativa)
+            .filter(AsignacionOperativa.idChofer == operador_id)
+            .first()
+        )
+        if asig:
+            movil = db.query(Movil).filter(Movil.idMovil == asig.idMovil, Movil.activo == 1).first()
+            if movil:
+                return MovilResponse(
+                    idMovil=movil.idMovil,
+                    patente=movil.Patente,
+                    detalle=movil.Detalle,
+                    idChofer=movil.idChofer,
+                )
 
     # 2. Buscar en moviles_operadores (asignación con rango de fechas)
-    asignacion = (
-        db.query(MovilOperador)
-        .filter(
-            MovilOperador.operador_id == operador_id,
-            MovilOperador.desde <= today,
-            or_(MovilOperador.hasta >= today, MovilOperador.hasta.is_(None)),
+    if _table_exists(db, "moviles_operadores") and _table_exists(db, "moviles"):
+        asignacion = (
+            db.query(MovilOperador)
+            .filter(
+                MovilOperador.operador_id == operador_id,
+                MovilOperador.desde <= today,
+                or_(MovilOperador.hasta >= today, MovilOperador.hasta.is_(None)),
+            )
+            .first()
         )
-        .first()
-    )
 
-    if asignacion:
+        if asignacion:
+            movil_id_texto = str(asignacion.movil_id or "")
+            movil = (
+                db.query(Movil)
+                .filter(
+                    or_(
+                        Movil.Patente == movil_id_texto,
+                        Movil.idMovil == int(movil_id_texto)
+                        if movil_id_texto.isdigit()
+                        else False,
+                    ),
+                    Movil.activo == 1,
+                )
+                .first()
+            )
+            if movil:
+                return MovilResponse(
+                    idMovil=movil.idMovil,
+                    patente=movil.Patente,
+                    detalle=movil.Detalle,
+                    idChofer=movil.idChofer,
+                )
+
+    # 3. Fallback: buscar en moviles.idChofer
+    if _table_exists(db, "moviles"):
         movil = (
             db.query(Movil)
-            .filter(
-                or_(
-                    Movil.Patente == asignacion.movil_id,
-                    Movil.idMovil == int(asignacion.movil_id)
-                    if asignacion.movil_id.isdigit()
-                    else False,
-                ),
-                Movil.activo == 1,
-            )
+            .filter(Movil.idChofer == operador_id, Movil.activo == 1)
             .first()
         )
         if movil:
@@ -168,20 +205,6 @@ async def get_movil_by_operador(operador_id: int, db: Session = Depends(get_db))
                 detalle=movil.Detalle,
                 idChofer=movil.idChofer,
             )
-
-    # 3. Fallback: buscar en moviles.idChofer
-    movil = (
-        db.query(Movil)
-        .filter(Movil.idChofer == operador_id, Movil.activo == 1)
-        .first()
-    )
-    if movil:
-        return MovilResponse(
-            idMovil=movil.idMovil,
-            patente=movil.Patente,
-            detalle=movil.Detalle,
-            idChofer=movil.idChofer,
-        )
 
     return None
 
@@ -207,6 +230,8 @@ async def list_moviles(un_id: int | None = None, db: Session = Depends(get_db)):
 # ─── Actas ───
 @router.get("/actas", response_model=List[ActaResponse])
 async def list_actas(db: Session = Depends(get_db)):
+    if not _table_exists(db, "actas"):
+        return []
     return db.query(Acta).order_by(Acta.numero).all()
 
 
@@ -231,6 +256,42 @@ async def list_rodales(predio_id: int | None = None, db: Session = Depends(get_d
         RodalResponse(idRodal=r.idRodal, rodal=r.Rodal, idPredio=r.idPredio)
         for r in rows
     ]
+
+
+@router.get("/ultima-hora-fin", response_model=UltimaHoraFinResponse)
+async def get_ultima_hora_fin(
+    cod_operador: int,
+    cod_un: int | None = None,
+    codigo_tabla: int | None = None,
+    cod_equipo: int | None = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(TableroProduccion).filter(
+        TableroProduccion.cod_operador == cod_operador,
+        TableroProduccion.hr_fin.isnot(None),
+    )
+
+    if cod_un:
+        query = query.filter(TableroProduccion.cod_un == cod_un)
+    if codigo_tabla:
+        query = query.filter(TableroProduccion.codigo_tabla == codigo_tabla)
+    if cod_equipo:
+        query = query.filter(TableroProduccion.cod_equipo == cod_equipo)
+
+    row = (
+        query
+        .order_by(
+            TableroProduccion.fecha.desc(),
+            TableroProduccion.fecha_hora.desc(),
+            TableroProduccion.id.desc(),
+        )
+        .first()
+    )
+
+    if not row or row.hr_fin is None:
+        return UltimaHoraFinResponse(hr_fin=None)
+
+    return UltimaHoraFinResponse(hr_fin=float(row.hr_fin))
 
 
 # ─── Crear registro en tablero_produccion ───

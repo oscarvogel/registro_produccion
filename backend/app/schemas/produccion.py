@@ -86,6 +86,10 @@ class RodalResponse(BaseModel):
         from_attributes = True
 
 
+class UltimaHoraFinResponse(BaseModel):
+    hr_fin: float | None = None
+
+
 # --- Tablero Produccion ---
 class TableroProduccionCreate(BaseModel):
     UN: str = ""

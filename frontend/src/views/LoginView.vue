@@ -38,6 +38,7 @@
               id="dni"
               v-model="dni"
               type="text"
+              autocomplete="username"
               inputmode="numeric"
               maxlength="8"
               placeholder="Ej: 12345678"
@@ -64,6 +65,7 @@
                 id="password"
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
+                autocomplete="current-password"
                 placeholder="Ingresá tu contraseña"
                 required
                 :disabled="authStore.loading"

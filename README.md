@@ -31,10 +31,18 @@ FastAPI + Vue.js Fullstack Application
 
 6. Start the server:
    ```bash
-   uvicorn app.main:app --reload
+   # From the backend/ directory
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
 
    Backend will run on http://localhost:8000
+
+Tip: from the repository root you can run the same app with a single command:
+
+```bash
+# from repository root (where this README is)
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir backend/app
+```
 
 ### Frontend
 

@@ -262,3 +262,15 @@ INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALU
   (13, 12, 3, 0),
   (13, 13, 4, 0),
   (13, 14, 5, 0);
+
+
+  CREATE TABLE actas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    rodal_id INT NOT NULL DEFAULT 0,
+    numero VARCHAR(30) NOT NULL DEFAULT '0',
+    vam DECIMAL(12, 4) NOT NULL,
+    tarifa DECIMAL(12, 4) NOT NULL,
+    extraccion DECIMAL(12, 4) NOT NULL,
+    carga DECIMAL(12, 4) NOT NULL,
+    periodo VARCHAR(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

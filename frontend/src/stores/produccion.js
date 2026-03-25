@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import api from '@/services/api'
 
+const ensureArray = (value) => (Array.isArray(value) ? value : [])
+
 export const useProduccionStore = defineStore('produccion', {
   state: () => ({
     operadores: [],
@@ -26,7 +28,7 @@ export const useProduccionStore = defineStore('produccion', {
         const { data } = await api.get('/api/produccion/operadores', {
           params: { un_id: unId },
         })
-        this.operadores = data
+        this.operadores = ensureArray(data)
       } catch (err) {
         console.error('Error loading operadores:', err)
       }
@@ -39,7 +41,7 @@ export const useProduccionStore = defineStore('produccion', {
         const { data } = await api.get('/api/produccion/moviles', {
           params: { un_id: unId },
         })
-        this.moviles = data
+        this.moviles = ensureArray(data)
       } catch (err) {
         console.error('Error loading moviles:', err)
       }
@@ -48,7 +50,7 @@ export const useProduccionStore = defineStore('produccion', {
     async fetchUnidadesNegocio() {
       try {
         const { data } = await api.get('/api/produccion/unidades-negocio')
-        this.unidadesNegocio = data
+        this.unidadesNegocio = ensureArray(data)
       } catch (err) {
         console.error('Error loading unidades de negocio:', err)
       }
@@ -61,7 +63,7 @@ export const useProduccionStore = defineStore('produccion', {
         const { data } = await api.get('/api/produccion/tipo-proceso', {
           params: { un_id: unId },
         })
-        this.tiposProceso = data
+        this.tiposProceso = ensureArray(data)
       } catch (err) {
         console.error('Error loading tipos de proceso:', err)
       }
@@ -70,7 +72,7 @@ export const useProduccionStore = defineStore('produccion', {
     async fetchAllTiposProceso() {
       try {
         const { data } = await api.get('/api/produccion/tipos-proceso-all')
-        this.todosLosTipos = data
+        this.todosLosTipos = ensureArray(data)
       } catch (err) {
         console.error('Error loading all tipos de proceso:', err)
       }
@@ -92,7 +94,7 @@ export const useProduccionStore = defineStore('produccion', {
       if (!operadorId) return
       try {
         const { data } = await api.get(`/api/produccion/asignaciones/${operadorId}`)
-        this.asignaciones = data
+        this.asignaciones = ensureArray(data)
       } catch (err) {
         console.error('Error loading asignaciones:', err)
       }
@@ -101,7 +103,7 @@ export const useProduccionStore = defineStore('produccion', {
     async fetchActas() {
       try {
         const { data } = await api.get('/api/produccion/actas')
-        this.actas = data
+        this.actas = ensureArray(data)
       } catch (err) {
         console.error('Error loading actas:', err)
       }
@@ -110,7 +112,7 @@ export const useProduccionStore = defineStore('produccion', {
     async fetchPredios() {
       try {
         const { data } = await api.get('/api/produccion/predios')
-        this.predios = data
+        this.predios = ensureArray(data)
       } catch (err) {
         console.error('Error loading predios:', err)
       }
@@ -123,9 +125,19 @@ export const useProduccionStore = defineStore('produccion', {
         const { data } = await api.get('/api/produccion/rodales', {
           params: { predio_id: predioId },
         })
-        this.rodales = data
+        this.rodales = ensureArray(data)
       } catch (err) {
         console.error('Error loading rodales:', err)
+      }
+    },
+
+    async fetchUltimaHoraFin(params) {
+      try {
+        const { data } = await api.get('/api/produccion/ultima-hora-fin', { params })
+        return data
+      } catch (err) {
+        console.error('Error loading ultima hora fin:', err)
+        return null
       }
     },
 
