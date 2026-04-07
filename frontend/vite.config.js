@@ -30,7 +30,8 @@ export default defineConfig({
         // Cache API responses that are catalogue data (not production submissions)
         runtimeCaching: [
           {
-            urlPattern: /^\/api\/produccion\/(unidades-negocio|tipos-proceso-all|actas|predios|operadores|moviles|tipo-proceso|rodales|lugares-carga|asignaciones|movil-by-operador|ultima-hora-fin)/,
+            urlPattern: ({ url }) =>
+              /^\/api\/produccion\/(unidades-negocio|tipos-proceso-all|actas|predios|operadores|moviles|tipo-proceso|rodales|lugares-carga|asignaciones|movil-by-operador|ultima-hora-fin)/.test(url.pathname),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-catalogos',
