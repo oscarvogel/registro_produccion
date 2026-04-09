@@ -33,6 +33,16 @@
       </button>
 
       <button
+        @click="$router.push({ name: 'mis-registros' })"
+        class="w-full mt-4 py-3.5 px-7 bg-white border-2 border-neutral-300 text-neutral-700 text-[1.4rem] md:text-[1.8rem] font-extrabold tracking-wide rounded-[1.5rem] active:scale-[0.99] transition-all duration-150 flex items-center justify-center gap-3 hover:border-primary hover:text-primary"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" class="w-6 h-6 md:w-7 md:h-7">
+          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        MIS REGISTROS
+      </button>
+
+      <button
         v-if="authStore.user?.encargado === 1"
         @click="$router.push({ name: 'dashboard' })"
         class="w-full mt-4 py-3.5 px-7 bg-white border-2 border-primary text-primary text-[1.4rem] md:text-[1.8rem] font-extrabold tracking-wide rounded-[1.5rem] active:scale-[0.99] transition-all duration-150 flex items-center justify-center gap-3 hover:bg-primary hover:text-white"

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func, inspect
 from sqlalchemy.exc import SQLAlchemyError
@@ -6,6 +7,7 @@ from typing import List
 from datetime import date, datetime
 
 from app.api.deps import get_db
+from app.core.security import verify_token
 from app.models.personal import Personal
 from app.models.unidad_negocio import UnidadNegocio
 from app.models.tipo_proceso import TipoDeProceso, UnidadNegocioTipoProceso
@@ -29,7 +31,11 @@ from app.schemas.produccion import (
     LugarCargaResponse,
     TableroProduccionCreate,
     TableroProduccionResponse,
+    MiRegistroItem,
+    MisRegistrosResponse,
 )
+
+security = HTTPBearer()
 
 router = APIRouter(prefix="/produccion", tags=["produccion"])
 
@@ -397,3 +403,96 @@ async def create_produccion(data: TableroProduccionCreate, db: Session = Depends
     db.commit()
     db.refresh(registro)
     return registro
+
+
+# ─── Mis registros (operador autenticado) ───
+def _get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+) -> Personal:
+    payload = verify_token(credentials.credentials)
+    if payload is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido o expirado")
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
+    user = db.query(Personal).filter(Personal.idPersonal == int(user_id)).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado")
+    return user
+
+
+@router.get("/mis-registros", response_model=MisRegistrosResponse)
+async def get_mis_registros(
+    fecha_desde: date | None = None,
+    fecha_hasta: date | None = None,
+    user: Personal = Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    query = db.query(TableroProduccion).filter(
+        TableroProduccion.cod_operador == user.idPersonal
+    )
+    if fecha_desde:
+        query = query.filter(TableroProduccion.fecha >= fecha_desde)
+    if fecha_hasta:
+        query = query.filter(TableroProduccion.fecha <= fecha_hasta)
+
+    rows = query.order_by(TableroProduccion.fecha.desc(), TableroProduccion.id.desc()).all()
+
+    registros = [
+        MiRegistroItem(
+            id=r.id,
+            fecha=r.fecha,
+            operacion=r.operacion or "",
+            equipo=r.equipo or "",
+            combustible=int(r.combustible or 0),
+            tn_despachadas=float(r.tn_despachadas or 0),
+            m3=int(r.m3 or 0),
+            has=float(r.has or 0),
+            carros=int(r.carros or 0),
+            plantas=int(r.plantas or 0),
+            km_carreteo=float(r.km_carreteo or 0),
+            km_perfilado=float(r.km_perfilado or 0),
+            mtrs_recorridos=int(r.mtrs_recorridos or 0),
+            hr_inicio=float(r.hr_inicio or 0),
+            hr_fin=float(r.hr_fin or 0),
+        )
+        for r in rows
+    ]
+
+    total_tn = round(sum(r.tn_despachadas for r in registros), 2)
+    total_m3 = sum(r.m3 for r in registros)
+    total_has = round(sum(r.has for r in registros), 2)
+    total_carros = sum(r.carros for r in registros)
+    total_plantas = sum(r.plantas for r in registros)
+    total_km_carreteo = round(sum(r.km_carreteo for r in registros), 2)
+    total_km_perfilado = round(sum(r.km_perfilado for r in registros), 2)
+    total_combustible = sum(r.combustible for r in registros)
+    total_horas = round(sum(max(r.hr_fin - r.hr_inicio, 0) for r in registros), 2)
+
+    def _por_hora(val: float) -> float | None:
+        if total_horas == 0 or val == 0:
+            return None
+        return round(val / total_horas, 2)
+
+    return MisRegistrosResponse(
+        registros=registros,
+        total=len(registros),
+        total_horas=total_horas,
+        total_combustible=total_combustible,
+        total_tn=total_tn,
+        total_m3=total_m3,
+        total_has=total_has,
+        total_carros=total_carros,
+        total_plantas=total_plantas,
+        total_km_carreteo=total_km_carreteo,
+        total_km_perfilado=total_km_perfilado,
+        combustible_por_hora=_por_hora(total_combustible),
+        tn_por_hora=_por_hora(total_tn),
+        m3_por_hora=_por_hora(total_m3),
+        has_por_hora=_por_hora(total_has),
+        carros_por_hora=_por_hora(total_carros),
+        plantas_por_hora=_por_hora(total_plantas),
+        km_carreteo_por_hora=_por_hora(total_km_carreteo),
+        km_perfilado_por_hora=_por_hora(total_km_perfilado),
+    )

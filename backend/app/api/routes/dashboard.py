@@ -198,7 +198,7 @@ async def moviles_disponibles(
 
     query = query.group_by(Movil.idMovil, Movil.Patente, Movil.Detalle).order_by(Movil.Detalle)
     rows = query.all()
-    return [MovilDisponible(idMovil=r[0], patente=r[1], detalle=r[2]) for r in rows]
+    return [MovilDisponible(idMovil=r[0], patente=r[1] or "", detalle=r[2] or "") for r in rows]
 
 
 @router.get("/kpis", response_model=KpisResponse)

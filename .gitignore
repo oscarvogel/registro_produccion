@@ -64,3 +64,4 @@ AGENTS.MD
 migrations.sql
 .agents/
 skills-lock.json
+.env.vps

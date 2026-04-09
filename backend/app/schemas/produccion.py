@@ -149,6 +149,52 @@ class TableroProduccionCreate(BaseModel):
     codigo_tabla: int = 0
 
 
+# --- Mis Registros (vista operador) ---
+class MiRegistroItem(BaseModel):
+    id: int
+    fecha: date | None
+    operacion: str
+    equipo: str
+    combustible: int
+    tn_despachadas: float
+    m3: int
+    has: float
+    carros: int
+    plantas: int
+    km_carreteo: float
+    km_perfilado: float
+    mtrs_recorridos: int
+    hr_inicio: float
+    hr_fin: float
+
+    class Config:
+        from_attributes = True
+
+
+class MisRegistrosResponse(BaseModel):
+    registros: list[MiRegistroItem]
+    total: int
+    total_horas: float
+    total_combustible: int
+    # totales de producción por campo
+    total_tn: float
+    total_m3: int
+    total_has: float
+    total_carros: int
+    total_plantas: int
+    total_km_carreteo: float
+    total_km_perfilado: float
+    # ratios por hora (None si total_horas == 0)
+    combustible_por_hora: float | None
+    tn_por_hora: float | None
+    m3_por_hora: float | None
+    has_por_hora: float | None
+    carros_por_hora: float | None
+    plantas_por_hora: float | None
+    km_carreteo_por_hora: float | None
+    km_perfilado_por_hora: float | None
+
+
 class TableroProduccionResponse(BaseModel):
     id: int
     UN: str
