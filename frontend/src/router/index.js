@@ -18,7 +18,7 @@ const routes = [
     path: '/dashboard',
     name: 'dashboard',
     component: () => import('../views/DashboardView.vue'),
-    meta: { requiresAuth: true, requiresEncargado: true },
+    meta: { requiresAuth: true },
   },
   {
     path: '/mis-registros',

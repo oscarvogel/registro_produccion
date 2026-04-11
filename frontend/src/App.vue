@@ -49,7 +49,6 @@
                   Producción
                 </router-link>
                 <router-link
-                  v-if="authStore.user?.encargado === 1"
                   to="/dashboard"
                   class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
                   active-class="!bg-primary-light/20 !text-primary-dark"
@@ -77,7 +76,7 @@
       </main>
 
       <nav v-if="!isProduccionRoute" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200">
-        <div :class="['h-20 px-5 pb-1.5 grid', authStore.user?.encargado === 1 ? 'grid-cols-3' : 'grid-cols-2']">
+        <div class="h-20 px-5 pb-1.5 grid grid-cols-3">
           <router-link
             to="/"
             class="group relative flex flex-col items-center justify-center gap-1.5 rounded-xl text-neutral-500"
@@ -109,7 +108,6 @@
             <span class="text-sm font-semibold">Producción</span>
           </router-link>
           <router-link
-            v-if="authStore.user?.encargado === 1"
             to="/dashboard"
             class="group relative flex flex-col items-center justify-center gap-1.5 rounded-xl text-neutral-500"
             exact-active-class="!text-primary"

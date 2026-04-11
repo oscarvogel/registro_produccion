@@ -27,8 +27,8 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 security = HTTPBearer()
 
 
-# ─── Dependencia: usuario autenticado + encargado ───
-def get_current_encargado(
+# ─── Dependencia: usuario autenticado ───
+def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
 ) -> Personal:
@@ -43,9 +43,6 @@ def get_current_encargado(
     user = db.query(Personal).filter(Personal.idPersonal == int(user_id)).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado")
-
-    if user.encargado != 1:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acceso restringido a encargados")
 
     return user
 
@@ -164,7 +161,7 @@ def _compute_variation(db: Session, kpi: KpiDefinicion, tp_ids: list[int], movil
 @router.get("/tipos-proceso-disponibles", response_model=List[TipoProcesoDisponible])
 async def tipos_proceso_disponibles(
     un_id: int,
-    user: Personal = Depends(get_current_encargado),
+    user: Personal = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     _verify_un(user, un_id)
@@ -182,7 +179,7 @@ async def tipos_proceso_disponibles(
 async def moviles_disponibles(
     un_id: int,
     tipo_proceso_id: int | None = None,
-    user: Personal = Depends(get_current_encargado),
+    user: Personal = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     _verify_un(user, un_id)
@@ -208,7 +205,7 @@ async def get_kpis(
     movil_id: int | None = None,
     fecha_desde: date | None = None,
     fecha_hasta: date | None = None,
-    user: Personal = Depends(get_current_encargado),
+    user: Personal = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     _verify_un(user, un_id)
@@ -273,7 +270,7 @@ async def get_evolucion(
     movil_id: int | None = None,
     fecha_desde: date | None = None,
     fecha_hasta: date | None = None,
-    user: Personal = Depends(get_current_encargado),
+    user: Personal = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     _verify_un(user, un_id)
@@ -340,7 +337,7 @@ async def get_ranking_maquinas(
     movil_id: int | None = None,
     fecha_desde: date | None = None,
     fecha_hasta: date | None = None,
-    user: Personal = Depends(get_current_encargado),
+    user: Personal = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     _verify_un(user, un_id)
