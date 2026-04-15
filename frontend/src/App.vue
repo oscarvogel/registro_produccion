@@ -205,11 +205,19 @@ function handleAppInstalled() {
 }
 
 async function installApp() {
-  if (!deferredInstallPrompt.value) return
-  deferredInstallPrompt.value.prompt()
-  const { outcome } = await deferredInstallPrompt.value.userChoice
-  if (outcome === 'accepted') {
-    deferredInstallPrompt.value = null
+  const installPrompt = deferredInstallPrompt.value
+  if (!installPrompt) return
+
+  deferredInstallPrompt.value = null
+
+  try {
+    await installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome !== 'accepted') {
+      return
+    }
+  } catch (error) {
+    console.error('No se pudo mostrar el prompt de instalación:', error)
   }
 }
 
