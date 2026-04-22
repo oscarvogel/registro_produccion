@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "autoskill": "^0.1.0",
     "axios": "^1.6.5",
     "dexie": "^4.4.2",
     "lucide-vue-next": "^0.563.0",
