@@ -27,6 +27,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   { path: '/items', name: 'items', component: ItemsView, meta: { requiresAuth: true } },
+  {
+    path: '/configuracion',
+    name: 'configuracion',
+    component: () => import('../views/ConfiguracionView.vue'),
+    meta: { requiresAuth: true },
+  },
 ]
 
 const router = createRouter({

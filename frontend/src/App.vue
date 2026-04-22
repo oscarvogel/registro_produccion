@@ -17,18 +17,6 @@
           <span class="text-primary font-extrabold text-xl leading-none">Registro Producción</span>
           <div class="flex items-center gap-3">
             <button
-              v-if="deferredInstallPrompt"
-              @click="installApp"
-              class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-primary border border-primary rounded-full"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Instalar
-            </button>
-            <button
               @click="handleLogout"
               class="px-4 py-1.5 text-xs font-semibold text-neutral-600 border border-neutral-300 rounded-full"
             >
@@ -78,22 +66,18 @@
                 >
                   Dashboard
                 </router-link>
+                <router-link
+                  to="/configuracion"
+                  class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                  active-class="!bg-primary-light/20 !text-primary-dark"
+                  exact-active-class="!bg-primary-light/20 !text-primary-dark"
+                >
+                  Configuración
+                </router-link>
               </div>
             </div>
             <div class="flex items-center gap-4">
               <span class="text-sm text-neutral-500">{{ authStore.userName }}</span>
-              <button
-                v-if="deferredInstallPrompt"
-                @click="installApp"
-                class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary border border-primary hover:bg-primary/5 rounded-lg transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Instalar
-              </button>
               <button
                 @click="handleLogout"
                 class="px-3 py-1.5 text-sm font-medium text-neutral-600 hover:text-error border border-neutral-300 hover:border-error rounded-lg transition-colors"
@@ -110,7 +94,7 @@
       </main>
 
       <nav v-if="!isProduccionRoute" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200">
-        <div class="h-20 px-5 pb-1.5 grid grid-cols-3">
+        <div class="h-20 px-2 pb-1.5 grid grid-cols-4">
           <router-link
             to="/"
             class="group relative flex flex-col items-center justify-center gap-1.5 rounded-xl text-neutral-500"
@@ -124,7 +108,7 @@
                 <path d="M9 21v-6h6v6" />
               </svg>
             </span>
-            <span class="text-sm font-semibold">Inicio</span>
+            <span class="text-xs font-semibold">Inicio</span>
           </router-link>
           <router-link
             to="/produccion"
@@ -139,7 +123,7 @@
                 <path d="M8 13h8" />
               </svg>
             </span>
-            <span class="text-sm font-semibold">Producción</span>
+            <span class="text-xs font-semibold">Producción</span>
           </router-link>
           <router-link
             v-if="authStore.user?.encargado !== 1"
@@ -153,7 +137,7 @@
                 <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
               </svg>
             </span>
-            <span class="text-sm font-semibold">Registros</span>
+            <span class="text-xs font-semibold">Registros</span>
           </router-link>
           <router-link
             v-if="authStore.user?.encargado === 1"
@@ -170,7 +154,21 @@
                 <rect x="14" y="14" width="7" height="7" rx="1"/>
               </svg>
             </span>
-            <span class="text-sm font-semibold">Dashboard</span>
+            <span class="text-xs font-semibold">Dashboard</span>
+          </router-link>
+          <router-link
+            to="/configuracion"
+            class="group relative flex flex-col items-center justify-center gap-1.5 rounded-xl text-neutral-500"
+            exact-active-class="!text-primary"
+          >
+            <span class="absolute -top-px h-1.5 w-16 rounded-b-xl bg-transparent group-[.router-link-exact-active]:bg-primary"></span>
+            <span class="flex h-12 w-12 items-center justify-center rounded-3xl bg-transparent group-[.router-link-exact-active]:bg-primary-light/30">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </span>
+            <span class="text-xs font-semibold">Config</span>
           </router-link>
         </div>
       </nav>
@@ -181,7 +179,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
@@ -220,6 +218,8 @@ async function installApp() {
     console.error('No se pudo mostrar el prompt de instalación:', error)
   }
 }
+
+provide('pwaInstall', { deferredInstallPrompt, installApp })
 
 // ─── Offline / sync management ───
 const isOnline = ref(navigator.onLine)
