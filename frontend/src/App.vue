@@ -49,6 +49,15 @@
                   Producción
                 </router-link>
                 <router-link
+                  to="/pendientes"
+                  class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                  active-class="!bg-primary-light/20 !text-primary-dark"
+                  exact-active-class="!bg-primary-light/20 !text-primary-dark"
+                >
+                  Pendientes
+                  <span v-if="produccionStore.pendingCount > 0" class="ml-1 rounded bg-warning/20 px-1.5 text-warning-dark">{{ produccionStore.pendingCount }}</span>
+                </router-link>
+                <router-link
                   v-if="authStore.user?.encargado !== 1"
                   to="/mis-registros"
                   class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
@@ -67,6 +76,15 @@
                   Dashboard
                 </router-link>
                 <router-link
+                  v-if="authStore.isAdmin"
+                  to="/admin"
+                  class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                  active-class="!bg-primary-light/20 !text-primary-dark"
+                  exact-active-class="!bg-primary-light/20 !text-primary-dark"
+                >
+                  Admin
+                </router-link>
+                <router-link
                   to="/configuracion"
                   class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
                   active-class="!bg-primary-light/20 !text-primary-dark"
@@ -77,7 +95,10 @@
               </div>
             </div>
             <div class="flex items-center gap-4">
-              <span class="text-sm text-neutral-500">{{ authStore.userName }}</span>
+              <div class="text-right leading-tight">
+                <p class="text-sm font-semibold text-neutral-700">{{ authStore.userName }}</p>
+                <p class="text-xs text-neutral-400">{{ userRoleLabel }} · {{ isOnline ? 'En linea' : 'Sin conexion' }}</p>
+              </div>
               <button
                 @click="handleLogout"
                 class="px-3 py-1.5 text-sm font-medium text-neutral-600 hover:text-error border border-neutral-300 hover:border-error rounded-lg transition-colors"
@@ -89,12 +110,12 @@
         </div>
       </nav>
 
-      <main :class="isProduccionRoute ? 'pb-0 md:pb-0' : 'pb-[5.5rem] md:pb-0'">
+      <main :class="isProduccionRoute ? 'pb-0 md:pb-0' : 'pb-22 md:pb-0'">
         <router-view />
       </main>
 
       <nav v-if="!isProduccionRoute" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200">
-        <div class="h-20 px-2 pb-1.5 grid grid-cols-4">
+        <div :class="['h-20 px-1 pb-1.5 grid', authStore.isAdmin ? 'grid-cols-6' : 'grid-cols-5']">
           <router-link
             to="/"
             class="group relative flex flex-col items-center justify-center gap-1.5 rounded-xl text-neutral-500"
@@ -124,6 +145,22 @@
               </svg>
             </span>
             <span class="text-xs font-semibold">Producción</span>
+          </router-link>
+          <router-link
+            to="/pendientes"
+            class="group relative flex flex-col items-center justify-center gap-1.5 rounded-xl text-neutral-500"
+            exact-active-class="!text-primary"
+          >
+            <span class="absolute -top-px h-1.5 w-14 rounded-b-xl bg-transparent group-[.router-link-exact-active]:bg-primary"></span>
+            <span class="relative flex h-12 w-12 items-center justify-center rounded-3xl bg-transparent group-[.router-link-exact-active]:bg-primary-light/30">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <path d="M7 10l5 5 5-5"/>
+                <path d="M12 15V3"/>
+              </svg>
+              <span v-if="produccionStore.pendingCount > 0" class="absolute -right-1 -top-1 min-w-5 rounded-full bg-warning px-1 text-[10px] font-extrabold text-white">{{ produccionStore.pendingCount }}</span>
+            </span>
+            <span class="text-xs font-semibold">Cola</span>
           </router-link>
           <router-link
             v-if="authStore.user?.encargado !== 1"
@@ -157,6 +194,21 @@
             <span class="text-xs font-semibold">Dashboard</span>
           </router-link>
           <router-link
+            v-if="authStore.isAdmin"
+            to="/admin"
+            class="group relative flex flex-col items-center justify-center gap-1.5 rounded-xl text-neutral-500"
+            exact-active-class="!text-primary"
+          >
+            <span class="absolute -top-px h-1.5 w-16 rounded-b-xl bg-transparent group-[.router-link-exact-active]:bg-primary"></span>
+            <span class="flex h-12 w-12 items-center justify-center rounded-3xl bg-transparent group-[.router-link-exact-active]:bg-primary-light/30">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" class="h-6 w-6">
+                <path d="M4 7a2 2 0 0 1 2-2h8l6 6v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/>
+                <path d="M14 5v6h6"/>
+              </svg>
+            </span>
+            <span class="text-xs font-semibold">Admin</span>
+          </router-link>
+          <router-link
             to="/configuracion"
             class="group relative flex flex-col items-center justify-center gap-1.5 rounded-xl text-neutral-500"
             exact-active-class="!text-primary"
@@ -175,6 +227,7 @@
     </template>
 
     <router-view v-else />
+    <ToastHost />
   </div>
 </template>
 
@@ -183,12 +236,18 @@ import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
+import ToastHost from '@/components/ToastHost.vue'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const produccionStore = useProduccionStore()
 const isProduccionRoute = computed(() => route.name === 'produccion')
+const userRoleLabel = computed(() => {
+  if (authStore.isAdmin) return 'Admin'
+  if (authStore.user?.encargado === 1) return 'Encargado'
+  return 'Operador'
+})
 
 // ─── PWA install prompt ───
 const deferredInstallPrompt = ref(null)
@@ -242,6 +301,9 @@ onMounted(() => {
   window.addEventListener('appinstalled', handleAppInstalled)
   window.addEventListener('online', handleOnline)
   window.addEventListener('offline', handleOffline)
+  if (authStore.isAuthenticated) {
+    produccionStore.refreshPendingCount()
+  }
 
   // Periodic sync every 5 minutes when online
   syncIntervalId = setInterval(async () => {

@@ -1,8 +1,11 @@
 import { defineStore } from 'pinia'
 import api from '@/services/api'
 import db from '@/services/db'
+import { queuePendingProductionRecord } from '@/services/pendingRecords'
+import { useToastStore } from '@/stores/toast'
 
 const ensureArray = (value) => (Array.isArray(value) ? value : [])
+const CATALOG_TTL_MS = 5 * 60 * 1000
 
 export const useProduccionStore = defineStore('produccion', {
   state: () => ({
@@ -18,8 +21,10 @@ export const useProduccionStore = defineStore('produccion', {
     rodales: [],
     lugaresCarga: [],
     pendingCount: 0,
+    catalogosLoadedAt: 0,
     loading: false,
     submitting: false,
+    syncingPending: false,
     error: null,
   }),
 
@@ -163,29 +168,25 @@ export const useProduccionStore = defineStore('produccion', {
       try {
         // If offline, queue locally instead of posting
         if (!navigator.onLine) {
-          await db.pendingRecords.add({
-            payload: formData,
-            timestamp: Date.now(),
-            synced: 0,
-          })
+          await queuePendingProductionRecord(formData)
           await this.refreshPendingCount()
+          useToastStore().info('Registro guardado offline', 'Se sincronizara cuando vuelva la conexion.')
           return { offline: true }
         }
 
         const { data } = await api.post('/api/produccion', formData)
+        useToastStore().success('Registro guardado')
         return data
       } catch (err) {
         // Network error → queue for later
         if (!err.response) {
-          await db.pendingRecords.add({
-            payload: formData,
-            timestamp: Date.now(),
-            synced: 0,
-          })
+          await queuePendingProductionRecord(formData)
           await this.refreshPendingCount()
+          useToastStore().info('Registro guardado offline', 'No hubo conexion con el servidor; quedo en cola.')
           return { offline: true }
         }
         this.error = err.response?.data?.detail || 'Error al guardar el registro'
+        useToastStore().error('No se pudo guardar', this.error)
         throw err
       } finally {
         this.submitting = false
@@ -197,46 +198,72 @@ export const useProduccionStore = defineStore('produccion', {
     },
 
     async syncPending() {
+      if (this.syncingPending) return 0
+      this.syncingPending = true
       const pending = await db.pendingRecords.where('synced').equals(0).toArray()
-      if (!pending.length) return
+      if (!pending.length) {
+        this.syncingPending = false
+        return 0
+      }
 
       this.error = null
       let successCount = 0
       let permanentFailureCount = 0
 
-      for (const record of pending) {
-        try {
-          await api.post('/api/produccion', record.payload)
-          await db.pendingRecords.delete(record.id)
-          successCount++
-        } catch (err) {
-          const status = err?.response?.status
-
-          if (status >= 400 && status < 500) {
-            const detail = err.response?.data?.detail || 'Error permanente al sincronizar el registro'
+      try {
+        for (const record of pending) {
+          try {
             await db.pendingRecords.update(record.id, {
-              synced: 1,
-              syncStatus: 'failed',
-              syncError: detail,
-              failedAt: Date.now(),
+              syncStatus: 'syncing',
+              lastAttemptAt: Date.now(),
+              retryCount: Number(record.retryCount || 0) + 1,
             })
-            permanentFailureCount++
-            continue
+            await api.post('/api/produccion', record.payload)
+            await db.pendingRecords.delete(record.id)
+            successCount++
+          } catch (err) {
+            const status = err?.response?.status
+
+            if (status >= 400 && status < 500) {
+              const detail = err.response?.data?.detail || 'Error permanente al sincronizar el registro'
+              await db.pendingRecords.update(record.id, {
+                synced: 1,
+                syncStatus: 'failed',
+                syncError: detail,
+                failedAt: Date.now(),
+              })
+              permanentFailureCount++
+              continue
+            }
+
+            await db.pendingRecords.update(record.id, {
+              syncStatus: 'pending',
+              syncError: err.response?.data?.detail || 'Error transitorio. Se reintentara automaticamente.',
+            })
           }
-
-          // Network error or server-side transient error; leave in queue for retry
         }
-      }
 
-      await this.refreshPendingCount()
-      if (permanentFailureCount > 0) {
-        this.error = `No se pudieron sincronizar ${permanentFailureCount} registro(s) por un error permanente.`
+        await this.refreshPendingCount()
+        if (permanentFailureCount > 0) {
+          this.error = `No se pudieron sincronizar ${permanentFailureCount} registro(s) por un error permanente.`
+          useToastStore().error('Sincronizacion parcial', this.error)
+        } else if (successCount > 0) {
+          useToastStore().success('Pendientes sincronizados', `${successCount} registro(s) enviados.`)
+        }
+        return successCount
+      } finally {
+        this.syncingPending = false
       }
-      return successCount
     },
 
     // Carga inicial de catálogos
-    async loadCatalogos() {
+    async loadCatalogos({ force = false } = {}) {
+      const isFresh = this.catalogosLoadedAt && Date.now() - this.catalogosLoadedAt < CATALOG_TTL_MS
+      if (!force && isFresh && this.unidadesNegocio.length > 0 && this.todosLosTipos.length > 0) {
+        await this.refreshPendingCount()
+        return
+      }
+
       this.loading = true
       try {
         await Promise.all([
@@ -245,6 +272,7 @@ export const useProduccionStore = defineStore('produccion', {
           this.fetchPredios(),
           this.fetchAllTiposProceso(),
         ])
+        this.catalogosLoadedAt = Date.now()
         await this.refreshPendingCount()
       } finally {
         this.loading = false

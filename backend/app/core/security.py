@@ -1,8 +1,25 @@
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
+from passlib.context import CryptContext
 from app.core.config import settings
 
 ALGORITHM = "HS256"
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, stored_password: str | None) -> bool:
+    if not stored_password:
+        return False
+
+    # Backward compatibility for legacy plain-text passwords.
+    if stored_password.startswith("$2"):
+        return pwd_context.verify(plain_password, stored_password)
+
+    return plain_password == stored_password
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:

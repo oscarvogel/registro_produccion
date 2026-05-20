@@ -10,4 +10,8 @@ db.version(1).stores({
   pendingRecords: '++id, timestamp, synced',
 })
 
+db.version(2).stores({
+  pendingRecords: '++id, timestamp, synced, syncStatus, clientId',
+})
+
 export default db

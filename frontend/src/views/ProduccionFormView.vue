@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-2xl mx-auto px-3 py-4 pb-[7.5rem] md:px-4 md:pt-6">
+  <div class="mx-auto max-w-6xl px-3 py-4 pb-[7.5rem] md:px-6 md:pt-6">
     <!-- Header -->
     <div class="flex items-center justify-between mb-5 px-1">
       <div class="flex items-center gap-2.5">
@@ -30,27 +30,73 @@
       </svg>
     </div>
 
-    <form v-else @submit.prevent="handleSubmit">
+    <form v-else class="md:grid md:grid-cols-[17rem_minmax(0,1fr)] md:items-start md:gap-6" @submit.prevent="handleSubmit">
 
       <!-- Step indicator -->
-      <div class="mb-5">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-medium text-neutral-400">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
-          <span class="text-xs font-semibold text-neutral-700">{{ pasos[pasoActual] }}</span>
+      <aside class="mb-5 md:sticky md:top-20 md:mb-0 md:rounded-2xl md:border md:border-neutral-200 md:bg-white md:p-4 md:shadow-sm">
+        <div class="md:hidden">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-medium text-neutral-400">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
+            <span class="text-xs font-semibold text-neutral-700">{{ pasos[pasoActual] }}</span>
+          </div>
+          <div class="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+            <div class="h-full bg-primary rounded-full transition-all duration-500 ease-out" :style="{ width: `${((pasoActual + 1) / totalPasos) * 100}%` }"></div>
+          </div>
+          <div class="flex justify-between mt-2.5 px-0.5">
+            <button
+              v-for="(paso, i) in pasos"
+              :key="i"
+              type="button"
+              @click="irAPaso(i)"
+              :class="['w-2.5 h-2.5 rounded-full transition-all duration-300 focus:outline-none',
+                (i === 7 && !esProceso) ? 'bg-neutral-200 cursor-default opacity-40' :
+                i === pasoActual ? 'bg-primary scale-125' : i < pasoActual ? 'bg-primary/60 hover:bg-primary/80 cursor-pointer' : 'bg-neutral-300 cursor-default']"
+            />
+          </div>
         </div>
-        <div class="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
-          <div class="h-full bg-primary rounded-full transition-all duration-500 ease-out" :style="{ width: `${((pasoActual + 1) / totalPasos) * 100}%` }"></div>
+
+        <div class="hidden md:block">
+          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Carga guiada</p>
+          <h2 class="mt-1 text-lg font-extrabold text-primary-dark">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</h2>
+          <div class="mt-4 space-y-1.5">
+            <button
+              v-for="(paso, i) in pasos"
+              :key="paso"
+              type="button"
+              :disabled="i > pasoActual || (i === 7 && !esProceso)"
+              @click="irAPaso(i)"
+              :class="[
+                'flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-colors',
+                i === pasoActual
+                  ? 'border-primary bg-primary/10 text-primary-dark'
+                  : i < pasoActual
+                    ? 'border-neutral-200 bg-white text-neutral-700 hover:border-primary/40'
+                    : 'border-neutral-100 bg-neutral-50 text-neutral-400',
+                (i === 7 && !esProceso) ? 'opacity-45' : '',
+              ]"
+            >
+              <span
+                :class="[
+                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold',
+                  i === pasoActual ? 'bg-primary text-white' : i < pasoActual ? 'bg-primary-light/30 text-primary-dark' : 'bg-neutral-200 text-neutral-500',
+                ]"
+              >
+                {{ i + 1 }}
+              </span>
+              <span class="min-w-0 flex-1 truncate font-semibold">{{ paso }}</span>
+            </button>
+          </div>
         </div>
-        <div class="flex justify-between mt-2.5 px-0.5">
-          <button
-            v-for="(paso, i) in pasos"
-            :key="i"
-            type="button"
-            @click="irAPaso(i)"
-            :class="['w-2.5 h-2.5 rounded-full transition-all duration-300 focus:outline-none',
-              (i === 7 && !esProceso) ? 'bg-neutral-200 cursor-default opacity-40' :
-              i === pasoActual ? 'bg-primary scale-125' : i < pasoActual ? 'bg-primary/60 hover:bg-primary/80 cursor-pointer' : 'bg-neutral-300 cursor-default']"
-          />
+      </aside>
+
+      <div class="min-w-0 space-y-5">
+
+      <div v-if="form.un_id || form.tipo_de_proceso_id || form.cod_equipo" class="mb-5 rounded-xl border border-neutral-200 bg-white p-3 shadow-sm">
+        <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400 mb-2">Resumen</p>
+        <div class="grid grid-cols-1 gap-2 text-sm text-neutral-700 sm:grid-cols-3">
+          <div class="truncate"><span class="font-bold text-neutral-900">UN:</span> {{ getUnidadNombre(form.un_id) || '-' }}</div>
+          <div class="truncate"><span class="font-bold text-neutral-900">Proceso:</span> {{ tipoProcesoNombre || '-' }}</div>
+          <div class="truncate"><span class="font-bold text-neutral-900">Equipo:</span> {{ movilSeleccionadoDetalle || '-' }}</div>
         </div>
       </div>
 
@@ -666,10 +712,11 @@
         </svg>
         <span>{{ store.error }}</span>
       </div>
+      </div>
 
       <!-- Step navigation — fixed bottom -->
-      <div class="fixed bottom-0 left-0 right-0 z-30 border-t border-neutral-200 bg-white/95 backdrop-blur-sm px-3 py-3">
-        <div class="max-w-2xl mx-auto flex items-center gap-3">
+      <div class="fixed bottom-0 left-0 right-0 z-30 border-t border-neutral-200 bg-white/95 px-3 py-3 backdrop-blur-sm md:left-auto md:right-6 md:bottom-6 md:w-[min(42rem,calc(100vw-22rem))] md:rounded-2xl md:border md:shadow-xl">
+        <div class="mx-auto flex max-w-2xl items-center gap-3">
           <button
             v-if="pasoActual > 0"
             type="button"
@@ -713,7 +760,7 @@
             {{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}
           </button>
         </div>
-        <p v-if="mensajePasoIncompleto" class="max-w-2xl mx-auto mt-2 px-1 text-xs text-error-dark">
+        <p v-if="mensajePasoIncompleto" class="mx-auto mt-2 max-w-2xl px-1 text-xs text-error-dark">
           {{ mensajePasoIncompleto }}
         </p>
       </div>
@@ -744,6 +791,7 @@ const mostrandoBuscador = ref(false)
 const inputBuscadorMovil = ref(null)
 const ultimaHoraFinRef = ref(0)
 const fieldClass = 'w-full px-4 py-3 bg-neutral-100 border border-neutral-300 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 disabled:bg-neutral-200 disabled:cursor-not-allowed transition-colors'
+const preferenciasKey = computed(() => `produccion_preferencias_${authStore.user?.idPersonal || 'anon'}`)
 
 // ─── Wizard steps ───
 const pasoActual = ref(0)
@@ -987,6 +1035,8 @@ const mensajePasoIncompleto = computed(() => {
 // ─── Load initial data ───
 onMounted(async () => {
   await store.loadCatalogos()
+  await aplicarUnidadInicial()
+  await aplicarPreferenciasGuardadas()
 
   if (!isEncargado.value) {
     // Auto-fetch asignaciones + fallback para operador logueado
@@ -1050,7 +1100,51 @@ function getProcesoTexto(idProceso) {
   return `Proceso ID ${idProceso}`
 }
 
+async function aplicarUnidadInicial() {
+  if (form.un_id) return
+
+  if (store.unidadesNegocio.length === 1) {
+    form.un_id = store.unidadesNegocio[0].idUnidadNegocio
+    await onUnidadChange()
+    return
+  }
+
+  const userUnits = Array.isArray(authStore.user?.unidad_ids) ? authStore.user.unidad_ids : []
+  if (userUnits.length === 1 && store.unidadesNegocio.some((un) => un.idUnidadNegocio === userUnits[0])) {
+    form.un_id = userUnits[0]
+    await onUnidadChange()
+  }
+}
+
 // ─── Watchers ───
+async function aplicarPreferenciasGuardadas() {
+  if (form.un_id) return
+  try {
+    const prefs = JSON.parse(localStorage.getItem(preferenciasKey.value) || '{}')
+    if (prefs.un_id && store.unidadesNegocio.some((un) => un.idUnidadNegocio === prefs.un_id)) {
+      form.un_id = prefs.un_id
+      await onUnidadChange()
+      if (prefs.tipo_de_proceso_id && store.tiposProceso.some((tipo) => tipo.id === prefs.tipo_de_proceso_id)) {
+        form.tipo_de_proceso_id = prefs.tipo_de_proceso_id
+      }
+      if (prefs.movil && store.moviles.some((movil) => movil.idMovil === prefs.movil.idMovil)) {
+        seleccionarMovil(prefs.movil)
+      }
+    }
+  } catch {
+    localStorage.removeItem(preferenciasKey.value)
+  }
+}
+
+function guardarPreferenciasProduccion() {
+  const movil = (store.moviles || []).find((item) => item.idMovil === form.cod_equipo)
+  localStorage.setItem(preferenciasKey.value, JSON.stringify({
+    un_id: form.un_id || '',
+    tipo_de_proceso_id: form.tipo_de_proceso_id || '',
+    movil: movil ? { idMovil: movil.idMovil, patente: movil.patente, detalle: movil.detalle } : null,
+  }))
+}
+
 async function onOperadorChange() {
   if (!form.operador_id) return
   // Fetch asignaciones operativas + fallback legacy
@@ -1098,6 +1192,7 @@ async function onUnidadChange() {
     store.fetchLugaresCarga(form.un_id),
     isEncargado.value ? store.fetchOperadores(form.un_id) : Promise.resolve(),
   ])
+  guardarPreferenciasProduccion()
 }
 
 function onTipoProcesoChange() {
@@ -1114,6 +1209,7 @@ function onTipoProcesoChange() {
   form.km = 0
 
   autocompletarHoraInicio({ force: true })
+  guardarPreferenciasProduccion()
 }
 
 async function onPredioChange() {
@@ -1142,6 +1238,7 @@ function seleccionarMovil(movil) {
   mostrandoBuscador.value = false
 
   autocompletarHoraInicio({ force: true })
+  guardarPreferenciasProduccion()
 }
 
 function seleccionarDesdeAsignacion(asig) {

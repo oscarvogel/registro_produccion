@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import date
 
 
@@ -9,6 +9,7 @@ class OperadorResponse(BaseModel):
     dni: str | None = None
     encargado: int = 0
     tipo_de_proceso_id: int | None = None
+    unidad_ids: list[int] = Field(default_factory=list)
 
     class Config:
         from_attributes = True

@@ -1,12 +1,16 @@
 import axios from 'axios'
+import { useToastStore } from '@/stores/toast'
 
-const envApiUrl = import.meta.env.VITE_API_URL?.trim()
-const defaultApiUrl = ''
+let onUnauthorized = null
 
 const api = axios.create({
-  baseURL: envApiUrl || defaultApiUrl,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   headers: { 'Content-Type': 'application/json' }
 })
+
+export function setUnauthorizedHandler(handler) {
+  onUnauthorized = handler
+}
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
@@ -28,9 +32,17 @@ api.interceptors.response.use(
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       delete api.defaults.headers.common.Authorization
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        window.location.href = '/login'
+      if (typeof onUnauthorized === 'function') {
+        onUnauthorized()
       }
+    }
+
+    if (!error.response) {
+      useToastStore().error('Backend no disponible', 'No se pudo conectar con el servidor.')
+    } else if (status === 403) {
+      useToastStore().error('Acceso restringido', error.response?.data?.detail || 'No tenes permisos para esta accion.')
+    } else if (status >= 500) {
+      useToastStore().error('Error del servidor', error.response?.data?.detail || 'Intenta nuevamente en unos minutos.')
     }
 
     return Promise.reject(error)
