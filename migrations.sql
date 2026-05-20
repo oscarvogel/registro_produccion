@@ -5,7 +5,16 @@
 
 -- 1. Agregar campo 'encargado' a la tabla personal
 ALTER TABLE personal
-  ADD COLUMN encargado TINYINT(1) NOT NULL DEFAULT 0 AFTER activo;
+  ADD COLUMN IF NOT EXISTS encargado TINYINT(1) NOT NULL DEFAULT 0 AFTER activo;
+
+-- 1.1 Agregar campo 'is_admin' para acceso al panel de administracion
+ALTER TABLE personal
+  ADD COLUMN IF NOT EXISTS is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER encargado;
+
+-- 1.2 Acceso inicial: solo usuario idPersonal=951
+UPDATE personal
+  SET is_admin = 1
+  WHERE idPersonal = 951;
 
 -- 2. Crear tabla tipo_de_proceso (catálogo maestro)
 --    Cada tipo define qué campos se deben mostrar en el formulario
@@ -18,7 +27,7 @@ CREATE TABLE IF NOT EXISTS tipo_de_proceso (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- 3. Insertar los tipos de proceso
-INSERT INTO tipo_de_proceso (id, nombre, campos) VALUES
+INSERT IGNORE INTO tipo_de_proceso (id, nombre, campos) VALUES
   (1,  'CARGA',                    'tn_despachadas'),
   (2,  'EXTRACCION',               'carros,distancia_recorrida'),
   (3,  'PROCESO',                  'm3,plantas'),
@@ -46,9 +55,23 @@ CREATE TABLE IF NOT EXISTS unidadnegocio_tipo_proceso (
 
 -- 5. Agregar tipo_de_proceso_id al personal (nullable = no obligatorio)
 ALTER TABLE personal
-  ADD COLUMN tipo_de_proceso_id INT UNSIGNED NULL DEFAULT NULL AFTER encargado,
-  ADD CONSTRAINT FK_personal_tipo_proceso FOREIGN KEY (tipo_de_proceso_id)
-    REFERENCES tipo_de_proceso (id) ON UPDATE CASCADE ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS tipo_de_proceso_id INT UNSIGNED NULL DEFAULT NULL AFTER encargado;
+
+SET @fk_exists := (
+  SELECT COUNT(*)
+  FROM information_schema.TABLE_CONSTRAINTS
+  WHERE CONSTRAINT_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'personal'
+    AND CONSTRAINT_NAME = 'FK_personal_tipo_proceso'
+);
+SET @sql := IF(
+  @fk_exists = 0,
+  'ALTER TABLE personal ADD CONSTRAINT FK_personal_tipo_proceso FOREIGN KEY (tipo_de_proceso_id) REFERENCES tipo_de_proceso (id) ON UPDATE CASCADE ON DELETE SET NULL',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 6. NOTA: La tabla tablero_produccion ya tiene la columna 'operacion' (varchar 50)
 --    que se usa para almacenar el nombre del tipo de proceso (CARGA, EXTRACCION, etc.)
@@ -64,57 +87,76 @@ ALTER TABLE personal
 --   (1, 3),  -- UN 1 -> PROCESO
 --   (1, 5);  -- UN 1 -> HORAS MAQUINAS
 
-CREATE TABLE `asignaciones_operativas` (
-  `idAsignacion` int(10) UNSIGNED NOT NULL,
+CREATE TABLE IF NOT EXISTS `asignaciones_operativas` (
+  `idAsignacion` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `idMovil` int(10) UNSIGNED NOT NULL,
   `idChofer` int(10) UNSIGNED NOT NULL,
-  `idProceso` int(10) UNSIGNED NOT NULL
+  `idProceso` int(10) UNSIGNED NOT NULL,
+  PRIMARY KEY (`idAsignacion`),
+  KEY `idx_asig_movil` (`idMovil`),
+  KEY `idx_asig_chofer` (`idChofer`),
+  KEY `idx_asig_proceso` (`idProceso`),
+  CONSTRAINT `fk_chofer_op` FOREIGN KEY (`idChofer`) REFERENCES `personal` (`idPersonal`) ON UPDATE CASCADE,
+  CONSTRAINT `fk_movil_op` FOREIGN KEY (`idMovil`) REFERENCES `moviles` (`idMovil`) ON UPDATE CASCADE,
+  CONSTRAINT `fk_proceso_op` FOREIGN KEY (`idProceso`) REFERENCES `tipo_de_proceso` (`id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
--- Volcado de datos para la tabla `asignaciones_operativas`
+-- La tabla se crea vacia. Las asignaciones deben cargarse desde el panel admin
+-- usando IDs existentes de `moviles`, `personal` y `tipo_de_proceso`.
 --
 
-INSERT INTO `asignaciones_operativas` (`idAsignacion`, `idMovil`, `idChofer`, `idProceso`) VALUES
-(1, 302, 626, 3);
+SET @fk_exists := (
+  SELECT COUNT(*)
+  FROM information_schema.TABLE_CONSTRAINTS
+  WHERE CONSTRAINT_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'asignaciones_operativas'
+    AND CONSTRAINT_NAME = 'fk_chofer_op'
+);
+SET @sql := IF(
+  @fk_exists = 0,
+  'ALTER TABLE asignaciones_operativas ADD CONSTRAINT fk_chofer_op FOREIGN KEY (idChofer) REFERENCES personal (idPersonal) ON UPDATE CASCADE',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
---
--- Índices para tablas volcadas
---
+SET @fk_exists := (
+  SELECT COUNT(*)
+  FROM information_schema.TABLE_CONSTRAINTS
+  WHERE CONSTRAINT_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'asignaciones_operativas'
+    AND CONSTRAINT_NAME = 'fk_movil_op'
+);
+SET @sql := IF(
+  @fk_exists = 0,
+  'ALTER TABLE asignaciones_operativas ADD CONSTRAINT fk_movil_op FOREIGN KEY (idMovil) REFERENCES moviles (idMovil) ON UPDATE CASCADE',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
---
--- Indices de la tabla `asignaciones_operativas`
---
-ALTER TABLE `asignaciones_operativas`
-  ADD PRIMARY KEY (`idAsignacion`),
-  ADD KEY `idx_asig_movil` (`idMovil`),
-  ADD KEY `idx_asig_chofer` (`idChofer`),
-  ADD KEY `idx_asig_proceso` (`idProceso`);
+SET @fk_exists := (
+  SELECT COUNT(*)
+  FROM information_schema.TABLE_CONSTRAINTS
+  WHERE CONSTRAINT_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'asignaciones_operativas'
+    AND CONSTRAINT_NAME = 'fk_proceso_op'
+);
+SET @sql := IF(
+  @fk_exists = 0,
+  'ALTER TABLE asignaciones_operativas ADD CONSTRAINT fk_proceso_op FOREIGN KEY (idProceso) REFERENCES tipo_de_proceso (id) ON UPDATE CASCADE',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
---
--- AUTO_INCREMENT de las tablas volcadas
---
-
---
--- AUTO_INCREMENT de la tabla `asignaciones_operativas`
---
-ALTER TABLE `asignaciones_operativas`
-  MODIFY `idAsignacion` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- Restricciones para tablas volcadas
---
-
---
--- Filtros para la tabla `asignaciones_operativas`
---
-ALTER TABLE `asignaciones_operativas`
-  ADD CONSTRAINT `fk_chofer_op` FOREIGN KEY (`idChofer`) REFERENCES `personal` (`idPersonal`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_movil_op` FOREIGN KEY (`idMovil`) REFERENCES `moviles` (`idMovil`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_proceso_op` FOREIGN KEY (`idProceso`) REFERENCES `tipo_de_proceso` (`id`) ON UPDATE CASCADE;
 COMMIT;
 
-CREATE TABLE kpi_definicion (
+CREATE TABLE IF NOT EXISTS kpi_definicion (
   id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
   nombre          VARCHAR(100) NOT NULL COMMENT 'Ej: Toneladas Despachadas',
   campo_origen    VARCHAR(80)  NOT NULL COMMENT 'Columna en tablero_produccion que se agrega/promedia',
@@ -126,7 +168,7 @@ CREATE TABLE kpi_definicion (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO kpi_definicion
+INSERT IGNORE INTO kpi_definicion
   (id, nombre, campo_origen, agregacion, unidad, icono, descripcion, activo)
 VALUES
   (1,  'Toneladas Despachadas', 'tn_despachadas',          'SUM',    'TN',  'truck',          'Suma total de toneladas despachadas en el período',            1),
@@ -144,7 +186,7 @@ VALUES
   (13, 'Eficiencia Operativa',  'CUSTOM:eficiencia',        'CUSTOM', '%',   'percent',        'Eficiencia: (hrs_trabajadas - hrs_no_op) / hrs_trabajadas',    1),
   (14, 'Registros del Período', 'CUSTOM:registros',         'COUNT',  'reg', 'clipboard-list', 'Cantidad de registros en el período',                          1);
 
-CREATE TABLE `tipo_proceso_kpi` (
+CREATE TABLE IF NOT EXISTS `tipo_proceso_kpi` (
   `tipo_proceso_id` int(10) UNSIGNED NOT NULL,
   `kpi_id` int(10) UNSIGNED NOT NULL,
   `orden` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
@@ -157,7 +199,7 @@ CREATE TABLE `tipo_proceso_kpi` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- CARGA (1) → tn_despachadas(P), combustible, horas_trabajadas, eficiencia, registros
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (1, 1,  1, 1),
   (1, 10, 2, 0),
   (1, 12, 3, 0),
@@ -165,7 +207,7 @@ INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALU
   (1, 14, 5, 0);
 
 -- EXTRACCION (2) → carros(P), mtrs_recorridos, combustible, horas_trabajadas, eficiencia, registros
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (2, 4,  1, 1),
   (2, 5,  2, 0),
   (2, 10, 3, 0),
@@ -174,7 +216,7 @@ INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALU
   (2, 14, 6, 0);
 
 -- PROCESO (3) → m3(P), plantas, horas_trabajadas, eficiencia, combustible, registros
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (3, 2,  1, 1),
   (3, 3,  2, 0),
   (3, 12, 3, 0),
@@ -183,7 +225,7 @@ INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALU
   (3, 14, 6, 0);
 
 -- VOLTEO (4) → plantas(P), combustible, horas_trabajadas, eficiencia, registros
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (4, 3,  1, 1),
   (4, 10, 2, 0),
   (4, 12, 3, 0),
@@ -191,7 +233,7 @@ INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALU
   (4, 14, 5, 0);
 
 -- HORAS MAQUINAS (5) → horas_trabajadas(P), hrs_no_op, eficiencia, combustible, registros
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (5, 12, 1, 1),
   (5, 11, 2, 0),
   (5, 13, 3, 0),
@@ -199,7 +241,7 @@ INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALU
   (5, 14, 5, 0);
 
 -- DESPEJE Y SUBSOLADO (6) → has(P), combustible, horas_trabajadas, eficiencia, registros
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (6, 8,  1, 1),
   (6, 10, 2, 0),
   (6, 12, 3, 0),
@@ -207,7 +249,7 @@ INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALU
   (6, 14, 5, 0);
 
 -- EMPUJE PESADO (7) → has(P), combustible, horas_trabajadas, eficiencia, registros
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (7, 8,  1, 1),
   (7, 10, 2, 0),
   (7, 12, 3, 0),
@@ -215,7 +257,7 @@ INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALU
   (7, 14, 5, 0);
 
 -- DESTOCONADO Y SUBSOLADO (8) → has(P), hr_disposicion, combustible, horas_trabajadas, eficiencia, registros
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (8, 8,  1, 1),
   (8, 9,  2, 0),
   (8, 10, 3, 0),
@@ -224,7 +266,7 @@ INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALU
   (8, 14, 6, 0);
 
 -- PERFILADO (9) → km_perfilado(P), combustible, horas_trabajadas, eficiencia, registros
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (9, 7,  1, 1),
   (9, 10, 2, 0),
   (9, 12, 3, 0),
@@ -232,7 +274,7 @@ INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALU
   (9, 14, 5, 0);
 
 -- CARRETEO (10) → km_carreteo(P), combustible, horas_trabajadas, eficiencia, registros
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (10, 6,  1, 1),
   (10, 10, 2, 0),
   (10, 12, 3, 0),
@@ -251,7 +293,7 @@ ALTER TABLE tablero_produccion
   ADD COLUMN IF NOT EXISTS pies_12  DECIMAL(12,2) NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS pies_10  DECIMAL(12,2) NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS pulpable DECIMAL(12,2) NOT NULL DEFAULT 0;
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (11, 1,  1, 1),
   (11, 10, 2, 0),
   (11, 12, 3, 0),
@@ -259,7 +301,7 @@ INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALU
   (11, 14, 5, 0);
 
 -- CHIPEADO EN SUELO (12) → tn_despachadas(P), combustible, horas_trabajadas, eficiencia, registros
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (12, 1,  1, 1),
   (12, 10, 2, 0),
   (12, 12, 3, 0),
@@ -267,21 +309,42 @@ INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALU
   (12, 14, 5, 0);
 
 -- CHIPEADO SOBRE CAMION (13) → tn_despachadas(P), combustible, horas_trabajadas, eficiencia, registros
-INSERT INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
+INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (13, 1,  1, 1),
   (13, 10, 2, 0),
   (13, 12, 3, 0),
   (13, 13, 4, 0),
   (13, 14, 5, 0);
 
+CREATE TABLE IF NOT EXISTS actas (
+  id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  rodal_id INT(10) UNSIGNED NOT NULL DEFAULT 0,
+  numero VARCHAR(30) NOT NULL DEFAULT '0',
+  vam DECIMAL(12,4) NOT NULL,
+  tarifa DECIMAL(12,4) NOT NULL,
+  extraccion DECIMAL(12,4) NOT NULL,
+  carga DECIMAL(12,4) NOT NULL,
+  periodo CHAR(6) DEFAULT '',
+  PRIMARY KEY (id),
+  KEY FK_acta_rodal (rodal_id),
+  CONSTRAINT FK_acta_rodal FOREIGN KEY (rodal_id)
+    REFERENCES rodales (idRodal) ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-  CREATE TABLE actas (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    rodal_id INT NOT NULL DEFAULT 0,
-    numero VARCHAR(30) NOT NULL DEFAULT '0',
-    vam DECIMAL(12, 4) NOT NULL,
-    tarifa DECIMAL(12, 4) NOT NULL,
-    extraccion DECIMAL(12, 4) NOT NULL,
-    carga DECIMAL(12, 4) NOT NULL,
-    periodo VARCHAR(6)
+
+-- Migracion: relacion N:N entre personal y unidad de negocio.
+-- Mantiene compatibilidad con personal.unidad_negocio como unidad principal.
+CREATE TABLE IF NOT EXISTS personal_unidad_negocio (
+  idPersonal        INT(10) UNSIGNED NOT NULL,
+  idUnidadNegocio  INT(10) UNSIGNED NOT NULL,
+  PRIMARY KEY (idPersonal, idUnidadNegocio),
+  CONSTRAINT FK_pun_personal FOREIGN KEY (idPersonal)
+    REFERENCES personal (idPersonal) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT FK_pun_unidad FOREIGN KEY (idUnidadNegocio)
+    REFERENCES unidadnegocio (idUnidadNegocio) ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT IGNORE INTO personal_unidad_negocio (idPersonal, idUnidadNegocio)
+SELECT idPersonal, unidad_negocio
+FROM personal
+WHERE unidad_negocio IS NOT NULL AND unidad_negocio > 0;

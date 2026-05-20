@@ -1,3 +1,5 @@
+from pathlib import Path
+
 try:
     from pydantic_settings import BaseSettings
 except Exception:
@@ -18,10 +20,12 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:8005",
     ]
+    ALLOWED_ORIGIN_REGEX: str = r"^http://(localhost|127\.0\.0\.1):\d+$"
     SECRET_KEY: str = "change-me-in-production-with-a-real-secret-key"
     ACCESS_TOKEN_EXPIRE_HOURS: int = 8
 
     class Config:
-        env_file = ".env"
+        # Load .env from the backend root regardless of process working directory.
+        env_file = str(Path(__file__).resolve().parents[2] / ".env")
 
 settings = Settings()

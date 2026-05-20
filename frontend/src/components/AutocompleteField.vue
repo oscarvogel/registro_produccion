@@ -28,6 +28,7 @@
       <div class="relative">
         <input
           ref="inputRef"
+          :id="inputId"
           type="text"
           v-model="query"
           @focus="isOpen = true"
@@ -39,6 +40,12 @@
           @keydown.arrow-up.prevent="moveUp"
           :placeholder="placeholder"
           :disabled="disabled"
+          role="combobox"
+          autocomplete="off"
+          :aria-expanded="isOpen"
+          :aria-controls="listboxId"
+          :aria-activedescendant="activeDescendantId"
+          :aria-invalid="invalid || undefined"
           :class="[
             'w-full px-4 py-3 bg-neutral-100 border rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-primary/40 disabled:bg-neutral-200 disabled:cursor-not-allowed transition-colors',
             invalid
@@ -62,12 +69,17 @@
       <!-- Inline results list (no absolute — expands card naturally) -->
       <div
         v-if="isOpen && filteredItems.length > 0"
+        :id="listboxId"
+        role="listbox"
         class="mt-1.5 border border-neutral-200 rounded-xl bg-white max-h-52 overflow-y-auto shadow-sm"
       >
         <button
           v-for="(item, i) in filteredItems"
           :key="getKey(item)"
+          :id="optionId(i)"
           type="button"
+          role="option"
+          :aria-selected="i === highlightedIndex"
           @mousedown.prevent="selectItem(item)"
           :class="[
             'w-full text-left px-4 py-2.5 border-b last:border-b-0 border-neutral-100 transition-colors text-sm',
@@ -122,6 +134,10 @@ const isOpen = ref(false)
 const searching = ref(false)   // true when in active-search mode (even if value exists)
 const highlightedIndex = ref(-1)
 const inputRef = ref(null)
+const uniqueId = Math.random().toString(36).slice(2)
+const inputId = `autocomplete-input-${uniqueId}`
+const listboxId = `autocomplete-listbox-${uniqueId}`
+const activeDescendantId = computed(() => highlightedIndex.value >= 0 ? optionId(highlightedIndex.value) : undefined)
 
 const selectedLabel = computed(() => {
   if (props.modelValue === null || props.modelValue === undefined || props.modelValue === '' || props.modelValue === 0) return ''
@@ -135,6 +151,10 @@ function getLabel(item) {
 
 function getKey(item) {
   return typeof item === 'object' ? item[props.valueKey] : item
+}
+
+function optionId(index) {
+  return `autocomplete-option-${uniqueId}-${index}`
 }
 
 const filteredItems = computed(() => {

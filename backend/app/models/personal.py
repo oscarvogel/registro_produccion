@@ -29,6 +29,7 @@ class Personal(Base):
     porcentaje = Column(Float, nullable=False)
     activo = Column(SmallInteger, nullable=False)
     encargado = Column(SmallInteger, nullable=False, default=0)
+    is_admin = Column(SmallInteger, nullable=False, default=0)
     tipo_de_proceso_id = Column(Integer, nullable=True)
     dni = Column(String(8), nullable=True)
     password = Column(String(255), nullable=True)

@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-2xl mx-auto px-3 py-4 pb-[7.5rem] md:px-4 md:pt-6">
+  <div class="mx-auto max-w-6xl px-3 py-4 pb-[7.5rem] md:px-6 md:pt-6">
     <!-- Header -->
     <div class="flex items-center justify-between mb-5 px-1">
       <div class="flex items-center gap-2.5">
@@ -30,43 +30,115 @@
       </svg>
     </div>
 
-    <form v-else @submit.prevent="handleSubmit">
+    <form v-else class="md:grid md:grid-cols-[17rem_minmax(0,1fr)] md:items-start md:gap-6" @submit.prevent="handleSubmit">
 
       <!-- Step indicator -->
-      <div class="mb-5">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-medium text-neutral-400">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
-          <span class="text-xs font-semibold text-neutral-700">{{ pasos[pasoActual] }}</span>
+      <aside class="mb-5 md:sticky md:top-20 md:mb-0 md:rounded-2xl md:border md:border-neutral-200 md:bg-white md:p-4 md:shadow-sm">
+        <div class="md:hidden">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-medium text-neutral-400">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
+            <span class="text-xs font-semibold text-neutral-700">{{ pasos[pasoActual] }}</span>
+          </div>
+          <div class="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+            <div class="h-full bg-primary rounded-full transition-all duration-500 ease-out" :style="{ width: `${((pasoActual + 1) / totalPasos) * 100}%` }"></div>
+          </div>
+          <div class="flex justify-between mt-2.5 px-0.5">
+            <button
+              v-for="(paso, i) in pasos"
+              :key="i"
+              type="button"
+              @click="irAPaso(i)"
+              :class="['w-2.5 h-2.5 rounded-full transition-all duration-300 focus:outline-none',
+                i === pasoActual ? 'bg-primary scale-125' : i < pasoActual ? 'bg-success hover:bg-success/80 cursor-pointer' : 'bg-neutral-300 cursor-default']"
+            />
+          </div>
         </div>
-        <div class="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
-          <div class="h-full bg-primary rounded-full transition-all duration-500 ease-out" :style="{ width: `${((pasoActual + 1) / totalPasos) * 100}%` }"></div>
+
+        <div class="hidden md:block">
+          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Carga guiada</p>
+          <h2 class="mt-1 text-lg font-extrabold text-primary-dark">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</h2>
+          <div class="mt-4 space-y-1.5">
+            <button
+              v-for="(paso, i) in pasos"
+              :key="paso"
+              type="button"
+              :disabled="i > pasoActual"
+              @click="irAPaso(i)"
+              :class="[
+                'flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-colors',
+                i === pasoActual
+                  ? 'border-primary bg-primary/10 text-primary-dark'
+                  : i < pasoActual
+                    ? 'border-neutral-200 bg-white text-neutral-700 hover:border-primary/40'
+                    : 'border-neutral-100 bg-neutral-50 text-neutral-400',
+              ]"
+            >
+              <span
+                :class="[
+                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold',
+                  i < pasoActual ? 'bg-success text-white' : i === pasoActual ? 'bg-primary text-white' : 'bg-neutral-200 text-neutral-500',
+                ]"
+              >
+                {{ i < pasoActual ? 'OK' : i + 1 }}
+              </span>
+              <span class="min-w-0 flex-1 truncate font-semibold">{{ paso }}</span>
+              <span class="text-[11px] font-bold uppercase tracking-wide opacity-70">{{ stepStatus(i) }}</span>
+            </button>
+          </div>
         </div>
-        <div class="flex justify-between mt-2.5 px-0.5">
-          <button
-            v-for="(paso, i) in pasos"
-            :key="i"
-            type="button"
-            @click="irAPaso(i)"
-            :class="['w-2.5 h-2.5 rounded-full transition-all duration-300 focus:outline-none',
-              (i === 7 && !esProceso) ? 'bg-neutral-200 cursor-default opacity-40' :
-              i === pasoActual ? 'bg-primary scale-125' : i < pasoActual ? 'bg-primary/60 hover:bg-primary/80 cursor-pointer' : 'bg-neutral-300 cursor-default']"
-          />
+      </aside>
+
+      <div class="min-w-0 space-y-5">
+
+      <div class="mb-5 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+        <div class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Carga en curso</p>
+            <p class="text-lg font-extrabold text-primary-dark">Estado: Sin guardar</p>
+          </div>
+          <span class="w-fit rounded-full bg-warning-light px-3 py-1 text-xs font-bold text-warning-dark">Borrador local</span>
+        </div>
+        <div class="grid grid-cols-1 gap-2 text-sm text-neutral-700 sm:grid-cols-2 lg:grid-cols-5">
+          <div class="truncate"><span class="font-bold text-neutral-900">Fecha:</span> {{ formatFechaResumen(form.fecha) }}</div>
+          <div class="truncate"><span class="font-bold text-neutral-900">UN:</span> {{ getUnidadNombre(form.un_id) || 'Pendiente' }}</div>
+          <div class="truncate"><span class="font-bold text-neutral-900">Operador:</span> {{ getOperadorNombre(form.operador_id) || 'Pendiente' }}</div>
+          <div class="truncate"><span class="font-bold text-neutral-900">Equipo:</span> {{ movilSeleccionadoDetalle || 'Pendiente' }}</div>
+          <div class="truncate"><span class="font-bold text-neutral-900">Proceso:</span> {{ tipoProcesoNombre || 'Pendiente' }}</div>
         </div>
       </div>
 
       <!-- ═══ 1. FECHA ═══ -->
-      <SectionCard v-show="pasoActual === 0" title="Fecha de Registro">
+      <SectionCard v-show="pasoActual === 0" title="Contexto de Carga">
+        <p class="mb-4 text-sm text-neutral-500">
+          Selecciona el dia correspondiente y la unidad de negocio para la que se cargara la produccion.
+        </p>
         <InputField
           label="Fecha"
           type="date"
           v-model="form.fecha"
           required
         />
+        <p class="mt-2 text-xs text-neutral-400">Si estas cargando una produccion atrasada, modifica esta fecha.</p>
+
+        <div class="mt-4">
+          <AutocompleteField
+            label="Unidad de Negocio"
+            v-model="form.un_id"
+            :items="store.unidadesNegocio"
+            labelKey="nombre"
+            valueKey="idUnidadNegocio"
+            placeholder="Seleccionar unidad"
+            @select="onUnidadChange"
+          />
+        </div>
       </SectionCard>
 
       <!-- ═══ 2. UNIDAD DE NEGOCIO ═══ -->
-      <SectionCard v-show="pasoActual === 1" title="Unidad de Negocio">
-        <AutocompleteField
+      <SectionCard v-show="pasoActual === 3" title="Proceso / Actividad">
+        <p class="mb-4 text-sm text-neutral-500">
+          Selecciona el tipo de proceso que corresponde a esta carga. Los campos de produccion se ajustan segun esta seleccion.
+        </p>
+        <AutocompleteField v-if="false"
           label="Unidad de Negocio"
           v-model="form.un_id"
           :items="store.unidadesNegocio"
@@ -91,9 +163,9 @@
       </SectionCard>
 
       <!-- ═══ 3. OPERADOR ═══ -->
-      <SectionCard v-show="pasoActual === 2" title="Identificación del Operador">
+      <SectionCard v-show="pasoActual === 1" title="Identificacion del Operador">
         <!-- Si es operador: bloqueado -->
-        <div v-if="!isEncargado">
+        <div v-if="!canSelectOperador">
           <label class="block text-sm font-medium text-neutral-700 mb-1">Operador</label>
           <div class="w-full px-4 py-3 bg-neutral-100 border border-neutral-300 rounded-xl text-neutral-700">
             {{ authStore.userName }}
@@ -115,7 +187,7 @@
       </SectionCard>
 
       <!-- ═══ 4. MAQUINARIA ═══ -->
-      <SectionCard v-show="pasoActual === 3" title="Asignación de Maquinaria">
+      <SectionCard v-show="pasoActual === 2" title="Equipo / Maquinaria">
         <!-- ── Estado: Máquina ya seleccionada ── -->
         <div v-if="form.cod_equipo && !mostrandoBuscador" class="space-y-3">
           <div class="flex items-center gap-3 p-3 bg-success-light/40 border border-success/30 rounded-xl">
@@ -467,7 +539,7 @@
       </div>
 
       <!-- ═══ 7. COMBUSTIBLE ═══ -->
-      <SectionCard v-show="pasoActual === 5" title="Combustible">
+      <SectionCard v-show="pasoActual === 6" title="Combustible">
         <div class="flex items-center justify-between">
           <span class="text-sm font-medium text-neutral-700">¿Se cargó combustible?</span>
           <button
@@ -500,7 +572,7 @@
       </SectionCard>
 
       <!-- ═══ 8. ACEITES ═══ -->
-      <SectionCard v-show="pasoActual === 6" title="Aceites">
+      <SectionCard v-show="pasoActual === 6" title="Consumos">
         <div class="space-y-3">
           <InputField
             label="Hidráulico (litros)"
@@ -541,7 +613,7 @@
       </SectionCard>
 
       <!-- ═══ 9. SISTEMA DE CORTE (solo para PROCESO) ═══ -->
-      <SectionCard v-show="pasoActual === 7" v-if="esProceso" title="Sistema de Corte">
+      <SectionCard v-show="pasoActual === 6" v-if="esProceso" title="Sistema de Corte">
         <div class="space-y-3">
           <InputField
             label="Espada"
@@ -582,7 +654,7 @@
       </SectionCard>
 
       <!-- ═══ 10. UBICACIÓN Y REFERENCIA ═══ -->
-      <SectionCard v-show="pasoActual === 8" title="Ubicación y Referencia">
+      <SectionCard v-show="pasoActual === 7" title="Ubicacion y Referencia">
         <div>
           <AutocompleteField
             label="Lugar de Carga"
@@ -647,13 +719,29 @@
       </SectionCard>
 
       <!-- ═══ OBSERVACIONES ═══ -->
-      <SectionCard v-show="pasoActual === 8" title="Observaciones">
+      <SectionCard v-show="pasoActual === 7" title="Observaciones">
         <textarea
           v-model="form.observaciones"
           rows="3"
           placeholder="Notas adicionales..."
           :class="`${fieldClass} resize-none min-h-32`"
         />
+      </SectionCard>
+
+      <SectionCard v-show="pasoActual === 8" title="Revision y Confirmacion">
+        <p class="mb-4 text-sm text-neutral-500">
+          Revisa los datos principales antes de guardar el registro de produccion.
+        </p>
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div
+            v-for="item in revisionItems"
+            :key="item.label"
+            class="rounded-xl border border-neutral-200 bg-white px-4 py-3"
+          >
+            <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">{{ item.label }}</p>
+            <p class="mt-1 text-sm font-extrabold text-neutral-900">{{ item.value }}</p>
+          </div>
+        </div>
       </SectionCard>
 
       <!-- Error -->
@@ -666,10 +754,45 @@
         </svg>
         <span>{{ store.error }}</span>
       </div>
+      <div class="hidden items-center justify-end gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm md:flex">
+        <button
+          v-if="pasoActual > 0"
+          type="button"
+          @click="retroceder"
+          class="rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-bold text-neutral-700 hover:bg-neutral-50"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          @click="guardarBorrador"
+          class="rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-bold text-neutral-500 hover:bg-neutral-50"
+        >
+          Guardar borrador
+        </button>
+        <button
+          v-if="pasoActual < totalPasos - 1"
+          type="button"
+          @click="avanzar"
+          :disabled="!puedeAvanzar"
+          class="rounded-xl bg-primary px-5 py-2.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Siguiente
+        </button>
+        <button
+          v-else
+          type="submit"
+          :disabled="store.submitting"
+          class="rounded-xl bg-primary px-5 py-2.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}
+        </button>
+      </div>
+      </div>
 
       <!-- Step navigation — fixed bottom -->
-      <div class="fixed bottom-0 left-0 right-0 z-30 border-t border-neutral-200 bg-white/95 backdrop-blur-sm px-3 py-3">
-        <div class="max-w-2xl mx-auto flex items-center gap-3">
+      <div class="fixed bottom-0 left-0 right-0 z-30 border-t border-neutral-200 bg-white/95 px-3 py-3 backdrop-blur-sm md:hidden">
+        <div class="mx-auto flex max-w-2xl items-center gap-3">
           <button
             v-if="pasoActual > 0"
             type="button"
@@ -713,7 +836,7 @@
             {{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}
           </button>
         </div>
-        <p v-if="mensajePasoIncompleto" class="max-w-2xl mx-auto mt-2 px-1 text-xs text-error-dark">
+        <p v-if="mensajePasoIncompleto" class="mx-auto mt-2 max-w-2xl px-1 text-xs text-error-dark">
           {{ mensajePasoIncompleto }}
         </p>
       </div>
@@ -736,7 +859,9 @@ const router = useRouter()
 const authStore = useAuthStore()
 const store = useProduccionStore()
 
+const isAdmin = computed(() => authStore.isAdmin)
 const isEncargado = computed(() => authStore.user?.encargado === 1)
+const canSelectOperador = computed(() => isEncargado.value || isAdmin.value)
 const cargoCombustible = ref(false)
 const motivoSeleccionado = ref('')
 const busquedaMovil = ref('')
@@ -744,10 +869,11 @@ const mostrandoBuscador = ref(false)
 const inputBuscadorMovil = ref(null)
 const ultimaHoraFinRef = ref(0)
 const fieldClass = 'w-full px-4 py-3 bg-neutral-100 border border-neutral-300 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 disabled:bg-neutral-200 disabled:cursor-not-allowed transition-colors'
+const preferenciasKey = computed(() => `produccion_preferencias_${authStore.user?.idPersonal || 'anon'}`)
 
 // ─── Wizard steps ───
 const pasoActual = ref(0)
-const pasos = ['Fecha', 'Unidad de Negocio', 'Operador', 'Maquinaria', 'Tiempo', 'Producción', 'Aceites', 'Sistema de Corte', 'Ubicación']
+const pasos = ['Contexto', 'Operador', 'Equipo', 'Proceso', 'Tiempo', 'Produccion', 'Consumos', 'Ubicacion', 'Revision']
 const totalPasos = pasos.length
 
 // Determina si el tipo de proceso elegido es "PROCESO"
@@ -755,43 +881,35 @@ const esProceso = computed(() => tipoProcesoNombre.value.trim().toUpperCase() ==
 
 const puedeAvanzar = computed(() => {
   switch (pasoActual.value) {
-    case 0: return !!form.fecha
-    case 1: return !!form.un_id && !!form.tipo_de_proceso_id
-    case 2: return !!form.operador_id
-    case 3: return form.cod_equipo > 0
+    case 0: return !!form.fecha && !!form.un_id
+    case 1: return !!form.operador_id
+    case 2: return form.cod_equipo > 0
+    case 3: return !!form.tipo_de_proceso_id
     case 4: return horasValidas.value
     case 5: return produccionValida.value
-    case 6: return true  // Aceites — optional fields
-    case 7: return true  // Sistema de Corte — optional fields
-    case 8: return ubicacionValida.value
+    case 6: return true
+    case 7: return ubicacionValida.value
+    case 8: return true
     default: return true
   }
 })
 
 function avanzar() {
   if (puedeAvanzar.value && pasoActual.value < totalPasos - 1) {
-    let next = pasoActual.value + 1
-    // Saltar paso 7 (Sistema de Corte) si no es tipo PROCESO
-    if (next === 7 && !esProceso.value) next++
-    pasoActual.value = next
+    pasoActual.value += 1
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
 
 function retroceder() {
   if (pasoActual.value > 0) {
-    let prev = pasoActual.value - 1
-    // Saltar paso 7 hacia atrás si no es tipo PROCESO
-    if (prev === 7 && !esProceso.value) prev--
-    pasoActual.value = prev
+    pasoActual.value -= 1
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
 
 function irAPaso(i) {
   if (i < pasoActual.value) {
-    // No permitir ir directamente al paso 7 si no es PROCESO
-    if (i === 7 && !esProceso.value) return
     pasoActual.value = i
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -865,7 +983,7 @@ const today = new Date().toISOString().split('T')[0]
 
 const form = reactive({
   fecha: today,
-  operador_id: isEncargado.value ? '' : authStore.user?.idPersonal,
+  operador_id: canSelectOperador.value ? '' : authStore.user?.idPersonal,
   equipo: '',
   cod_equipo: 0,
   un_id: '',
@@ -964,8 +1082,36 @@ const mostrarErrorProduccion = computed(() => {
 })
 
 const mostrarErrorUbicacion = computed(() => {
-  return pasoActual.value >= 6 && !ubicacionValida.value
+  return pasoActual.value >= 7 && !ubicacionValida.value
 })
+
+const stepComplete = computed(() => [
+  !!form.fecha && !!form.un_id,
+  !!form.operador_id,
+  form.cod_equipo > 0,
+  !!form.tipo_de_proceso_id,
+  horasValidas.value,
+  produccionValida.value,
+  true,
+  ubicacionValida.value,
+  puedeAvanzar.value,
+])
+
+const revisionItems = computed(() => [
+  { label: 'Fecha', value: formatFechaResumen(form.fecha) },
+  { label: 'Unidad de negocio', value: getUnidadNombre(form.un_id) || 'Pendiente' },
+  { label: 'Operador', value: getOperadorNombre(form.operador_id) || 'Pendiente' },
+  { label: 'Equipo', value: movilSeleccionadoDetalle.value || 'Pendiente' },
+  { label: 'Proceso', value: tipoProcesoNombre.value || 'Pendiente' },
+  { label: 'Horario', value: `${form.hr_inicio || '-'} a ${form.hr_fin || '-'}` },
+  { label: 'Produccion', value: `${resolveProduccion() || 0} ${resolveUnidadProduccion() || ''}`.trim() },
+  { label: 'Ubicacion', value: [form.acta ? `Acta ${form.acta}` : '', getPredioNombre(form.predio_id), getRodalNombre()].filter(Boolean).join(' / ') || 'Pendiente' },
+])
+
+function stepStatus(index) {
+  if (index === pasoActual.value) return 'Actual'
+  return stepComplete.value[index] ? 'Completo' : 'Pendiente'
+}
 
 const mensajePasoIncompleto = computed(() => {
   if (pasoActual.value === 4 && !horasValidas.value) {
@@ -978,7 +1124,7 @@ const mensajePasoIncompleto = computed(() => {
   if (pasoActual.value === 5 && !produccionValida.value) {
     return 'Completá los campos de producción con valores mayores a 0 para continuar.'
   }
-  if (pasoActual.value === 6 && !ubicacionValida.value) {
+  if (pasoActual.value === 7 && !ubicacionValida.value) {
     return 'Completá Acta, Predio y Rodal para poder guardar el registro.'
   }
   return ''
@@ -987,8 +1133,10 @@ const mensajePasoIncompleto = computed(() => {
 // ─── Load initial data ───
 onMounted(async () => {
   await store.loadCatalogos()
+  await aplicarUnidadInicial()
+  await aplicarPreferenciasGuardadas()
 
-  if (!isEncargado.value) {
+  if (!canSelectOperador.value) {
     // Auto-fetch asignaciones + fallback para operador logueado
     await Promise.all([
       store.fetchAsignaciones(form.operador_id),
@@ -1017,8 +1165,15 @@ onMounted(async () => {
 })
 
 // ─── Helpers ───
+function formatFechaResumen(fecha) {
+  if (!fecha) return 'Pendiente'
+  const [year, month, day] = String(fecha).split('-')
+  if (!year || !month || !day) return fecha
+  return `${day}/${month}/${year}`
+}
+
 function getOperadorNombre(id) {
-  if (!isEncargado.value) return authStore.userName
+  if (!canSelectOperador.value) return authStore.userName
   const op = store.operadores.find(o => o.idPersonal === id)
   return op?.nombre || ''
 }
@@ -1050,7 +1205,69 @@ function getProcesoTexto(idProceso) {
   return `Proceso ID ${idProceso}`
 }
 
+async function aplicarUnidadInicial() {
+  if (isAdmin.value) return
+  if (form.un_id) return
+
+  if (store.unidadesNegocio.length === 1) {
+    form.un_id = store.unidadesNegocio[0].idUnidadNegocio
+    await onUnidadChange()
+    return
+  }
+
+  const userUnits = Array.isArray(authStore.user?.unidad_ids) ? authStore.user.unidad_ids : []
+  if (userUnits.length === 1 && store.unidadesNegocio.some((un) => un.idUnidadNegocio === userUnits[0])) {
+    form.un_id = userUnits[0]
+    await onUnidadChange()
+  }
+}
+
 // ─── Watchers ───
+async function aplicarPreferenciasGuardadas() {
+  if (isAdmin.value) return
+  if (form.un_id) return
+  try {
+    const prefs = JSON.parse(localStorage.getItem(preferenciasKey.value) || '{}')
+    if (prefs.un_id && store.unidadesNegocio.some((un) => un.idUnidadNegocio === prefs.un_id)) {
+      form.un_id = prefs.un_id
+      await onUnidadChange()
+      if (prefs.tipo_de_proceso_id && store.tiposProceso.some((tipo) => tipo.id === prefs.tipo_de_proceso_id)) {
+        form.tipo_de_proceso_id = prefs.tipo_de_proceso_id
+      }
+      if (prefs.movil && store.moviles.some((movil) => movil.idMovil === prefs.movil.idMovil)) {
+        seleccionarMovil(prefs.movil)
+      }
+    }
+  } catch {
+    localStorage.removeItem(preferenciasKey.value)
+  }
+}
+
+function guardarPreferenciasProduccion() {
+  const movil = (store.moviles || []).find((item) => item.idMovil === form.cod_equipo)
+  localStorage.setItem(preferenciasKey.value, JSON.stringify({
+    un_id: form.un_id || '',
+    tipo_de_proceso_id: form.tipo_de_proceso_id || '',
+    movil: movil ? { idMovil: movil.idMovil, patente: movil.patente, detalle: movil.detalle } : null,
+  }))
+}
+
+function guardarBorrador() {
+  guardarPreferenciasProduccion()
+  localStorage.setItem(`${preferenciasKey.value}_borrador`, JSON.stringify({
+    ...form,
+    guardado_en: new Date().toISOString(),
+  }))
+  Swal.fire({
+    icon: 'success',
+    title: 'Borrador guardado',
+    text: 'La carga quedo guardada en este dispositivo.',
+    confirmButtonColor: '#3d935d',
+    timer: 1400,
+    showConfirmButton: false,
+  })
+}
+
 async function onOperadorChange() {
   if (!form.operador_id) return
   // Fetch asignaciones operativas + fallback legacy
@@ -1087,7 +1304,7 @@ async function onOperadorChange() {
 async function onUnidadChange() {
   // Reset dependientes
   form.tipo_de_proceso_id = ''
-  form.operador_id = isEncargado.value ? '' : form.operador_id
+  form.operador_id = canSelectOperador.value ? '' : form.operador_id
   limpiarMovilSeleccionado()
   store.movilAsignado = null
   if (!form.un_id) return
@@ -1096,8 +1313,9 @@ async function onUnidadChange() {
     store.fetchTiposProceso(form.un_id),
     store.fetchMoviles(form.un_id),
     store.fetchLugaresCarga(form.un_id),
-    isEncargado.value ? store.fetchOperadores(form.un_id) : Promise.resolve(),
+    canSelectOperador.value ? store.fetchOperadores(form.un_id) : Promise.resolve(),
   ])
+  guardarPreferenciasProduccion()
 }
 
 function onTipoProcesoChange() {
@@ -1114,6 +1332,7 @@ function onTipoProcesoChange() {
   form.km = 0
 
   autocompletarHoraInicio({ force: true })
+  guardarPreferenciasProduccion()
 }
 
 async function onPredioChange() {
@@ -1142,6 +1361,7 @@ function seleccionarMovil(movil) {
   mostrandoBuscador.value = false
 
   autocompletarHoraInicio({ force: true })
+  guardarPreferenciasProduccion()
 }
 
 function seleccionarDesdeAsignacion(asig) {
@@ -1364,3 +1584,5 @@ async function handleSubmit() {
   }
 }
 </script>
+
+

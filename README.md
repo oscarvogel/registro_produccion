@@ -93,3 +93,5 @@ registro_produccion/
 
 Current database: mysql
 Connection string in: backend/.env
+
+:)

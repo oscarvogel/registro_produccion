@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import api from '@/services/api'
 
+const DASHBOARD_FILTERS_KEY = 'dashboard_filters'
+
 export const useDashboardStore = defineStore('dashboard', {
   state: () => ({
     kpis: [],
@@ -131,6 +133,7 @@ export const useDashboardStore = defineStore('dashboard', {
       }
 
       await this.fetchAll()
+      this.persistFiltros()
     },
 
     limpiarFiltros() {
@@ -144,16 +147,38 @@ export const useDashboardStore = defineStore('dashboard', {
       const lastDay = new Date(y, now.getMonth() + 1, 0).getDate()
       this.filtros.fecha_hasta = `${y}-${m}-${String(lastDay).padStart(2, '0')}`
       this.fetchAll()
+      this.persistFiltros()
     },
 
     initFiltros(unId) {
+      const saved = this.loadPersistedFiltros()
       this.filtros.un_id = unId
       const now = new Date()
       const y = now.getFullYear()
       const m = String(now.getMonth() + 1).padStart(2, '0')
-      this.filtros.fecha_desde = `${y}-${m}-01`
+      this.filtros.fecha_desde = saved.fecha_desde || `${y}-${m}-01`
       const lastDay = new Date(y, now.getMonth() + 1, 0).getDate()
-      this.filtros.fecha_hasta = `${y}-${m}-${String(lastDay).padStart(2, '0')}`
+      this.filtros.fecha_hasta = saved.fecha_hasta || `${y}-${m}-${String(lastDay).padStart(2, '0')}`
+      this.filtros.tipo_proceso_id = saved.tipo_proceso_id || null
+      this.filtros.movil_id = saved.movil_id || null
+    },
+
+    persistFiltros() {
+      localStorage.setItem(DASHBOARD_FILTERS_KEY, JSON.stringify({
+        tipo_proceso_id: this.filtros.tipo_proceso_id,
+        movil_id: this.filtros.movil_id,
+        fecha_desde: this.filtros.fecha_desde,
+        fecha_hasta: this.filtros.fecha_hasta,
+      }))
+    },
+
+    loadPersistedFiltros() {
+      try {
+        return JSON.parse(localStorage.getItem(DASHBOARD_FILTERS_KEY) || '{}')
+      } catch {
+        localStorage.removeItem(DASHBOARD_FILTERS_KEY)
+        return {}
+      }
     },
   },
 })

@@ -26,12 +26,43 @@ const routes = [
     component: () => import('../views/OperadorView.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/pendientes',
+    name: 'pendientes',
+    component: () => import('../views/PendientesView.vue'),
+    meta: { requiresAuth: true },
+  },
   { path: '/items', name: 'items', component: ItemsView, meta: { requiresAuth: true } },
   {
     path: '/configuracion',
     name: 'configuracion',
     component: () => import('../views/ConfiguracionView.vue'),
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/admin',
+    component: () => import('../views/admin/AdminView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+    children: [
+      {
+        path: '',
+        name: 'admin-dashboard',
+        component: () => import('../views/admin/AdminDashboardView.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true },
+      },
+      {
+        path: 'crud/:entity',
+        name: 'admin-crud',
+        component: () => import('../views/admin/AdminCrudView.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true },
+      },
+      {
+        path: 'configuracion',
+        name: 'admin-configuracion',
+        component: () => import('../views/admin/ConfiguracionAdminView.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true },
+      },
+    ],
   },
 ]
 
@@ -45,6 +76,8 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })
+  } else if (to.meta.requiresAdmin && authStore.user?.is_admin !== 1) {
+    next({ name: 'home' })
   } else if (to.meta.requiresEncargado && authStore.user?.encargado !== 1) {
     next({ name: 'home' })
   } else if (to.name === 'login' && authStore.isAuthenticated) {

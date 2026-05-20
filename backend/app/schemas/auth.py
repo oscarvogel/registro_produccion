@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class LoginRequest(BaseModel):
@@ -17,8 +17,10 @@ class UserInfo(BaseModel):
     nombre: str
     dni: str
     encargado: int = 0
+    is_admin: int = 0
     tipo_de_proceso_id: int | None = None
     unidad_negocio: int = 1
+    unidad_ids: list[int] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
