@@ -1,50 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  /* Primary */
-  --color-primary-light: #81b594;
-  --color-primary: #3d935d;
-  --color-primary-dark: #143d23;
+  /* Arbor Insight semantic surfaces */
+  --color-surface: #f4fafd;
+  --color-surface-dim: #d4dbdd;
+  --color-surface-bright: #f4fafd;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #eef5f7;
+  --color-surface-container: #e8eff1;
+  --color-surface-container-high: #e2e9ec;
+  --color-surface-container-highest: #dde4e6;
+  --color-surface-variant: #dde4e6;
+  --color-background: #f4fafd;
 
-  /* Secondary */
-  --color-secondary-light: #9bc4aa;
-  --color-secondary: #49b06f;
-  --color-secondary-dark: #1e5c35;
+  /* Arbor Insight foregrounds and borders */
+  --color-on-surface: #161d1f;
+  --color-on-surface-variant: #414846;
+  --color-on-background: #161d1f;
+  --color-inverse-surface: #2b3234;
+  --color-inverse-on-surface: #ebf2f4;
+  --color-outline: #717976;
+  --color-outline-variant: #c1c8c4;
+  --color-surface-tint: #43655c;
 
-  /* Neutral */
-  --color-neutral-50: #fafafa;
-  --color-neutral-100: #f4f5f5;
-  --color-neutral-200: #e4e7e5;
-  --color-neutral-300: #c9cfcb;
-  --color-neutral-400: #a1aaa5;
-  --color-neutral-500: #79867e;
-  --color-neutral-600: #616b65;
-  --color-neutral-700: #49504c;
-  --color-neutral-800: #303632;
-  --color-neutral-900: #181b19;
-  --color-neutral-950: #0c0d0d;
+  /* Primary: Deep Forest */
+  --color-primary-light: #c5eadf;
+  --color-primary: #1a3c34;
+  --color-primary-dark: #01261f;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #1a3c34;
+  --color-on-primary-container: #83a69c;
+  --color-inverse-primary: #aacec3;
+  --color-primary-fixed: #c5eadf;
+  --color-primary-fixed-dim: #aacec3;
+  --color-on-primary-fixed: #00201a;
+  --color-on-primary-fixed-variant: #2b4d44;
 
-  /* Success */
-  --color-success-light: #c9e8d5;
-  --color-success: #39ac63;
-  --color-success-dark: #196636;
+  /* Secondary: Sage / Moss */
+  --color-secondary-light: #c8f17a;
+  --color-secondary: #496800;
+  --color-secondary-dark: #4e6e00;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #c8f17a;
+  --color-on-secondary-container: #4e6e00;
+  --color-secondary-fixed: #c8f17a;
+  --color-secondary-fixed-dim: #add461;
+  --color-on-secondary-fixed: #131f00;
+  --color-on-secondary-fixed-variant: #364e00;
 
-  /* Warning */
+  /* Tertiary: Bark */
+  --color-tertiary-light: #e0e3e1;
+  --color-tertiary: #1e2221;
+  --color-tertiary-dark: #181c1b;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #333736;
+  --color-on-tertiary-container: #9ca09e;
+  --color-tertiary-fixed: #e0e3e1;
+  --color-tertiary-fixed-dim: #c4c7c5;
+  --color-on-tertiary-fixed: #181c1b;
+  --color-on-tertiary-fixed-variant: #434846;
+
+  /* Neutral compatibility scale */
+  --color-neutral-50: #ffffff;
+  --color-neutral-100: #f4fafd;
+  --color-neutral-200: #e8eff1;
+  --color-neutral-300: #dde4e6;
+  --color-neutral-400: #c1c8c4;
+  --color-neutral-500: #717976;
+  --color-neutral-600: #414846;
+  --color-neutral-700: #2b3234;
+  --color-neutral-800: #1e2221;
+  --color-neutral-900: #161d1f;
+  --color-neutral-950: #00201a;
+
+  /* Status */
+  --color-success-light: #c8f17a;
+  --color-success: #496800;
+  --color-success-dark: #364e00;
+
   --color-warning-light: #f2ecd9;
   --color-warning: #d1af47;
   --color-warning-dark: #93761f;
 
-  /* Error */
-  --color-error-light: #f0dbdb;
-  --color-error: #b82e2e;
-  --color-error-dark: #691616;
+  --color-error-light: #ffdad6;
+  --color-error: #ba1a1a;
+  --color-error-dark: #93000a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
 
-  /* Info */
-  --color-info-light: #dbe6f0;
-  --color-info: #3973ac;
-  --color-info-dark: #194066;
+  --color-info-light: #dde4e6;
+  --color-info: #43655c;
+  --color-info-dark: #2b4d44;
 
   /* Accent */
-  --color-accent-light: #c47274;
-  --color-accent: #933d3f;
+  --color-accent-light: #e0e3e1;
+  --color-accent: #333736;
+}
+
+@layer base {
+  html {
+    font-family: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  body {
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+  }
 }
