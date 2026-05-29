@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="mx-auto max-w-6xl px-3 py-4 pb-[7.5rem] md:px-6 md:pt-6">
     <!-- Header -->
     <div class="flex items-center justify-between mb-5 px-1">
@@ -7,27 +7,18 @@
         @click="$router.push({ name: 'home' })"
         class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-200 transition-colors"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m15 18-6-6 6-6" />
-        </svg>
+        <AppIcon name="back" />
       </button>
-      <h1 class="text-2xl font-bold text-neutral-900 leading-none">Carga de Producción</h1>
+      <h1 class="text-2xl font-bold text-neutral-900 leading-none">Carga de ProducciÃ³n</h1>
       </div>
-      <button class="p-2 text-neutral-500" type="button" aria-label="Más opciones">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="5" r="1.2" />
-          <circle cx="12" cy="12" r="1.2" />
-          <circle cx="12" cy="19" r="1.2" />
-        </svg>
+      <button class="p-2 text-neutral-500" type="button" aria-label="MÃ¡s opciones">
+        <AppIcon name="more" />
       </button>
     </div>
 
     <!-- Loading catalogs -->
     <div v-if="store.loading" class="flex items-center justify-center py-20">
-      <svg class="w-8 h-8 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-      </svg>
+      <AppIcon name="loading" size="xl" class="animate-spin text-primary" />
     </div>
 
     <form v-else class="md:grid md:grid-cols-[17rem_minmax(0,1fr)] md:items-start md:gap-6" @submit.prevent="handleSubmit">
@@ -107,7 +98,7 @@
         </div>
       </div>
 
-      <!-- ═══ 1. FECHA ═══ -->
+      <!-- â•â•â• 1. FECHA â•â•â• -->
       <SectionCard v-show="pasoActual === 0" title="Contexto de Carga">
         <p class="mb-4 text-sm text-neutral-500">
           Selecciona el dia correspondiente y la unidad de negocio para la que se cargara la produccion.
@@ -133,7 +124,7 @@
         </div>
       </SectionCard>
 
-      <!-- ═══ 2. UNIDAD DE NEGOCIO ═══ -->
+      <!-- â•â•â• 2. UNIDAD DE NEGOCIO â•â•â• -->
       <SectionCard v-show="pasoActual === 3" title="Proceso / Actividad">
         <p class="mb-4 text-sm text-neutral-500">
           Selecciona el tipo de proceso que corresponde a esta carga. Los campos de produccion se ajustan segun esta seleccion.
@@ -144,7 +135,7 @@
           :items="store.unidadesNegocio"
           labelKey="nombre"
           valueKey="idUnidadNegocio"
-          placeholder="— Escribí para buscar —"
+          placeholder="â€” EscribÃ­ para buscar â€”"
           @select="onUnidadChange"
         />
 
@@ -156,13 +147,13 @@
             labelKey="nombre"
             valueKey="id"
             :disabled="!form.un_id || store.tiposProceso.length === 0"
-            :placeholder="!form.un_id ? '— Primero seleccioná UN —' : store.tiposProceso.length === 0 ? '— Sin procesos disponibles —' : '— Escribí para buscar —'"
+            :placeholder="!form.un_id ? 'â€” Primero seleccionÃ¡ UN â€”' : store.tiposProceso.length === 0 ? 'â€” Sin procesos disponibles â€”' : 'â€” EscribÃ­ para buscar â€”'"
             @select="onTipoProcesoChange"
           />
         </div>
       </SectionCard>
 
-      <!-- ═══ 3. OPERADOR ═══ -->
+      <!-- â•â•â• 3. OPERADOR â•â•â• -->
       <SectionCard v-show="pasoActual === 1" title="Identificacion del Operador">
         <!-- Si es operador: bloqueado -->
         <div v-if="!canSelectOperador">
@@ -180,24 +171,21 @@
             labelKey="nombre"
             valueKey="idPersonal"
             :disabled="!form.un_id || store.operadores.length === 0"
-            :placeholder="!form.un_id ? '— Primero seleccioná UN —' : store.operadores.length === 0 ? '— Sin operadores —' : '— Escribí para buscar —'"
+            :placeholder="!form.un_id ? 'â€” Primero seleccionÃ¡ UN â€”' : store.operadores.length === 0 ? 'â€” Sin operadores â€”' : 'â€” EscribÃ­ para buscar â€”'"
             @select="onOperadorChange"
           />
         </div>
       </SectionCard>
 
-      <!-- ═══ 4. MAQUINARIA ═══ -->
+      <!-- â•â•â• 4. MAQUINARIA â•â•â• -->
       <SectionCard v-show="pasoActual === 2" title="Equipo / Maquinaria">
-        <!-- ── Estado: Máquina ya seleccionada ── -->
+        <!-- â”€â”€ Estado: MÃ¡quina ya seleccionada â”€â”€ -->
         <div v-if="form.cod_equipo && !mostrandoBuscador" class="space-y-3">
           <div class="flex items-center gap-3 p-3 bg-success-light/40 border border-success/30 rounded-xl">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-success-dark shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
+            <AppIcon name="success" class="text-success-dark shrink-0" />
             <div class="min-w-0 flex-1">
               <p class="text-sm font-bold text-neutral-900 truncate">{{ movilSeleccionadoDetalle }}</p>
-              <p class="text-xs text-neutral-500">{{ movilSeleccionadoPatente }} · ID {{ form.cod_equipo }}</p>
+              <p class="text-xs text-neutral-500">{{ movilSeleccionadoPatente }} Â· ID {{ form.cod_equipo }}</p>
             </div>
             <button
               type="button"
@@ -208,9 +196,9 @@
             </button>
           </div>
 
-          <!-- Accesos rápidos: sólo si hay asignaciones y la seleccionada NO es de asignación -->
+          <!-- Accesos rÃ¡pidos: sÃ³lo si hay asignaciones y la seleccionada NO es de asignaciÃ³n -->
           <div v-if="store.asignaciones.length > 0 && !asignacionSeleccionada">
-            <p class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wide mb-1.5">Asignaciones rápidas</p>
+            <p class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wide mb-1.5">Asignaciones rÃ¡pidas</p>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="asig in store.asignaciones"
@@ -225,9 +213,9 @@
           </div>
         </div>
 
-        <!-- ── Estado: Buscador abierto / sin selección ── -->
+        <!-- â”€â”€ Estado: Buscador abierto / sin selecciÃ³n â”€â”€ -->
         <div v-else>
-          <!-- Asignaciones del operador como opciones rápidas -->
+          <!-- Asignaciones del operador como opciones rÃ¡pidas -->
           <div v-if="store.asignaciones.length > 0" class="mb-3">
             <p class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wide mb-1.5">Asignaciones del operador</p>
             <div class="space-y-1.5">
@@ -239,26 +227,26 @@
                 class="w-full text-left px-3 py-2 rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-primary/5 hover:border-primary/30 transition-colors"
               >
                 <p class="text-sm font-semibold text-neutral-900 truncate">{{ asig.detalle }}</p>
-                <p class="text-[11px] text-neutral-400">{{ asig.patente }} · {{ getProcesoTexto(asig.idProceso) }}</p>
+                <p class="text-[11px] text-neutral-400">{{ asig.patente }} Â· {{ getProcesoTexto(asig.idProceso) }}</p>
               </button>
             </div>
           </div>
 
           <!-- Mensaje si no hay asignaciones ni movilAsignado -->
           <div v-else-if="!form.operador_id" class="p-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-500 mb-3">
-            Seleccioná un operador para autocompletar la máquina.
+            SeleccionÃ¡ un operador para autocompletar la mÃ¡quina.
           </div>
 
           <!-- Buscador -->
           <div>
-            <label class="block text-xs font-medium text-neutral-500 mb-1">Buscar máquina</label>
+            <label class="block text-xs font-medium text-neutral-500 mb-1">Buscar mÃ¡quina</label>
             <div class="relative">
               <input
                 ref="inputBuscadorMovil"
                 type="text"
                 v-model="busquedaMovil"
                 :class="fieldClass"
-                placeholder="Ej: 1470, JOHN DEERE, N° 3..."
+                placeholder="Ej: 1470, JOHN DEERE, NÂ° 3..."
               />
               <button
                 v-if="busquedaMovil.trim()"
@@ -266,9 +254,7 @@
                 @click="busquedaMovil = ''"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+                <AppIcon name="close" size="sm" />
               </button>
             </div>
             <div
@@ -283,7 +269,7 @@
                 class="w-full text-left px-3 py-2 border-b last:border-b-0 border-neutral-100 hover:bg-neutral-50 transition-colors"
               >
                 <p class="text-sm font-medium text-neutral-900 truncate">{{ movil.detalle }}</p>
-                <p class="text-[11px] text-neutral-400">{{ movil.patente }} · ID {{ movil.idMovil }}</p>
+                <p class="text-[11px] text-neutral-400">{{ movil.patente }} Â· ID {{ movil.idMovil }}</p>
               </button>
             </div>
             <div
@@ -293,7 +279,7 @@
               Sin resultados para "{{ busquedaMovil }}".
             </div>
 
-            <!-- Botón cancelar si ya había máquina seleccionada -->
+            <!-- BotÃ³n cancelar si ya habÃ­a mÃ¡quina seleccionada -->
             <button
               v-if="mostrandoBuscador && form.cod_equipo"
               type="button"
@@ -306,7 +292,7 @@
         </div>
       </SectionCard>
 
-      <!-- ═══ 5. CONTROL DE TIEMPO ═══ -->
+      <!-- â•â•â• 5. CONTROL DE TIEMPO â•â•â• -->
       <SectionCard v-show="pasoActual === 4" title="Control de Tiempo">
         <div class="grid grid-cols-2 gap-4">
           <InputField
@@ -347,16 +333,12 @@
             min="0"
           />
           <div>
-            <label class="block text-sm font-medium text-neutral-600 mb-1.5">Motivo (lista)</label>
-            <select
+            <AutocompleteField
               v-model="motivoSeleccionado"
-              :class="fieldClass"
-            >
-              <option value="">— Seleccionar motivo —</option>
-              <option v-for="motivo in motivosNoOperativos" :key="motivo" :value="motivo">
-                {{ motivo }}
-              </option>
-            </select>
+              label="Motivo (lista)"
+              :items="motivosNoOperativos"
+              placeholder="Buscar motivo"
+            />
           </div>
         </div>
         <div class="mt-3">
@@ -364,14 +346,14 @@
           <textarea
             v-model="form.motivo_no_op"
             rows="4"
-            placeholder="Describí el motivo..."
+            placeholder="DescribÃ­ el motivo..."
             :class="`${fieldClass} resize-none min-h-28`"
           />
         </div>
       </SectionCard>
 
-      <!-- ═══ 6. DATOS DE PRODUCCIÓN (dinámico según tipo de proceso) ═══ -->
-      <SectionCard v-show="pasoActual === 5" v-if="camposActivos.length > 0" title="Datos de Producción">
+      <!-- â•â•â• 6. DATOS DE PRODUCCIÃ“N (dinÃ¡mico segÃºn tipo de proceso) â•â•â• -->
+      <SectionCard v-show="pasoActual === 5" v-if="camposActivos.length > 0" title="Datos de ProducciÃ³n">
         <div class="space-y-3">
           <!-- TN Despachadas -->
           <InputField
@@ -406,10 +388,10 @@
           <!-- M3 -->
           <InputField
             v-if="camposActivos.includes('m3')"
-            label="M³ (metros cúbicos)"
+            label="MÂ³ (metros cÃºbicos)"
             type="number"
             v-model.number="form.m3"
-            placeholder="M³"
+            placeholder="MÂ³"
             min="0"
           />
 
@@ -470,7 +452,7 @@
           <!-- Hora inicio / fin (para HORAS MAQUINAS) -->
           <div v-if="camposActivos.includes('hora_inicio')" class="grid grid-cols-2 gap-4">
             <InputField
-              label="Hora Inicio Máq."
+              label="Hora Inicio MÃ¡q."
               type="number"
               v-model.number="form.hr_inicio"
               placeholder="Ej: 1200"
@@ -478,7 +460,7 @@
               :invalid="mostrarErrorHoras || (mostrarErrorProduccion && form.hr_inicio <= 0)"
             />
             <InputField
-              label="Hora Fin Máq."
+              label="Hora Fin MÃ¡q."
               type="number"
               v-model.number="form.hr_fin"
               placeholder="Ej: 1850"
@@ -495,21 +477,21 @@
             La hora de inicio y fin deben ser mayores a 0, y la hora final debe ser mayor a la inicial.
           </div>
 
-          <!-- HAS (hectáreas) -->
+          <!-- HAS (hectÃ¡reas) -->
           <InputField
             v-if="camposActivos.includes('has')"
-            label="Hectáreas (HAS)"
+            label="HectÃ¡reas (HAS)"
             type="number"
             v-model.number="form.has"
-            placeholder="Hectáreas"
+            placeholder="HectÃ¡reas"
             min="0"
             step="0.01"
           />
 
-          <!-- Horas a disposición -->
+          <!-- Horas a disposiciÃ³n -->
           <InputField
             v-if="camposActivos.includes('horas_disposicion')"
-            label="Horas a Disposición"
+            label="Horas a DisposiciÃ³n"
             type="number"
             v-model.number="form.hr_disposicion"
             placeholder="Horas"
@@ -519,7 +501,7 @@
           <!-- KM -->
           <InputField
             v-if="camposActivos.includes('km')"
-            label="Kilómetros (KM)"
+            label="KilÃ³metros (KM)"
             type="number"
             v-model.number="form.km"
             placeholder="KM"
@@ -530,18 +512,18 @@
           v-if="mostrarErrorProduccion"
           class="mt-3 px-3 py-2 bg-error-light/40 border border-error/30 rounded-lg text-sm text-error-dark"
         >
-          No se puede continuar con valores en 0. Completá los campos de producción con valores mayores a 0.
+          No se puede continuar con valores en 0. CompletÃ¡ los campos de producciÃ³n con valores mayores a 0.
         </div>
       </SectionCard>
 
       <div v-show="pasoActual === 5" v-if="form.tipo_de_proceso_id && camposActivos.length === 0" class="p-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-500">
-        No hay campos de producción definidos para este tipo de proceso.
+        No hay campos de producciÃ³n definidos para este tipo de proceso.
       </div>
 
-      <!-- ═══ 7. COMBUSTIBLE ═══ -->
+      <!-- â•â•â• 7. COMBUSTIBLE â•â•â• -->
       <SectionCard v-show="pasoActual === 6" title="Combustible">
         <div class="flex items-center justify-between">
-          <span class="text-sm font-medium text-neutral-700">¿Se cargó combustible?</span>
+          <span class="text-sm font-medium text-neutral-700">Â¿Se cargÃ³ combustible?</span>
           <button
             type="button"
             @click="cargoCombustible = !cargoCombustible"
@@ -571,11 +553,11 @@
         </div>
       </SectionCard>
 
-      <!-- ═══ 8. ACEITES ═══ -->
+      <!-- â•â•â• 8. ACEITES â•â•â• -->
       <SectionCard v-show="pasoActual === 6" title="Consumos">
         <div class="space-y-3">
           <InputField
-            label="Hidráulico (litros)"
+            label="HidrÃ¡ulico (litros)"
             type="number"
             v-model.number="form.aceite_hidraulico"
             placeholder="0"
@@ -589,7 +571,7 @@
             min="0"
           />
           <InputField
-            label="Transmisión (litros)"
+            label="TransmisiÃ³n (litros)"
             type="number"
             v-model.number="form.aceite_transmision"
             placeholder="0"
@@ -612,7 +594,7 @@
         </div>
       </SectionCard>
 
-      <!-- ═══ 9. SISTEMA DE CORTE (solo para PROCESO) ═══ -->
+      <!-- â•â•â• 9. SISTEMA DE CORTE (solo para PROCESO) â•â•â• -->
       <SectionCard v-show="pasoActual === 6" v-if="esProceso" title="Sistema de Corte">
         <div class="space-y-3">
           <InputField
@@ -637,7 +619,7 @@
             min="0"
           />
           <InputField
-            label="Piñón"
+            label="PiÃ±Ã³n"
             type="number"
             v-model.number="form.pinon"
             placeholder="0"
@@ -653,7 +635,7 @@
         </div>
       </SectionCard>
 
-      <!-- ═══ 10. UBICACIÓN Y REFERENCIA ═══ -->
+      <!-- â•â•â• 10. UBICACIÃ“N Y REFERENCIA â•â•â• -->
       <SectionCard v-show="pasoActual === 7" title="Ubicacion y Referencia">
         <div>
           <AutocompleteField
@@ -662,7 +644,7 @@
             :items="store.lugaresCarga"
             labelKey="detalle"
             valueKey="idLugarCarga"
-            placeholder="— Buscar lugar de carga —"
+            placeholder="â€” Buscar lugar de carga â€”"
           />
         </div>
 
@@ -673,7 +655,7 @@
             :items="store.actas"
             labelKey="numero"
             valueKey="numero"
-            placeholder="— Buscar acta —"
+            placeholder="â€” Buscar acta â€”"
             @select="item => { form.acta = item ? item.numero : '' }"
           />
         </div>
@@ -685,7 +667,7 @@
             :items="store.predios"
             labelKey="nombre"
             valueKey="idPredio"
-            placeholder="— Buscar predio —"
+            placeholder="â€” Buscar predio â€”"
             @select="onPredioChange"
           />
         </div>
@@ -698,14 +680,14 @@
             :items="store.rodales"
             labelKey="rodal"
             valueKey="idRodal"
-            placeholder="— Buscar rodal —"
+            placeholder="â€” Buscar rodal â€”"
           />
           <div v-else>
             <label class="block text-sm font-medium text-neutral-700 mb-1">Rodal</label>
             <input
               type="text"
               v-model="form.rodal_manual"
-              placeholder="Ingresá el rodal manualmente"
+              placeholder="IngresÃ¡ el rodal manualmente"
               :class="fieldClass"
             />
           </div>
@@ -714,11 +696,11 @@
           v-if="mostrarErrorUbicacion"
           class="mt-3 px-3 py-2 bg-error-light/40 border border-error/30 rounded-lg text-sm text-error-dark"
         >
-          Completá Acta, Predio y Rodal cuando sean solicitados para poder guardar.
+          CompletÃ¡ Acta, Predio y Rodal cuando sean solicitados para poder guardar.
         </div>
       </SectionCard>
 
-      <!-- ═══ OBSERVACIONES ═══ -->
+      <!-- â•â•â• OBSERVACIONES â•â•â• -->
       <SectionCard v-show="pasoActual === 7" title="Observaciones">
         <textarea
           v-model="form.observaciones"
@@ -749,9 +731,7 @@
         v-if="store.error"
         class="flex items-center gap-2 p-3 bg-error-light text-error-dark rounded-lg text-sm"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-error shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" />
-        </svg>
+        <AppIcon name="error" class="text-error shrink-0" />
         <span>{{ store.error }}</span>
       </div>
       <div class="hidden items-center justify-end gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm md:flex">
@@ -790,7 +770,7 @@
       </div>
       </div>
 
-      <!-- Step navigation — fixed bottom -->
+      <!-- Step navigation â€” fixed bottom -->
       <div class="fixed bottom-0 left-0 right-0 z-30 border-t border-neutral-200 bg-white/95 px-3 py-3 backdrop-blur-sm md:hidden">
         <div class="mx-auto flex max-w-2xl items-center gap-3">
           <button
@@ -799,9 +779,7 @@
             @click="retroceder"
             class="flex-1 py-3.5 px-4 bg-neutral-100 text-neutral-700 font-semibold rounded-2xl border border-neutral-200 flex items-center justify-center gap-2 active:bg-neutral-200 transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
+            <AppIcon name="back" size="sm" :stroke-width="2.5" />
             Anterior
           </button>
           <div v-else class="flex-1" />
@@ -814,9 +792,7 @@
             class="flex-1 py-3.5 px-4 bg-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(20,61,35,0.25)] disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed active:bg-primary-dark transition-colors"
           >
             Siguiente
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
+            <AppIcon name="forward" size="sm" :stroke-width="2.5" />
           </button>
           <button
             v-else
@@ -824,15 +800,8 @@
             :disabled="store.submitting"
             class="flex-1 py-3.5 px-4 bg-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2.5 shadow-[0_8px_18px_rgba(20,61,35,0.25)] disabled:opacity-60 disabled:cursor-not-allowed active:bg-primary-dark transition-colors"
           >
-            <svg v-if="store.submitting" class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-              <polyline points="17 21 17 13 7 13 7 21"/>
-              <polyline points="7 3 7 8 15 8"/>
-            </svg>
+            <AppIcon v-if="store.submitting" name="loading" class="animate-spin" />
+            <AppIcon v-else name="save" />
             {{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}
           </button>
         </div>
@@ -853,6 +822,7 @@ import Swal from 'sweetalert2'
 import SectionCard from '@/components/SectionCard.vue'
 import InputField from '@/components/InputField.vue'
 import AutocompleteField from '@/components/AutocompleteField.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
 
 const router = useRouter()
@@ -871,7 +841,7 @@ const ultimaHoraFinRef = ref(0)
 const fieldClass = 'w-full px-4 py-3 bg-neutral-100 border border-neutral-300 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 disabled:bg-neutral-200 disabled:cursor-not-allowed transition-colors'
 const preferenciasKey = computed(() => `produccion_preferencias_${authStore.user?.idPersonal || 'anon'}`)
 
-// ─── Wizard steps ───
+// â”€â”€â”€ Wizard steps â”€â”€â”€
 const pasoActual = ref(0)
 const pasos = ['Contexto', 'Operador', 'Equipo', 'Proceso', 'Tiempo', 'Produccion', 'Consumos', 'Ubicacion', 'Revision']
 const totalPasos = pasos.length
@@ -915,7 +885,7 @@ function irAPaso(i) {
   }
 }
 
-// Campos dinámicos según tipo de proceso seleccionado
+// Campos dinÃ¡micos segÃºn tipo de proceso seleccionado
 const camposActivos = computed(() => {
   if (!form.tipo_de_proceso_id) return []
   const tipo = store.tiposProceso.find(t => t.id === form.tipo_de_proceso_id)
@@ -998,7 +968,7 @@ const form = reactive({
   aceite_motor: 0,
   aceite_transmision: 0,
   aceite_embrague: 0,
-  // Campos de producción específicos
+  // Campos de producciÃ³n especÃ­ficos
   m3: 0,
   carros: 0,
   tn_despachadas: 0,
@@ -1009,13 +979,13 @@ const form = reactive({
   km_perfilado: 0,
   hr_disposicion: 0,
   km: 0, // temporal, se resuelve en submit a km_carreteo o km_perfilado
-  // Ubicación
+  // UbicaciÃ³n
   acta: '',
   predio_id: '',
   rodal_id: '',
   rodal_manual: '',
   observaciones: '',
-  // Mecánica / Sistema de Corte
+  // MecÃ¡nica / Sistema de Corte
   espada: 0,
   puntera: 0,
   cadena: 0,
@@ -1119,18 +1089,18 @@ const mensajePasoIncompleto = computed(() => {
     if (ultimaHoraFinRef.value > 0 && inicio > 0 && inicio < ultimaHoraFinRef.value) {
       return `La hora de inicio (${form.hr_inicio}) no puede ser menor al fin del registro anterior (${ultimaHoraFinRef.value}).`
     }
-    return 'Revisá las horas: inicio y fin deben ser mayores a 0, y fin no puede ser menor al inicio.'
+    return 'RevisÃ¡ las horas: inicio y fin deben ser mayores a 0, y fin no puede ser menor al inicio.'
   }
   if (pasoActual.value === 5 && !produccionValida.value) {
-    return 'Completá los campos de producción con valores mayores a 0 para continuar.'
+    return 'CompletÃ¡ los campos de producciÃ³n con valores mayores a 0 para continuar.'
   }
   if (pasoActual.value === 7 && !ubicacionValida.value) {
-    return 'Completá Acta, Predio y Rodal para poder guardar el registro.'
+    return 'CompletÃ¡ Acta, Predio y Rodal para poder guardar el registro.'
   }
   return ''
 })
 
-// ─── Load initial data ───
+// â”€â”€â”€ Load initial data â”€â”€â”€
 onMounted(async () => {
   await store.loadCatalogos()
   await aplicarUnidadInicial()
@@ -1154,7 +1124,7 @@ onMounted(async () => {
     } else if (store.movilAsignado) {
       seleccionarMovil(store.movilAsignado)
     }
-    // Auto-set tipo de proceso del operador si no se seteó por asignación
+    // Auto-set tipo de proceso del operador si no se seteÃ³ por asignaciÃ³n
     if (!form.tipo_de_proceso_id && authStore.user?.tipo_de_proceso_id) {
       form.tipo_de_proceso_id = authStore.user.tipo_de_proceso_id
     }
@@ -1164,7 +1134,7 @@ onMounted(async () => {
   // Si es encargado, los operadores se cargan al elegir la UN
 })
 
-// ─── Helpers ───
+// â”€â”€â”€ Helpers â”€â”€â”€
 function formatFechaResumen(fecha) {
   if (!fecha) return 'Pendiente'
   const [year, month, day] = String(fecha).split('-')
@@ -1222,7 +1192,7 @@ async function aplicarUnidadInicial() {
   }
 }
 
-// ─── Watchers ───
+// â”€â”€â”€ Watchers â”€â”€â”€
 async function aplicarPreferenciasGuardadas() {
   if (isAdmin.value) return
   if (form.un_id) return
@@ -1290,7 +1260,7 @@ async function onOperadorChange() {
     limpiarMovilSeleccionado()
   }
 
-  // Auto-set tipo de proceso del operador si no se seteó por asignación
+  // Auto-set tipo de proceso del operador si no se seteÃ³ por asignaciÃ³n
   if (!form.tipo_de_proceso_id) {
     const operador = store.operadores.find(o => o.idPersonal === form.operador_id)
     if (operador?.tipo_de_proceso_id) {
@@ -1343,12 +1313,12 @@ async function onPredioChange() {
   }
 }
 
-// ─── Watch combustible toggle ───
+// â”€â”€â”€ Watch combustible toggle â”€â”€â”€
 watch(cargoCombustible, (val) => {
   if (!val) form.combustible = 0
 })
 
-// Removed old busquedaMovil watcher — selection/buscador now handled via mostrandoBuscador state
+// Removed old busquedaMovil watcher â€” selection/buscador now handled via mostrandoBuscador state
 
 function formatearMovil(movil) {
   return `${movil.detalle} - ${movil.patente}`
@@ -1391,7 +1361,7 @@ function cerrarBuscador() {
   busquedaMovil.value = ''
 }
 
-// ─── Determinar unidad de producción ───
+// â”€â”€â”€ Determinar unidad de producciÃ³n â”€â”€â”€
 function resolveUnidadProduccion() {
   const campos = camposActivos.value
   if (campos.includes('tn_despachadas')) return 'TN'
@@ -1406,7 +1376,7 @@ function resolveUnidadProduccion() {
   return ''
 }
 
-// ─── Calcular producción principal ───
+// â”€â”€â”€ Calcular producciÃ³n principal â”€â”€â”€
 function resolveProduccion() {
   const campos = camposActivos.value
   if (campos.includes('tn_despachadas')) return form.tn_despachadas
@@ -1443,7 +1413,7 @@ async function autocompletarHoraInicio({ force = false } = {}) {
   }
 }
 
-// ─── Submit ───
+// â”€â”€â”€ Submit â”€â”€â”€
 async function handleSubmit() {
   // Guard: if Enter pressed on non-final step, advance instead
   if (pasoActual.value < totalPasos - 1) {
@@ -1460,7 +1430,7 @@ async function handleSubmit() {
       await Swal.fire({
         icon: 'warning',
         title: 'Acta obligatoria',
-        text: 'Debés seleccionar un acta para poder guardar el registro.',
+        text: 'DebÃ©s seleccionar un acta para poder guardar el registro.',
         confirmButtonColor: '#3d935d',
       })
       return
@@ -1473,7 +1443,7 @@ async function handleSubmit() {
         : 'La hora de inicio y fin deben ser mayores a 0, y la hora final no puede ser menor a la inicial.'
       await Swal.fire({
         icon: 'warning',
-        title: 'Horas inválidas',
+        title: 'Horas invÃ¡lidas',
         text: msg,
         confirmButtonColor: '#3d935d',
       })
@@ -1483,8 +1453,8 @@ async function handleSubmit() {
     if (!produccionValida.value) {
       await Swal.fire({
         icon: 'warning',
-        title: 'Producción inválida',
-        text: 'No se puede guardar con valores de producción en 0. Completá los campos requeridos con valores mayores a 0.',
+        title: 'ProducciÃ³n invÃ¡lida',
+        text: 'No se puede guardar con valores de producciÃ³n en 0. CompletÃ¡ los campos requeridos con valores mayores a 0.',
         confirmButtonColor: '#3d935d',
       })
       return
@@ -1493,8 +1463,8 @@ async function handleSubmit() {
     if (!ubicacionValida.value) {
       await Swal.fire({
         icon: 'warning',
-        title: 'Ubicación incompleta',
-        text: 'Completá Acta, Predio y Rodal cuando sean solicitados para poder guardar.',
+        title: 'UbicaciÃ³n incompleta',
+        text: 'CompletÃ¡ Acta, Predio y Rodal cuando sean solicitados para poder guardar.',
         confirmButtonColor: '#3d935d',
       })
       return
@@ -1502,7 +1472,7 @@ async function handleSubmit() {
 
     const nombre = tipoProcesoNombre.value
 
-    // Resolver km según tipo de proceso
+    // Resolver km segÃºn tipo de proceso
     let kmCarreteo = form.km_carreteo
     let kmPerfilado = form.km_perfilado
     if (camposActivos.value.includes('km')) {
@@ -1565,7 +1535,7 @@ async function handleSubmit() {
       await Swal.fire({
         icon: 'info',
         title: 'Guardado localmente',
-        text: 'Sin conexión. El registro fue guardado en este dispositivo y se enviará automáticamente al recuperar la conexión.',
+        text: 'Sin conexiÃ³n. El registro fue guardado en este dispositivo y se enviarÃ¡ automÃ¡ticamente al recuperar la conexiÃ³n.',
         confirmButtonColor: '#3d935d',
         confirmButtonText: 'Entendido',
       })
@@ -1573,7 +1543,7 @@ async function handleSubmit() {
       await Swal.fire({
         icon: 'success',
         title: 'Registro guardado',
-        text: 'El registro de producción se guardó correctamente.',
+        text: 'El registro de producciÃ³n se guardÃ³ correctamente.',
         confirmButtonColor: '#3d935d',
       })
     }
@@ -1584,5 +1554,6 @@ async function handleSubmit() {
   }
 }
 </script>
+
 
 

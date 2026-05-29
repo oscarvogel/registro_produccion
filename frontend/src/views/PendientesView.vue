@@ -1,85 +1,173 @@
 <template>
-  <div class="min-h-[calc(100vh-8.5rem)] md:min-h-[calc(100vh-3.5rem)] bg-neutral-100 px-4 py-5 md:py-6">
-    <div class="mx-auto max-w-5xl space-y-4">
+  <div class="min-h-[calc(100vh-8.5rem)] bg-surface px-4 py-5 md:min-h-[calc(100vh-3.5rem)] md:py-6">
+    <div class="mx-auto max-w-6xl space-y-4">
       <AppToolbar
         title="Registros Pendientes"
-        description="Revisa la cola offline, reintenta sincronizaciones y corrige registros fallidos."
+        :description="scopeDescription"
       >
         <AppBadge :tone="navigatorOnline ? 'success' : 'warning'">
           {{ navigatorOnline ? 'En linea' : 'Sin conexion' }}
         </AppBadge>
-        <AppButton variant="secondary" @click="loadRecords">Refrescar</AppButton>
-        <AppButton :loading="syncing" :disabled="!navigatorOnline || pendingRecords.length === 0" @click="syncAll">
+        <AppButton variant="secondary" @click="loadRecords">
+          <AppIcon name="refresh" size="sm" />
+          Refrescar
+        </AppButton>
+        <AppButton :loading="syncing" :disabled="!navigatorOnline || scopedPendingRecords.length === 0" @click="syncAll">
+          <AppIcon name="sync" size="sm" />
           Sincronizar
         </AppButton>
       </AppToolbar>
 
-      <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div class="rounded-xl border border-neutral-200 bg-white p-4">
-          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Pendientes</p>
-          <p class="mt-2 text-2xl font-extrabold text-primary-dark">{{ pendingRecords.length }}</p>
+      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Estado de sincronizacion</p>
+            <h2 class="mt-1 text-xl font-extrabold text-primary-dark">{{ syncStatusTitle }}</h2>
+            <p class="mt-1 text-sm text-on-surface-variant">
+              {{ navigatorOnline ? 'Sistema en linea' : 'Sistema sin conexion' }} · {{ healthMessage }} · Ultima revision: {{ lastCheckLabel }}
+            </p>
+          </div>
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-fixed text-primary-dark">
+            <AppIcon :name="isHealthy ? 'success' : 'warning'" size="lg" />
+          </div>
         </div>
-        <div class="rounded-xl border border-neutral-200 bg-white p-4">
-          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Fallidos</p>
-          <p class="mt-2 text-2xl font-extrabold text-error">{{ failedRecords.length }}</p>
-        </div>
-        <div class="rounded-xl border border-neutral-200 bg-white p-4">
-          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Total en cola</p>
-          <p class="mt-2 text-2xl font-extrabold text-neutral-800">{{ records.length }}</p>
-        </div>
+      </section>
+
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          label="Pendientes locales"
+          :value="localPendingRecords.length"
+          description="Registros esperando sincronizacion"
+          tone="warning"
+        />
+        <MetricCard
+          label="Fallidos locales"
+          :value="localFailedRecords.length"
+          description="Registros con error al enviar"
+          tone="error"
+        />
+        <MetricCard
+          :label="systemPendingLabel"
+          :value="scopedPendingRecords.length"
+          :description="systemPendingDescription"
+          tone="primary"
+        />
+        <MetricCard
+          :label="systemFailedLabel"
+          :value="scopedFailedRecords.length"
+          :description="systemFailedDescription"
+          tone="neutral"
+        />
       </div>
 
-      <EmptyState
-        v-if="!loading && records.length === 0"
-        title="No hay registros en espera"
-        description="Cuando cargues produccion sin conexion, los registros apareceran aca."
-      />
+      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Cola de sincronizacion</p>
+            <h2 class="mt-1 text-lg font-extrabold text-on-surface">{{ queueTitle }}</h2>
+          </div>
 
-      <div v-else class="space-y-3">
-        <div v-if="loading" class="rounded-xl border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-500">
+          <div v-if="scopedRecords.length > 0" class="flex flex-wrap gap-2">
+            <button
+              v-for="filter in filters"
+              :key="filter.value"
+              type="button"
+              :class="[
+                'rounded-full border px-3 py-1.5 text-xs font-extrabold transition-colors',
+                activeFilter === filter.value
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-outline-variant bg-white text-on-surface-variant hover:bg-surface-container-low',
+              ]"
+              @click="activeFilter = filter.value"
+            >
+              {{ filter.label }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="loading" class="mt-4 rounded-lg border border-outline-variant bg-surface-container-low p-6 text-center text-sm text-on-surface-variant">
           Cargando registros...
         </div>
 
         <div
-          v-for="record in records"
-          :key="record.id"
-          class="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm"
+          v-else-if="visibleRecords.length === 0"
+          class="mt-4 rounded-xl border border-dashed border-outline-variant bg-surface px-5 py-10 text-center"
         >
-          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div class="min-w-0">
-              <div class="flex flex-wrap items-center gap-2">
-                <AppBadge :tone="record.synced === 1 ? 'error' : 'warning'">
-                  {{ record.synced === 1 ? 'Fallido' : 'Pendiente' }}
-                </AppBadge>
-                <span class="text-xs text-neutral-400">{{ formatDate(record.timestamp) }}</span>
-              </div>
-              <p class="mt-2 text-base font-extrabold text-neutral-900">
-                {{ record.payload?.UN || 'Unidad sin definir' }} · {{ record.payload?.operacion || 'Proceso sin definir' }}
-              </p>
-              <p class="mt-1 text-sm text-neutral-500">
-                {{ record.payload?.operador || 'Operador sin definir' }} · {{ record.payload?.equipo || 'Equipo sin definir' }}
-              </p>
-              <p v-if="record.syncError" class="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-                {{ record.syncError }}
-              </p>
-            </div>
+          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-fixed text-primary-dark">
+            <AppIcon name="sync" size="lg" />
+          </div>
+          <h3 class="mt-4 text-lg font-extrabold text-on-surface">Todo sincronizado</h3>
+          <p class="mx-auto mt-2 max-w-lg text-sm text-on-surface-variant">
+            No hay registros pendientes ni fallidos. Las cargas realizadas se encuentran guardadas correctamente.
+          </p>
+          <p class="mt-3 text-xs font-semibold text-outline">Ultima verificacion: {{ lastCheckFullLabel }}</p>
+        </div>
 
-            <div class="flex flex-wrap gap-2 md:justify-end">
-              <AppButton variant="secondary" size="sm" @click="openDetail(record)">Detalle</AppButton>
-              <AppButton
-                variant="primary"
-                size="sm"
-                :disabled="!navigatorOnline || retryingId === record.id"
-                :loading="retryingId === record.id"
-                @click="retryRecord(record)"
-              >
-                Reintentar
-              </AppButton>
-              <AppButton variant="danger" size="sm" @click="discardRecord(record)">Descartar</AppButton>
+        <div v-else class="mt-4 space-y-3">
+          <article
+            v-for="record in visibleRecords"
+            :key="record.id"
+            class="rounded-xl border border-outline-variant bg-white p-4 shadow-sm"
+          >
+            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <AppBadge :tone="isFailedRecord(record) ? 'error' : 'warning'">
+                    {{ isFailedRecord(record) ? 'Fallo sincronizacion' : 'Pendiente' }}
+                  </AppBadge>
+                  <span class="text-xs text-outline">{{ formatDate(record.timestamp) }}</span>
+                </div>
+                <p class="mt-2 text-base font-extrabold text-on-surface">
+                  Produccion - {{ record.payload?.UN || 'Unidad sin definir' }}
+                </p>
+                <dl class="mt-2 grid gap-1 text-sm text-on-surface-variant sm:grid-cols-2">
+                  <div><dt class="inline font-bold text-on-surface">Fecha:</dt> <dd class="inline">{{ record.payload?.fecha || '-' }}</dd></div>
+                  <div><dt class="inline font-bold text-on-surface">Proceso:</dt> <dd class="inline">{{ record.payload?.operacion || '-' }}</dd></div>
+                  <div><dt class="inline font-bold text-on-surface">Operador:</dt> <dd class="inline">{{ record.payload?.operador || 'Sin definir' }}</dd></div>
+                  <div><dt class="inline font-bold text-on-surface">Equipo:</dt> <dd class="inline">{{ record.payload?.equipo || 'Sin definir' }}</dd></div>
+                </dl>
+                <p v-if="record.syncError" class="mt-3 rounded-lg bg-error-light px-3 py-2 text-sm font-semibold text-error-dark">
+                  Error: {{ record.syncError }}
+                </p>
+              </div>
+
+              <div class="flex flex-wrap gap-2 md:justify-end">
+                <AppButton
+                  variant="primary"
+                  size="sm"
+                  :disabled="!navigatorOnline || retryingId === record.id"
+                  :loading="retryingId === record.id"
+                  @click="retryRecord(record)"
+                >
+                  <AppIcon name="retry" size="sm" />
+                  Reintentar
+                </AppButton>
+                <AppButton variant="secondary" size="sm" @click="openDetail(record)">
+                  <AppIcon name="edit" size="sm" />
+                  Editar
+                </AppButton>
+                <AppButton variant="danger" size="sm" @click="discardRecord(record)">
+                  <AppIcon name="delete" size="sm" />
+                  Eliminar
+                </AppButton>
+              </div>
             </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
+        <div class="flex items-start gap-3">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container text-primary-dark">
+            <AppIcon name="refresh" />
+          </div>
+          <div>
+            <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Actividad reciente</p>
+            <p class="mt-1 text-sm font-semibold text-on-surface">{{ recentActivityTitle }}</p>
+            <p class="mt-1 text-sm text-on-surface-variant">{{ recentActivityDescription }}</p>
           </div>
         </div>
-      </div>
+      </section>
 
       <AppModal v-model="showDetail" title="Detalle del Registro" description="Payload guardado localmente para sincronizacion.">
         <pre class="max-h-[55vh] overflow-auto rounded-lg bg-neutral-900 p-4 text-xs text-white">{{ selectedRecordText }}</pre>
@@ -89,17 +177,46 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, defineComponent, h, onMounted, onUnmounted, ref } from 'vue'
 import api from '@/services/api'
 import db from '@/services/db'
+import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
 import { useToastStore } from '@/stores/toast'
 import AppBadge from '@/components/ui/AppBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppToolbar from '@/components/ui/AppToolbar.vue'
-import EmptyState from '@/components/ui/EmptyState.vue'
 
+const MetricCard = defineComponent({
+  name: 'MetricCard',
+  props: {
+    label: { type: String, required: true },
+    value: { type: [Number, String], required: true },
+    description: { type: String, required: true },
+    tone: { type: String, default: 'neutral' },
+  },
+  setup(props) {
+    const valueClass = computed(() => {
+      const tones = {
+        warning: 'text-warning-dark',
+        error: 'text-error',
+        primary: 'text-primary-dark',
+        neutral: 'text-on-surface',
+      }
+      return tones[props.tone] || tones.neutral
+    })
+
+    return () => h('div', { class: 'rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm' }, [
+      h('p', { class: 'text-xs font-extrabold uppercase tracking-wide text-on-surface-variant' }, props.label),
+      h('p', { class: ['mt-2 text-3xl font-extrabold', valueClass.value] }, props.value),
+      h('p', { class: 'mt-1 text-sm text-on-surface-variant' }, props.description),
+    ])
+  },
+})
+
+const authStore = useAuthStore()
 const produccionStore = useProduccionStore()
 const toast = useToastStore()
 
@@ -110,10 +227,120 @@ const retryingId = ref(null)
 const showDetail = ref(false)
 const selectedRecord = ref(null)
 const navigatorOnline = ref(navigator.onLine)
+const lastCheckAt = ref(null)
+const activeFilter = ref('all')
 
-const pendingRecords = computed(() => records.value.filter((record) => record.synced === 0))
-const failedRecords = computed(() => records.value.filter((record) => record.synced === 1))
+const isAdmin = computed(() => authStore.isAdmin)
+const isEncargado = computed(() => authStore.user?.encargado === 1)
+const currentUserId = computed(() => Number(authStore.user?.idPersonal || 0))
+const userUnitIds = computed(() => {
+  const ids = Array.isArray(authStore.user?.unidad_ids) ? authStore.user.unidad_ids : []
+  const mainUnit = authStore.user?.unidad_negocio
+  return new Set([...ids, mainUnit].map((value) => Number(value)).filter(Boolean))
+})
+
+const scopedRecords = computed(() => {
+  if (isAdmin.value) return records.value
+  if (isEncargado.value) {
+    return records.value.filter((record) => userUnitIds.value.has(Number(record.payload?.cod_un || 0)))
+  }
+  return records.value.filter((record) => Number(record.payload?.cod_operador || 0) === currentUserId.value)
+})
+
+const localPendingRecords = computed(() => records.value.filter(isPendingRecord))
+const localFailedRecords = computed(() => records.value.filter(isFailedRecord))
+const scopedPendingRecords = computed(() => scopedRecords.value.filter(isPendingRecord))
+const scopedFailedRecords = computed(() => scopedRecords.value.filter(isFailedRecord))
 const selectedRecordText = computed(() => JSON.stringify(selectedRecord.value?.payload || {}, null, 2))
+
+const filters = computed(() => [
+  { value: 'all', label: `Todos (${scopedRecords.value.length})` },
+  { value: 'pending', label: `Pendientes (${scopedPendingRecords.value.length})` },
+  { value: 'failed', label: `Fallidos (${scopedFailedRecords.value.length})` },
+  { value: 'recent', label: 'Sincronizados recientemente' },
+])
+
+const visibleRecords = computed(() => {
+  if (activeFilter.value === 'pending') return scopedPendingRecords.value
+  if (activeFilter.value === 'failed') return scopedFailedRecords.value
+  if (activeFilter.value === 'recent') return []
+  return scopedRecords.value
+})
+
+const scopeDescription = computed(() => {
+  if (isAdmin.value) return 'Vista global de la cola disponible en este dispositivo y estado general de sincronizacion.'
+  if (isEncargado.value) return 'Vista de registros pendientes o fallidos para tus unidades de negocio asignadas.'
+  return 'Vista de registros pendientes o fallidos generados por tu usuario.'
+})
+
+const systemPendingLabel = computed(() => {
+  if (isAdmin.value) return 'Pendientes sistema'
+  if (isEncargado.value) return 'Pendientes unidad'
+  return 'Mis pendientes'
+})
+
+const systemFailedLabel = computed(() => {
+  if (isAdmin.value) return 'Fallidos sistema'
+  if (isEncargado.value) return 'Fallidos unidad'
+  return 'Mis fallidos'
+})
+
+const systemPendingDescription = computed(() => {
+  if (isAdmin.value) return 'Todos los registros visibles para administracion'
+  if (isEncargado.value) return 'Registros de tus unidades asignadas'
+  return 'Registros creados por tu usuario'
+})
+
+const systemFailedDescription = computed(() => {
+  if (isAdmin.value) return 'Errores detectados en la cola visible'
+  if (isEncargado.value) return 'Errores dentro de tus unidades'
+  return 'Errores de tus cargas locales'
+})
+
+const isHealthy = computed(() => navigatorOnline.value && scopedRecords.value.length === 0)
+const syncStatusTitle = computed(() => {
+  if (!navigatorOnline.value) return 'Sin conexion'
+  if (scopedFailedRecords.value.length > 0) return 'Requiere revision'
+  if (scopedPendingRecords.value.length > 0) return 'Con registros pendientes'
+  return 'Todo sincronizado'
+})
+
+const healthMessage = computed(() => {
+  if (!navigatorOnline.value) return 'Las nuevas cargas quedaran guardadas en este equipo'
+  if (scopedFailedRecords.value.length > 0) return `${scopedFailedRecords.value.length} registro(s) fallidos`
+  if (scopedPendingRecords.value.length > 0) return `${scopedPendingRecords.value.length} registro(s) esperando envio`
+  return 'Sin conflictos detectados'
+})
+
+const queueTitle = computed(() => {
+  if (loading.value) return 'Revisando cola offline'
+  if (scopedRecords.value.length === 0) return 'Todo sincronizado'
+  return `${scopedRecords.value.length} registro(s) requieren atencion`
+})
+
+const recentActivityTitle = computed(() => {
+  if (scopedFailedRecords.value.length === 0) return 'No hubo intentos fallidos de sincronizacion.'
+  return `${scopedFailedRecords.value.length} intento(s) fallidos detectados.`
+})
+
+const recentActivityDescription = computed(() => {
+  if (scopedFailedRecords.value.length === 0) return 'La cola offline no registra errores para el alcance actual.'
+  const lastFailed = [...scopedFailedRecords.value].sort((a, b) => Number(b.failedAt || b.timestamp || 0) - Number(a.failedAt || a.timestamp || 0))[0]
+  return `Ultimo error: ${lastFailed?.syncError || 'sin detalle disponible'}.`
+})
+
+const lastCheckLabel = computed(() => {
+  if (!lastCheckAt.value) return 'sin revisar'
+  const diff = Date.now() - lastCheckAt.value
+  if (diff < 60000) return 'hace unos segundos'
+  const minutes = Math.max(1, Math.round(diff / 60000))
+  return `hace ${minutes} min`
+})
+
+const lastCheckFullLabel = computed(() => {
+  if (!lastCheckAt.value) return '-'
+  return formatDate(lastCheckAt.value)
+})
 
 onMounted(() => {
   loadRecords()
@@ -126,8 +353,17 @@ onUnmounted(() => {
   window.removeEventListener('offline', updateOnline)
 })
 
+function isFailedRecord(record) {
+  return record?.synced === 1 || record?.syncStatus === 'failed'
+}
+
+function isPendingRecord(record) {
+  return !isFailedRecord(record)
+}
+
 function updateOnline() {
   navigatorOnline.value = navigator.onLine
+  lastCheckAt.value = Date.now()
 }
 
 async function loadRecords() {
@@ -135,6 +371,7 @@ async function loadRecords() {
   try {
     records.value = await db.pendingRecords.orderBy('timestamp').reverse().toArray()
     await produccionStore.refreshPendingCount()
+    lastCheckAt.value = Date.now()
   } finally {
     loading.value = false
   }
@@ -177,10 +414,10 @@ async function retryRecord(record) {
 }
 
 async function discardRecord(record) {
-  if (!confirm('Confirma descartar este registro local?')) return
+  if (!confirm('Confirma eliminar este registro local?')) return
   await db.pendingRecords.delete(record.id)
   await loadRecords()
-  toast.info('Registro descartado')
+  toast.info('Registro eliminado')
 }
 
 function openDetail(record) {
