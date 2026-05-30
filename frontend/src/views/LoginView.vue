@@ -6,21 +6,7 @@
         <div
           class="mx-auto w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-4"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="w-8 h-8 text-white"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
+          <AppIcon name="personnel" size="xl" class="text-white" />
         </div>
         <h1 class="text-2xl font-bold text-neutral-900">Registro de Producción</h1>
         <p class="text-neutral-500 mt-1">Ingresá con tu DNI y contraseña</p>
@@ -81,36 +67,7 @@
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
                 tabindex="-1"
               >
-                <svg
-                  v-if="!showPassword"
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-                <svg
-                  v-else
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" />
-                  <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
-                  <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />
-                  <path d="m2 2 20 20" />
-                </svg>
+                <AppIcon :name="showPassword ? 'hide' : 'view'" />
               </button>
             </div>
           </div>
@@ -120,20 +77,7 @@
             v-if="authStore.error"
             class="flex items-center gap-2 p-3 bg-error-light text-error-dark rounded-lg text-sm"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="w-5 h-5 text-error shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" x2="12" y1="8" y2="12" />
-              <line x1="12" x2="12.01" y1="16" y2="16" />
-            </svg>
+            <AppIcon name="error" class="text-error shrink-0" />
             <span>{{ authStore.error }}</span>
           </div>
 
@@ -141,18 +85,7 @@
             v-if="syncMessage"
             class="flex items-center gap-2 p-3 bg-success-light text-success-dark rounded-lg text-sm"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="w-5 h-5 text-success shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M20 6 9 17l-5-5" />
-            </svg>
+            <AppIcon name="success" class="text-success shrink-0" />
             <span>{{ syncMessage }}</span>
           </div>
 
@@ -167,43 +100,7 @@
                    disabled:opacity-60 disabled:cursor-not-allowed
                    flex items-center justify-center gap-2"
           >
-            <svg
-              v-if="authStore.syncing"
-              class="w-5 h-5 animate-spin"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              />
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-            <svg
-              v-else
-              xmlns="http://www.w3.org/2000/svg"
-              class="w-5 h-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-              <path d="M3 16h4v4" />
-              <path d="M17 4h4v4" />
-            </svg>
+            <AppIcon :name="authStore.syncing ? 'loading' : 'sync'" :class="authStore.syncing ? 'animate-spin' : ''" />
             <span>{{ authStore.syncing ? 'Sincronizando...' : 'Sincronizar' }}</span>
           </button>
 
@@ -217,27 +114,8 @@
                    disabled:opacity-60 disabled:cursor-not-allowed
                    flex items-center justify-center gap-2"
           >
-            <svg
-              v-if="authStore.loading"
-              class="w-5 h-5 animate-spin"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              />
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
+            <AppIcon v-if="authStore.loading" name="loading" class="animate-spin" />
+            <AppIcon v-else name="login" />
             <span>{{ authStore.loading ? 'Ingresando...' : 'Ingresar' }}</span>
           </button>
         </form>
@@ -250,6 +128,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import AppIcon from '@/components/ui/AppIcon.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

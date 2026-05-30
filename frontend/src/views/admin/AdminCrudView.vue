@@ -18,35 +18,43 @@
               placeholder="Buscar"
             />
 
-            <select
+            <div
               v-if="showUnidadFilter"
-              v-model="unidadFilter"
-              class="w-full sm:w-56 px-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              class="w-full sm:w-64"
             >
-              <option value="">Todas las unidades</option>
-              <option
-                v-for="unidad in referenceData['unidades-negocio'] || []"
-                :key="unidad.idUnidadNegocio"
-                :value="unidad.idUnidadNegocio"
+              <AutocompleteField
+                v-model="unidadFilter"
+                :items="referenceOptionsForEntity('unidades-negocio')"
+                labelKey="_adminLabel"
+                valueKey="idUnidadNegocio"
+                placeholder="Todas las unidades"
+              />
+              <button
+                v-if="unidadFilter"
+                @click="unidadFilter = ''"
+                class="mt-1 text-xs font-semibold text-neutral-400 underline underline-offset-2 hover:text-neutral-600"
+                type="button"
               >
-                {{ unidad.nombre }}
-              </option>
-            </select>
+                Limpiar unidad
+              </button>
+            </div>
 
             <button
               @click="loadRows"
-              class="px-3 py-2.5 rounded-lg border border-neutral-300 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+              class="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-neutral-300 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
               type="button"
             >
+              <AppIcon name="refresh" size="sm" />
               Refrescar
             </button>
 
             <button
               v-if="entity !== 'asignaciones'"
               @click="openCreate"
-              class="px-4 py-2.5 rounded-lg bg-primary-dark text-white text-sm font-semibold hover:bg-primary transition-colors"
+              class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary-dark text-white text-sm font-semibold hover:bg-primary transition-colors"
               type="button"
             >
+              <AppIcon name="add" size="sm" />
               Nuevo
             </button>
           </div>
@@ -58,22 +66,15 @@
 
         <div v-if="entity === 'asignaciones'" class="rounded-xl border border-neutral-200 bg-white p-4">
           <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
-            <div class="w-full lg:w-64">
-              <label class="block text-sm font-medium text-neutral-600 mb-1.5">Unidad de Negocio</label>
-              <select
-                v-model="quickAssignment.unidad_id"
-                class="w-full px-4 py-3 bg-neutral-100 border border-neutral-300 rounded-xl text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                <option value="">Seleccionar</option>
-                <option
-                  v-for="unidad in referenceData['unidades-negocio'] || []"
-                  :key="unidad.idUnidadNegocio"
-                  :value="unidad.idUnidadNegocio"
-                >
-                  {{ unidad.nombre }}
-                </option>
-              </select>
-            </div>
+            <AutocompleteField
+              v-model="quickAssignment.unidad_id"
+              class="w-full lg:w-64"
+              label="Unidad de Negocio"
+              :items="referenceOptionsForEntity('unidades-negocio')"
+              labelKey="_adminLabel"
+              valueKey="idUnidadNegocio"
+              placeholder="Buscar unidad"
+            />
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
               <AutocompleteField
@@ -108,9 +109,10 @@
             <button
               @click="submitQuickAssignment"
               :disabled="submitting || !quickAssignmentReady"
-              class="px-4 py-3 rounded-lg bg-primary-dark text-white text-sm font-semibold disabled:opacity-50"
+              class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary-dark text-white text-sm font-semibold disabled:opacity-50"
               type="button"
             >
+              <AppIcon name="assignment" size="sm" />
               Asignar
             </button>
           </div>
@@ -168,23 +170,26 @@
               <button
                 v-if="entity === 'unidades-negocio'"
                 @click="toggleRelations(row[meta.idKey])"
-                class="col-span-2 rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700"
+                class="col-span-2 inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700"
                 type="button"
               >
+                <AppIcon name="view" size="sm" />
                 Relaciones
               </button>
               <button
                 @click="openEdit(row)"
-                class="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700"
                 type="button"
               >
+                <AppIcon name="edit" size="sm" />
                 Editar
               </button>
               <button
                 @click="removeRow(row[meta.idKey])"
-                class="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700"
                 type="button"
               >
+                <AppIcon name="delete" size="sm" />
                 {{ deleteLabel }}
               </button>
             </div>
@@ -264,23 +269,26 @@
                     <button
                       v-if="entity === 'unidades-negocio'"
                       @click="toggleRelations(row[meta.idKey])"
-                      class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-neutral-300 text-neutral-700 hover:bg-neutral-100 mr-2"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-neutral-300 text-neutral-700 hover:bg-neutral-100 mr-2"
                       type="button"
                     >
+                      <AppIcon name="view" size="sm" />
                       Relaciones
                     </button>
                     <button
                       @click="openEdit(row)"
-                      class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-neutral-300 text-neutral-700 hover:bg-neutral-100 mr-2"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-neutral-300 text-neutral-700 hover:bg-neutral-100 mr-2"
                       type="button"
                     >
+                      <AppIcon name="edit" size="sm" />
                       Editar
                     </button>
                     <button
                       @click="removeRow(row[meta.idKey])"
-                      class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-700 hover:bg-red-50"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-700 hover:bg-red-50"
                       type="button"
                     >
+                      <AppIcon name="delete" size="sm" />
                       {{ deleteLabel }}
                     </button>
                   </td>
@@ -320,7 +328,20 @@
           </table>
         </div>
 
-        <div class="flex items-center justify-between gap-3">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <label class="flex items-center gap-2 text-xs font-semibold text-neutral-500">
+            Ver
+            <select
+              v-model.number="limit"
+              @change="changePageSize"
+              class="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs font-bold text-neutral-700 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option v-for="size in pageSizeOptions" :key="size" :value="size">{{ size }}</option>
+            </select>
+            por pagina
+          </label>
+
+          <div class="flex items-center justify-between gap-3 sm:justify-end">
           <button
             @click="prevPage"
             :disabled="page === 0 || loading"
@@ -338,6 +359,7 @@
           >
             Siguiente
           </button>
+          </div>
         </div>
       </div>
     </SectionCard>
@@ -399,20 +421,22 @@
               </div>
 
               <div v-else-if="field.type === 'select'" :class="fieldClass(field)">
-                <label class="block text-sm font-medium text-neutral-600 mb-1.5">{{ field.label }}</label>
-                <select
+                <AutocompleteField
                   v-model="form[field.key]"
-                  class="w-full px-4 py-3 bg-neutral-100 border border-neutral-300 rounded-lg text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  :label="field.label"
+                  :items="referenceOptions(field)"
+                  labelKey="_adminLabel"
+                  :valueKey="field.optionValue"
+                  :placeholder="field.nullable ? 'Sin valor' : 'Escribi para buscar'"
+                />
+                <button
+                  v-if="field.nullable && form[field.key]"
+                  @click="form[field.key] = ''"
+                  class="mt-1 text-xs font-semibold text-neutral-400 underline underline-offset-2 hover:text-neutral-600"
+                  type="button"
                 >
-                  <option value="">{{ field.nullable ? 'Sin valor' : 'Seleccionar' }}</option>
-                  <option
-                    v-for="option in referenceData[field.optionsEntity] || []"
-                    :key="option[field.optionValue]"
-                    :value="option[field.optionValue]"
-                  >
-                    {{ formatOptionLabel(option, field) }}
-                  </option>
-                </select>
+                  Limpiar
+                </button>
               </div>
 
               <div v-else-if="field.type === 'multiselect'" class="md:col-span-2">
@@ -494,6 +518,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AutocompleteField from '@/components/AutocompleteField.vue'
 import InputField from '@/components/InputField.vue'
 import SectionCard from '@/components/SectionCard.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import { useAdminStore } from '@/stores/admin'
@@ -535,7 +560,7 @@ const ENTITY_DEFINITIONS = {
       { key: 'domicilio', label: 'Domicilio', type: 'text', section: 'principal' },
       { key: 'fecha_nacimiento', label: 'Fecha Nacimiento', type: 'date', nullable: true, section: 'principal' },
       { key: 'fecha_ingreso', label: 'Fecha Ingreso', type: 'date', nullable: true, section: 'principal' },
-      { key: 'unidad_negocio', label: 'Unidad Principal', type: 'select', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre', default: 1, section: 'relaciones' },
+      { key: 'unidad_negocio', label: 'Unidad Principal', type: 'autocomplete', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre', default: 1, section: 'relaciones' },
       { key: 'unidad_ids', label: 'Unidades vinculadas', type: 'multiselect', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre', default: [1], section: 'relaciones' },
       { key: 'tipo_de_proceso_id', label: 'Tipo de Proceso', type: 'autocomplete', optionsEntity: 'tipos-proceso', optionValue: 'id', optionLabel: 'nombre', nullable: true, section: 'relaciones' },
       { key: 'entrada_m', label: 'Entrada Manana', type: 'text', default: '00:00', section: 'horarios' },
@@ -738,7 +763,8 @@ const quickAssignment = reactive({
 })
 
 const page = ref(0)
-const limit = 50
+const limit = ref(5)
+const pageSizeOptions = [5, 10, 25, 50]
 const referenceCache = new Map()
 
 const entity = computed(() => String(route.params.entity || ''))
@@ -868,7 +894,7 @@ async function loadRows() {
   loading.value = true
   error.value = null
   try {
-    rows.value = await adminStore.fetchEntity(entity.value, { skip: page.value * limit, limit })
+    rows.value = await adminStore.fetchEntity(entity.value, { skip: page.value * limit.value, limit: limit.value })
   } catch (err) {
     rows.value = []
     error.value = err.response?.data?.detail || `No se pudo cargar ${meta.value.title.toLowerCase()}`
@@ -1084,8 +1110,13 @@ function prevPage() {
 }
 
 function nextPage() {
-  if (rows.value.length < limit) return
+  if (rows.value.length < limit.value) return
   page.value += 1
+  loadRows()
+}
+
+function changePageSize() {
+  page.value = 0
   loadRows()
 }
 
