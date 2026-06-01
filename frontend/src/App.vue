@@ -1,15 +1,17 @@
 <template>
   <div id="app" class="min-h-screen bg-neutral-100">
-    <div
-      v-if="!isOnline"
-      class="fixed left-0 right-0 top-0 z-50 flex items-center justify-center gap-2 bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white"
-    >
-      <AppIcon name="offline" size="sm" :stroke-width="2.5" class="shrink-0" />
-      Sin conexion - Los registros se guardaran localmente y se sincronizaran al reconectar
-      <span v-if="produccionStore.pendingCount > 0" class="ml-1 rounded bg-white/20 px-1.5">
-        {{ produccionStore.pendingCount }} pendiente{{ produccionStore.pendingCount !== 1 ? 's' : '' }}
-      </span>
-    </div>
+    <Transition name="status-slide">
+      <div
+        v-if="!isOnline"
+        class="fixed left-0 right-0 top-0 z-50 flex items-center justify-center gap-2 bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white"
+      >
+        <AppIcon name="offline" size="sm" :stroke-width="2.5" class="shrink-0" />
+        Sin conexion - Los registros se guardaran localmente y se sincronizaran al reconectar
+        <span v-if="produccionStore.pendingCount > 0" class="ml-1 rounded bg-white/20 px-1.5">
+          {{ produccionStore.pendingCount }} pendiente{{ produccionStore.pendingCount !== 1 ? 's' : '' }}
+        </span>
+      </div>
+    </Transition>
 
     <template v-if="authStore.isAuthenticated">
       <div :class="['min-h-screen', !isOnline ? 'pt-8' : '']">
@@ -38,11 +40,13 @@
           </div>
         </header>
 
-        <div
-          v-if="mobileMenuOpen"
-          class="fixed inset-0 z-40 bg-neutral-900/45 md:hidden"
-          @click="mobileMenuOpen = false"
-        ></div>
+        <Transition name="backdrop-fade">
+          <div
+            v-if="mobileMenuOpen"
+            class="fixed inset-0 z-40 bg-neutral-900/45 md:hidden"
+            @click="mobileMenuOpen = false"
+          ></div>
+        </Transition>
 
         <aside
           :class="[
@@ -84,37 +88,47 @@
               <section v-for="section in navSections" :key="section.key" class="pt-2">
                 <button
                   type="button"
-                  class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-extrabold uppercase tracking-wide text-neutral-400 hover:bg-neutral-50"
+                  :class="navSectionClass(section)"
                   @click="toggleSection(section.key)"
                 >
-                  <span>{{ section.label }}</span>
+                  <span class="flex min-w-0 items-center gap-2">
+                    <span
+                      :class="[
+                        'h-1.5 w-1.5 rounded-full transition-colors',
+                        isSectionActive(section) ? 'bg-primary-dark' : 'bg-neutral-400',
+                      ]"
+                    ></span>
+                    <span class="truncate">{{ section.label }}</span>
+                  </span>
                   <AppIcon
                     name="chevronDown"
                     size="xs"
-                    :class="['transition-transform', openSections[section.key] ? 'rotate-180' : '']"
+                    :class="['shrink-0 transition-transform', openSections[section.key] ? 'rotate-180' : '']"
                   />
                 </button>
 
-                <div v-show="openSections[section.key]" class="mt-1 space-y-1">
-                  <router-link
-                    v-for="item in section.items"
-                    :key="item.key"
-                    :to="item.to"
-                    :class="navItemClass(isItemActive(item))"
-                    @click="mobileMenuOpen = false"
-                  >
-                    <span class="flex min-w-0 items-center gap-3">
-                      <AppIcon :name="item.icon" size="sm" class="shrink-0" />
-                      <span class="truncate">{{ item.label }}</span>
-                    </span>
-                    <span
-                      v-if="Number(item.badge || 0) > 0"
-                      class="ml-2 rounded-full bg-warning px-2 py-0.5 text-[10px] font-extrabold text-white"
+                <Transition name="nav-section">
+                  <div v-show="openSections[section.key]" class="mt-1 space-y-1 overflow-hidden">
+                    <router-link
+                      v-for="item in section.items"
+                      :key="item.key"
+                      :to="item.to"
+                      :class="navItemClass(isItemActive(item))"
+                      @click="mobileMenuOpen = false"
                     >
-                      {{ item.badge }}
-                    </span>
-                  </router-link>
-                </div>
+                      <span class="flex min-w-0 items-center gap-3">
+                        <AppIcon :name="item.icon" size="sm" class="shrink-0" />
+                        <span class="truncate">{{ item.label }}</span>
+                      </span>
+                      <span
+                        v-if="Number(item.badge || 0) > 0"
+                        class="ml-2 rounded-full bg-warning px-2 py-0.5 text-[10px] font-extrabold text-white"
+                      >
+                        {{ item.badge }}
+                      </span>
+                    </router-link>
+                  </div>
+                </Transition>
               </section>
             </div>
           </nav>
@@ -147,12 +161,24 @@
         </aside>
 
         <main class="min-h-screen md:pl-72">
-          <router-view />
+          <router-view v-slot="{ Component, route: viewRoute }">
+            <Transition name="route-fade" mode="out-in">
+              <div :key="viewRoute.fullPath" v-motion-page class="min-h-screen">
+                <component :is="Component" />
+              </div>
+            </Transition>
+          </router-view>
         </main>
       </div>
     </template>
 
-    <router-view v-else />
+    <router-view v-else v-slot="{ Component, route: viewRoute }">
+      <Transition name="route-fade" mode="out-in">
+        <div :key="viewRoute.fullPath" v-motion-page class="min-h-screen">
+          <component :is="Component" />
+        </div>
+      </Transition>
+    </router-view>
     <ToastHost />
   </div>
 </template>
@@ -242,11 +268,29 @@ function toggleSection(key) {
 
 function navItemClass(active) {
   return [
-    'flex min-h-11 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors',
+    'flex min-h-11 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm font-bold transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
     active
       ? 'border-primary-dark bg-primary-dark text-white'
-      : 'border-transparent text-neutral-700 hover:border-neutral-200 hover:bg-neutral-50 hover:text-primary-dark',
+      : 'border-neutral-200/80 bg-white text-neutral-800 shadow-sm hover:border-primary/25 hover:bg-primary-light/20 hover:text-primary-dark hover:shadow',
   ]
+}
+
+function navSectionClass(section) {
+  const active = isSectionActive(section)
+  const open = openSections[section.key]
+
+  return [
+    'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs font-extrabold uppercase tracking-wide transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
+    active
+      ? 'border-primary/25 bg-primary-light/35 text-primary-dark shadow-sm'
+      : open
+        ? 'border-neutral-200 bg-neutral-50 text-neutral-700'
+        : 'border-neutral-200/80 bg-white text-neutral-600 shadow-sm hover:border-primary/25 hover:bg-primary-light/20 hover:text-primary-dark',
+  ]
+}
+
+function isSectionActive(section) {
+  return section.items.some(isItemActive)
 }
 
 function isItemActive(item) {
