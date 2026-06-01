@@ -31,6 +31,7 @@ wheels/
 # Node
 node_modules/
 dist/
+frontend/dev-dist/
 .DS_Store
 *.local
 
