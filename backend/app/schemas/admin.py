@@ -38,6 +38,54 @@ class AdminRecentRecordItem(BaseModel):
     combustible: int
 
 
+class AdminDashboardTotals(BaseModel):
+    total_registros: int
+    produccion_total: float
+    tn_despachadas_total: float
+    combustible_total: int
+    unidades_activas: int
+    operadores_activos: int
+    equipos_activos: int
+
+
+class AdminDashboardVariationItem(BaseModel):
+    key: str
+    label: str
+    current: float
+    previous: float
+    variation_percent: float | None = None
+
+
+class AdminDashboardRankingItem(BaseModel):
+    id: int | None = None
+    nombre: str
+    registros: int
+    produccion: float
+    tn_despachadas: float
+    combustible: int
+    share_percent: float
+
+
+class AdminDashboardEvolutionItem(BaseModel):
+    fecha: date | None
+    produccion: float
+    registros: int
+
+
+class AdminDashboardOverviewResponse(BaseModel):
+    fecha_desde: date
+    fecha_hasta: date
+    periodo_anterior_desde: date
+    periodo_anterior_hasta: date
+    totals: AdminDashboardTotals
+    previous_totals: AdminDashboardTotals
+    variations: list[AdminDashboardVariationItem]
+    unidad_ranking: list[AdminDashboardRankingItem]
+    proceso_ranking: list[AdminDashboardRankingItem]
+    evolucion: list[AdminDashboardEvolutionItem]
+    recent_records: list[AdminRecentRecordItem]
+
+
 class PersonalCreate(BaseModel):
     nombre: str = Field(min_length=1)
     dni: str | None = None

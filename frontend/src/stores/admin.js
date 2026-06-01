@@ -7,11 +7,14 @@ export { ADMIN_ENTITY_CONFIG }
 export const useAdminStore = defineStore('admin', {
   state: () => ({
     dashboard: [],
+    dashboardOverview: null,
     recentRecords: [],
     usuariosConfiguracion: [],
     loading: false,
+    loadingDashboardOverview: false,
     loadingRecentRecords: false,
     error: null,
+    dashboardOverviewError: null,
   }),
 
   actions: {
@@ -19,12 +22,16 @@ export const useAdminStore = defineStore('admin', {
       return ADMIN_ENTITY_CONFIG[entity] || null
     },
 
-    async fetchEntity(entity, { skip = 0, limit = 50 } = {}) {
+    async fetchEntity(entity, { skip = 0, limit = 50, buscar = '', unidad_id = null, activo = null } = {}) {
       const config = this.getEntityConfig(entity)
       if (!config) {
         throw new Error(`Entidad no soportada: ${entity}`)
       }
-      const { data } = await api.get(config.endpoint, { params: { skip, limit } })
+      const params = { skip, limit }
+      if (buscar?.trim()) params.buscar = buscar.trim()
+      if (unidad_id) params.unidad_id = unidad_id
+      if (activo === 0 || activo === 1) params.activo = activo
+      const { data } = await api.get(config.endpoint, { params })
       return data
     },
 
@@ -65,6 +72,20 @@ export const useAdminStore = defineStore('admin', {
         this.dashboard = []
       } finally {
         this.loading = false
+      }
+    },
+
+    async fetchDashboardOverview(filters = {}) {
+      this.loadingDashboardOverview = true
+      this.dashboardOverviewError = null
+      try {
+        const { data } = await api.get('/api/admin/dashboard/overview', { params: filters })
+        this.dashboardOverview = data
+      } catch (error) {
+        this.dashboardOverviewError = error.response?.data?.detail || 'No se pudo cargar el resumen ejecutivo'
+        this.dashboardOverview = null
+      } finally {
+        this.loadingDashboardOverview = false
       }
     },
 

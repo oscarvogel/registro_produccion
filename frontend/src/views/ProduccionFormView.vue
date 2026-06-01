@@ -9,7 +9,7 @@
       >
         <AppIcon name="back" />
       </button>
-      <h1 class="text-2xl font-bold text-neutral-900 leading-none">Carga de ProducciÃ³n</h1>
+      <h1 class="text-2xl font-bold text-neutral-900 leading-none">Carga de Producción</h1>
       </div>
       <button class="p-2 text-neutral-500" type="button" aria-label="MÃ¡s opciones">
         <AppIcon name="more" />

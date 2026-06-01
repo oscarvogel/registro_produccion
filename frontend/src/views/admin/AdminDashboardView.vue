@@ -1,37 +1,37 @@
 <template>
-  <div class="space-y-5">
-    <section class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+  <div class="space-y-4">
+    <section class="rounded-lg border border-neutral-200 bg-primary-dark p-5 text-white shadow-sm">
+      <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_34rem] xl:items-end">
         <div>
-          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Resumen general del sistema</p>
-          <h2 class="mt-1 text-2xl font-extrabold text-primary-dark">Panel de Administracion</h2>
-          <p class="mt-1 text-sm text-neutral-500">
-            Controla usuarios, unidades de negocio, permisos y metricas operativas.
+          <p class="text-xs font-bold uppercase tracking-wide text-primary-fixed-dim">Resumen ejecutivo</p>
+          <h2 class="mt-1 text-2xl font-extrabold md:text-3xl">Dashboard de produccion</h2>
+          <p class="mt-2 max-w-2xl text-sm text-primary-fixed-dim">
+            Produccion total, toneladas, combustible y actividad operativa para el rango seleccionado.
           </p>
-          <p class="mt-2 text-xs text-neutral-400">
-            Ultima actualizacion: {{ lastUpdatedLabel }} - Rango activo: {{ rangeLabel }}
+          <p class="mt-3 text-xs font-semibold text-primary-fixed-dim">
+            Ultima actualizacion: {{ lastUpdatedLabel }} - Rango: {{ rangeLabel }}
           </p>
         </div>
 
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:w-[34rem]">
+        <div class="grid grid-cols-2 gap-2 md:grid-cols-4">
           <div
-            v-for="item in globalSummary"
+            v-for="item in executiveStats"
             :key="item.label"
-            class="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5"
+            class="rounded-lg border border-white/15 bg-white/10 px-3 py-3"
           >
-            <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">{{ item.label }}</p>
-            <p class="mt-1 text-xl font-extrabold text-neutral-900">{{ item.value }}</p>
-            <p class="text-[11px] text-neutral-400">{{ item.detail }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-primary-fixed-dim">{{ item.label }}</p>
+            <p class="mt-1 text-xl font-extrabold text-white">{{ item.value }}</p>
+            <p class="mt-0.5 text-[11px] text-primary-fixed-dim">{{ item.detail }}</p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <section class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+      <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div>
-          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Dashboard operativo</p>
-          <h2 class="mt-1 text-xl font-extrabold text-primary-dark">Metricas por unidad de negocio</h2>
+          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Filtros</p>
+          <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Periodo de analisis</h3>
         </div>
 
         <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
@@ -58,279 +58,243 @@
           </div>
 
           <button
-            @click="loadDashboard"
-            class="h-12 rounded-xl bg-primary-dark px-5 text-sm font-semibold text-white transition-colors hover:bg-primary"
+            @click="loadOverview"
+            class="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary-dark px-5 text-sm font-semibold text-white transition-colors hover:bg-primary disabled:opacity-60"
+            :disabled="store.loadingDashboardOverview"
             type="button"
           >
+            <AppIcon name="refresh" size="sm" :class="{ 'animate-spin': store.loadingDashboardOverview }" />
             Actualizar
           </button>
         </div>
       </div>
     </section>
 
-    <div v-if="store.loading" class="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-neutral-500">
-      Cargando dashboard de administracion...
+    <div v-if="store.loadingDashboardOverview" class="rounded-lg border border-neutral-200 bg-white p-8 text-center text-neutral-500">
+      Cargando resumen ejecutivo...
     </div>
 
-    <div v-else-if="store.error" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-      {{ store.error }}
+    <div v-else-if="store.dashboardOverviewError" class="rounded-lg border border-error-light bg-error-light/40 p-4 text-sm font-semibold text-error-dark">
+      {{ store.dashboardOverviewError }}
     </div>
 
-    <div v-else-if="store.dashboard.length === 0" class="rounded-2xl border border-neutral-200 bg-white p-10 text-center">
-      <p class="font-bold text-neutral-700">No hay unidades para mostrar</p>
-      <p class="mt-1 text-sm text-neutral-500">Cuando existan unidades activas, apareceran en este panel.</p>
+    <div v-else-if="!overview" class="rounded-lg border border-neutral-200 bg-white p-10 text-center">
+      <p class="font-bold text-neutral-700">No se pudo preparar el dashboard</p>
+      <p class="mt-1 text-sm text-neutral-500">Actualiza el rango para volver a consultar la informacion.</p>
     </div>
 
     <template v-else>
-      <section v-if="!selectedUnidad" class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <section class="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.65fr)]">
+        <div class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Gestion del sistema</p>
-              <h3 class="text-lg font-extrabold text-neutral-900">Unidades de negocio</h3>
-            </div>
-            <select
-              v-model="selectedMetricKey"
-              class="rounded-xl border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm text-neutral-800 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option v-for="metric in visibleMetricOptions" :key="metric.key" :value="metric.key">
-                Visualizar: {{ metric.label }}
-              </option>
-            </select>
-          </div>
-
-          <div class="divide-y divide-neutral-100">
-            <article
-              v-for="unidad in pagedUnits"
-              :key="unidad.id"
-              class="grid gap-4 py-4 lg:grid-cols-[minmax(13rem,0.8fr)_minmax(0,1fr)_auto] lg:items-center"
-            >
-              <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-2">
-                  <h4 class="truncate text-base font-extrabold text-primary-dark">{{ unidad.nombre }}</h4>
-                  <span class="rounded-md bg-neutral-100 px-2 py-0.5 text-xs font-bold text-neutral-500">{{ unidad.prefijo || 'SIN' }}</span>
-                </div>
-                <p class="mt-1 text-xs text-neutral-400">
-                  {{ unidad.tipos_proceso.length }} proceso{{ unidad.tipos_proceso.length !== 1 ? 's' : '' }} configurado{{ unidad.tipos_proceso.length !== 1 ? 's' : '' }}
-                </p>
+              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Produccion total</p>
+              <div class="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
+                <span class="text-4xl font-extrabold text-primary-dark md:text-5xl">
+                  {{ formatNumber(totals.produccion_total) }}
+                </span>
+                <span class="pb-1 text-sm font-bold uppercase tracking-wide text-neutral-400">prod.</span>
               </div>
-
-              <div v-if="hasUnitData(unidad)" class="grid gap-2 sm:grid-cols-3">
-                <div class="rounded-xl bg-neutral-50 px-3 py-2">
-                  <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Registros</p>
-                  <p class="text-lg font-extrabold text-neutral-900">{{ formatNumber(unidad.resumen.total_registros) }}</p>
-                </div>
-                <div class="rounded-xl bg-neutral-50 px-3 py-2">
-                  <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">{{ selectedMetric.label }}</p>
-                  <p class="text-lg font-extrabold text-neutral-900">{{ formatNumber(metricValue(unidad, selectedMetric.key)) }}</p>
-                </div>
-                <div class="rounded-xl bg-neutral-50 px-3 py-2">
-                  <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Activos</p>
-                  <p class="text-lg font-extrabold text-neutral-900">{{ unidad.resumen.operadores_activos }} / {{ unidad.resumen.equipos_activos }}</p>
-                </div>
-              </div>
-
-              <div v-else class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 px-4 py-3">
-                <p class="text-sm font-bold text-neutral-700">Sin registros en este periodo</p>
-                <p class="mt-0.5 text-xs text-neutral-400">Cuando se cargue produccion para esta unidad, apareceran los indicadores principales.</p>
-              </div>
-
-              <button
-                @click="openUnidad(unidad.id)"
-                class="rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary-dark transition-colors hover:bg-primary/5"
-                type="button"
-              >
-                Ver detalle
-              </button>
-            </article>
-          </div>
-
-          <div v-if="sortedUnits.length > 0" class="mt-4 flex flex-col gap-3 border-t border-neutral-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <p class="text-xs font-semibold text-neutral-400">
-                Mostrando {{ unitPageStart + 1 }}-{{ unitPageEnd }} de {{ sortedUnits.length }} unidades
+              <p class="mt-2 text-sm text-neutral-500">
+                {{ formatNumber(totals.total_registros) }} registros - {{ formatNumber(totals.unidades_activas) }} unidades con actividad
               </p>
-              <label class="flex items-center gap-2 text-xs font-semibold text-neutral-500">
-                Ver
-                <select
-                  v-model.number="unitsPerPage"
-                  class="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs font-bold text-neutral-700 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <option v-for="size in pageSizeOptions" :key="size" :value="size">{{ size }}</option>
-                </select>
-                por pagina
-              </label>
             </div>
-            <div class="flex items-center gap-2">
-              <button
-                @click="unitPage = Math.max(1, unitPage - 1)"
-                :disabled="unitPage === 1"
-                class="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-bold text-neutral-600 disabled:opacity-40"
-                type="button"
-              >
-                Anterior
-              </button>
-              <span class="rounded-lg bg-neutral-100 px-3 py-2 text-xs font-extrabold text-neutral-700">
-                {{ unitPage }} / {{ unitTotalPages }}
-              </span>
-              <button
-                @click="unitPage = Math.min(unitTotalPages, unitPage + 1)"
-                :disabled="unitPage === unitTotalPages"
-                class="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-bold text-neutral-600 disabled:opacity-40"
-                type="button"
-              >
-                Siguiente
-              </button>
+
+            <div class="rounded-lg border px-3 py-2" :class="variationTone(primaryVariation)">
+              <p class="text-[11px] font-bold uppercase tracking-wide">Periodo anterior</p>
+              <p class="mt-1 text-xl font-extrabold">{{ variationLabel(primaryVariation) }}</p>
+              <p class="text-xs">{{ previousRangeLabel }}</p>
+            </div>
+          </div>
+
+          <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div
+              v-for="metric in metricCards"
+              :key="metric.label"
+              class="rounded-lg border border-neutral-200 bg-neutral-50 p-4"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">{{ metric.label }}</p>
+                <AppIcon :name="metric.icon" size="sm" class="text-primary" />
+              </div>
+              <p class="mt-2 text-2xl font-extrabold text-neutral-900">{{ metric.value }}</p>
+              <p class="mt-1 text-xs text-neutral-500">{{ metric.detail }}</p>
             </div>
           </div>
         </div>
 
-        <aside class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Dashboard operativo</p>
-          <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Procesos configurados</h3>
-          <div class="mt-4 space-y-3">
-            <div
-              v-for="process in processSummary"
-              :key="process.nombre"
-              class="rounded-xl bg-neutral-50 px-3 py-2"
-            >
+        <aside class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Comparativa</p>
+          <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Contra periodo anterior</h3>
+
+          <div class="mt-4 divide-y divide-neutral-100">
+            <div v-for="item in overview.variations" :key="item.key" class="py-3">
               <div class="flex items-center justify-between gap-3">
-                <p class="truncate text-sm font-bold text-neutral-800">{{ process.nombre }}</p>
-                <span class="rounded-md bg-white px-2 py-0.5 text-xs font-bold text-neutral-500">{{ process.unidades }}</span>
+                <span class="text-sm font-bold text-neutral-700">{{ item.label }}</span>
+                <span class="rounded-lg px-2 py-1 text-xs font-extrabold" :class="variationTone(item)">
+                  {{ variationLabel(item) }}
+                </span>
               </div>
-              <p class="mt-1 text-xs text-neutral-400">{{ formatNumber(process.registros) }} registros - {{ formatNumber(process.produccion) }} produccion</p>
+              <div class="mt-1 flex items-center justify-between gap-3 text-xs text-neutral-400">
+                <span>Actual {{ formatNumber(item.current) }}</span>
+                <span>Anterior {{ formatNumber(item.previous) }}</span>
+              </div>
             </div>
           </div>
         </aside>
       </section>
 
-      <section v-else class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-        <div class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <button
-              @click="selectedUnidadId = null"
-              class="mb-3 text-sm font-bold text-primary-dark hover:text-primary"
-              type="button"
-            >
-              Volver a unidades
-            </button>
-            <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Detalle de unidad</p>
-            <h3 class="mt-1 text-2xl font-extrabold text-primary-dark">{{ selectedUnidad.nombre }}</h3>
-            <p class="mt-1 text-sm text-neutral-500">Procesos y metricas disponibles para {{ selectedUnidad.prefijo || 'esta unidad' }}.</p>
-          </div>
-
-          <div class="grid gap-2 sm:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:w-[34rem]">
-            <AutocompleteField
-              v-model="selectedProcessId"
-              label="Procesos"
-              :items="selectedProcessOptions"
-              labelKey="nombre"
-              valueKey="id"
-              placeholder="Procesos: todos"
-              selectedDisplay="input"
-            />
+      <section class="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.75fr)]">
+        <div class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <div class="mb-4 flex items-end justify-between gap-3">
             <div>
-              <label class="mb-1 block text-sm font-medium text-neutral-700">Indicador</label>
-            <select
-              v-model="selectedMetricKey"
-              class="h-11 rounded-xl border border-neutral-300 bg-neutral-50 px-3 text-sm text-neutral-800 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option v-for="metric in unitMetricOptions" :key="metric.key" :value="metric.key">
-                {{ metric.label }}
-              </option>
-            </select>
+              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Evolucion diaria</p>
+              <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Produccion del periodo</h3>
             </div>
+            <p class="text-xs font-semibold text-neutral-400">{{ overview.evolucion.length }} dias con datos</p>
+          </div>
+
+          <div v-if="chartPoints.length > 1" class="min-h-64">
+            <svg :viewBox="`0 0 ${chartW} ${chartH}`" class="h-64 w-full" preserveAspectRatio="none">
+              <line
+                v-for="line in chartGrid"
+                :key="line"
+                :x1="chartPad"
+                :x2="chartW - chartPad"
+                :y1="line"
+                :y2="line"
+                stroke="var(--color-neutral-200)"
+                stroke-width="1"
+              />
+              <polyline
+                :points="linePoints"
+                fill="none"
+                stroke="var(--color-primary)"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="4"
+              />
+              <circle
+                v-for="(point, index) in chartPoints"
+                :key="`${point.x}-${index}`"
+                :cx="point.x"
+                :cy="point.y"
+                r="4"
+                fill="white"
+                stroke="var(--color-primary-dark)"
+                stroke-width="2"
+              />
+            </svg>
+            <div class="mt-2 flex items-center justify-between text-xs font-semibold text-neutral-400">
+              <span>{{ firstEvolutionDate }}</span>
+              <span>{{ lastEvolutionDate }}</span>
+            </div>
+          </div>
+
+          <div v-else class="flex h-64 items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50 text-sm text-neutral-500">
+            Sin evolucion suficiente para graficar.
           </div>
         </div>
 
-        <div v-if="!hasUnitData(selectedUnidad)" class="rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center">
-          <p class="text-base font-extrabold text-neutral-700">Sin registros en este periodo</p>
-          <p class="mt-1 text-sm text-neutral-500">Cuando se cargue produccion para esta unidad, apareceran los indicadores principales.</p>
-        </div>
+        <aside class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Ranking</p>
+          <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Unidades por produccion</h3>
 
-        <div v-else class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
-          <div class="space-y-5">
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div
-                v-for="metric in selectedUnitStats"
-                :key="metric.label"
-                class="rounded-xl bg-neutral-50 p-4"
-              >
-                <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">{{ metric.label }}</p>
-                <p class="mt-2 text-2xl font-extrabold text-neutral-900">{{ metric.value }}</p>
-                <p class="mt-1 text-xs text-neutral-400">{{ metric.detail }}</p>
-              </div>
-            </div>
-
-            <div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
-              <div class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Produccion por proceso</p>
-                  <h4 class="text-base font-extrabold text-neutral-900">Tipos de proceso</h4>
-                </div>
-                <p class="text-xs font-semibold text-neutral-400">{{ filteredProcesses.length }} proceso{{ filteredProcesses.length !== 1 ? 's' : '' }} visible{{ filteredProcesses.length !== 1 ? 's' : '' }}</p>
-              </div>
-
-              <div v-if="filteredProcesses.length === 0" class="rounded-xl border border-dashed border-neutral-300 bg-white p-5 text-center">
-                <p class="text-sm font-bold text-neutral-700">Sin desglose disponible</p>
-                <p class="mt-1 text-xs text-neutral-400">
-                  Hay {{ formatNumber(selectedUnidad.resumen.total_registros) }} registro{{ Number(selectedUnidad.resumen.total_registros || 0) !== 1 ? 's' : '' }} en el periodo, pero no se encontraron procesos agrupados.
-                </p>
-              </div>
-
-              <div v-else class="space-y-2">
-                <div
-                  v-for="tipo in filteredProcesses"
-                  :key="`${selectedUnidad.id}-${tipo.id}`"
-                  class="rounded-xl border border-neutral-200 bg-white px-4 py-3"
-                >
-                  <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_8rem] md:items-center">
-                    <div class="min-w-0">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <p class="truncate text-sm font-extrabold text-neutral-800">{{ tipo.nombre }}</p>
-                        <span class="rounded-md bg-primary-fixed px-2 py-0.5 text-xs font-bold text-primary-dark">
-                          {{ formatNumber(tipo.registros) }} registro{{ Number(tipo.registros || 0) !== 1 ? 's' : '' }}
-                        </span>
-                      </div>
-                      <div class="mt-2 h-2.5 overflow-hidden rounded-full bg-neutral-100">
-                        <div class="h-full rounded-full bg-primary" :style="{ width: `${processShare(tipo)}%` }"></div>
-                      </div>
-                      <p class="mt-1 text-xs text-neutral-400">{{ processShare(tipo) }}% {{ processShareLabel }}.</p>
-                    </div>
-                    <div class="text-sm md:text-right">
-                      <span class="block text-xs font-bold uppercase tracking-wide text-neutral-400">Produccion</span>
-                      <span class="font-extrabold text-primary-dark">{{ formatNumber(tipo.produccion) }}</span>
-                    </div>
+          <div v-if="overview.unidad_ranking.length > 0" class="mt-4 space-y-3">
+            <div v-for="(item, index) in overview.unidad_ranking" :key="item.id || item.nombre">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex min-w-0 items-center gap-2">
+                  <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-xs font-extrabold text-primary-dark">
+                    {{ index + 1 }}
+                  </span>
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-extrabold text-neutral-800">{{ item.nombre }}</p>
+                    <p class="text-xs text-neutral-400">{{ formatNumber(item.registros) }} registros</p>
                   </div>
                 </div>
+                <div class="text-right">
+                  <p class="text-sm font-extrabold text-neutral-900">{{ formatNumber(item.produccion) }}</p>
+                  <p class="text-xs text-neutral-400">{{ formatNumber(item.share_percent) }}%</p>
+                </div>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100">
+                <div class="h-full rounded-full bg-primary" :style="{ width: `${Math.min(item.share_percent, 100)}%` }"></div>
               </div>
             </div>
           </div>
 
-          <aside class="rounded-2xl bg-neutral-50 p-5">
-            <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Indicadores</p>
-            <div class="mt-4 grid gap-3">
-              <div
-                v-for="item in selectedUnitHighlights"
-                :key="item.label"
-                class="rounded-xl bg-white p-4"
-              >
-                <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">{{ item.label }}</p>
-                <p class="mt-1 text-2xl font-extrabold text-primary-dark">{{ item.value }}</p>
-                <p class="mt-1 text-xs text-neutral-400">{{ item.detail }}</p>
+          <div v-else class="mt-4 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-5 text-center text-sm text-neutral-500">
+            Sin unidades con produccion en este periodo.
+          </div>
+        </aside>
+      </section>
+
+      <section class="grid gap-4 xl:grid-cols-2">
+        <div class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <div class="mb-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Procesos</p>
+            <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Produccion por proceso</h3>
+          </div>
+
+          <div v-if="overview.proceso_ranking.length > 0" class="overflow-hidden rounded-lg border border-neutral-200">
+            <table class="w-full border-collapse text-left text-sm">
+              <thead class="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-400">
+                <tr>
+                  <th class="px-3 py-3 font-bold">Proceso</th>
+                  <th class="px-3 py-3 text-right font-bold">Produccion</th>
+                  <th class="px-3 py-3 text-right font-bold">TN</th>
+                  <th class="px-3 py-3 text-right font-bold">Reg.</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-neutral-100">
+                <tr v-for="item in overview.proceso_ranking" :key="item.id || item.nombre">
+                  <td class="px-3 py-3 font-bold text-neutral-800">{{ item.nombre }}</td>
+                  <td class="px-3 py-3 text-right font-extrabold text-primary-dark">{{ formatNumber(item.produccion) }}</td>
+                  <td class="px-3 py-3 text-right text-neutral-600">{{ formatNumber(item.tn_despachadas) }}</td>
+                  <td class="px-3 py-3 text-right text-neutral-500">{{ formatNumber(item.registros) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-else class="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-5 text-center text-sm text-neutral-500">
+            Sin procesos con produccion en este periodo.
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <div class="mb-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Actividad reciente</p>
+            <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Ultimos registros productivos</h3>
+          </div>
+
+          <div v-if="overview.recent_records.length > 0" class="space-y-2">
+            <article
+              v-for="record in overview.recent_records"
+              :key="record.id"
+              class="grid gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+            >
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="truncate text-sm font-extrabold text-neutral-800">{{ record.operacion || 'Sin operacion' }}</p>
+                  <span class="rounded-md bg-white px-2 py-0.5 text-xs font-bold text-neutral-500">
+                    {{ formatDate(record.fecha) }}
+                  </span>
+                </div>
+                <p class="mt-1 truncate text-xs text-neutral-500">
+                  {{ record.unidad || 'Sin unidad' }} - {{ record.equipo || 'Sin equipo' }} - {{ record.operador || 'Sin operador' }}
+                </p>
               </div>
-            </div>
-            <div class="mt-4 divide-y divide-neutral-200">
-              <div
-                v-for="row in selectedUnitRows"
-                :key="row.label"
-                class="flex items-center justify-between gap-4 py-3"
-              >
-                <span class="text-sm text-neutral-500">{{ row.label }}</span>
-                <span class="text-sm font-extrabold text-neutral-900">{{ row.value }}</span>
+              <div class="text-sm md:text-right">
+                <p class="font-extrabold text-primary-dark">{{ formatNumber(record.produccion) }}</p>
+                <p class="text-xs text-neutral-400">{{ formatNumber(record.combustible) }} L</p>
               </div>
-            </div>
-          </aside>
+            </article>
+          </div>
+
+          <div v-else class="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-5 text-center text-sm text-neutral-500">
+            Sin registros recientes para el rango activo.
+          </div>
         </div>
       </section>
     </template>
@@ -338,9 +302,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
-import AutocompleteField from '@/components/AutocompleteField.vue'
+import { computed, onMounted, ref } from 'vue'
 import InputField from '@/components/InputField.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import { useAdminStore } from '@/stores/admin'
 
 const store = useAdminStore()
@@ -352,10 +316,6 @@ const rangePresets = [
   { key: 'month', label: 'Este mes' },
 ]
 
-function toYmd(value) {
-  return value.toISOString().slice(0, 10)
-}
-
 const today = new Date()
 const prior = new Date(today)
 prior.setDate(prior.getDate() - 29)
@@ -364,188 +324,69 @@ const fechaDesde = ref(toYmd(prior))
 const fechaHasta = ref(toYmd(today))
 const activePreset = ref('30d')
 const lastUpdated = ref(null)
-const selectedUnidadId = ref(null)
-const selectedMetricKey = ref('produccion_total')
-const selectedProcessId = ref('all')
-const unitPage = ref(1)
-const unitsPerPage = ref(5)
-const pageSizeOptions = [5, 10, 25, 50]
 
-const metricOptions = [
-  { key: 'produccion_total', label: 'Produccion total' },
-  { key: 'tn_despachadas_total', label: 'TN despachadas' },
-  { key: 'combustible_total', label: 'Combustible' },
-  { key: 'total_registros', label: 'Total registros' },
-  { key: 'registros_hoy', label: 'Registros hoy' },
-]
+const overview = computed(() => store.dashboardOverview)
+const totals = computed(() => overview.value?.totals || emptyTotals())
+const previousTotals = computed(() => overview.value?.previous_totals || emptyTotals())
 
-const selectedMetric = computed(() => {
-  return metricOptions.find((metric) => metric.key === selectedMetricKey.value) || metricOptions[0]
+const primaryVariation = computed(() => {
+  return overview.value?.variations?.find((item) => item.key === 'produccion_total') || null
 })
 
-const visibleMetricOptions = computed(() => {
-  const hasTn = store.dashboard.some((unidad) => Number(unidad.resumen?.tn_despachadas_total || 0) > 0)
-  const hasProduction = store.dashboard.some((unidad) => Number(unidad.resumen?.produccion_total || 0) > 0)
-  const hasFuel = store.dashboard.some((unidad) => Number(unidad.resumen?.combustible_total || 0) > 0)
-  return metricOptions.filter((metric) => {
-    if (metric.key === 'tn_despachadas_total') return hasTn
-    if (metric.key === 'produccion_total') return hasProduction || !hasTn
-    if (metric.key === 'combustible_total') return hasFuel
-    return true
-  })
-})
-
-const unitMetricOptions = computed(() => {
-  if (!selectedUnidad.value) return visibleMetricOptions.value
-  return metricOptions.filter((metric) => {
-    if (['total_registros', 'registros_hoy'].includes(metric.key)) return true
-    return Number(metricValue(selectedUnidad.value, metric.key)) > 0
-  })
-})
-
-const selectedProcessOptions = computed(() => {
-  return [
-    { id: 'all', nombre: 'Todos los procesos' },
-    ...(selectedUnidad.value?.tipos_proceso || []).map((tipo) => ({
-      ...tipo,
-      id: String(tipo.id),
-    })),
-  ]
-})
-
-const selectedUnidad = computed(() => {
-  return store.dashboard.find((unidad) => Number(unidad.id) === Number(selectedUnidadId.value)) || null
-})
-
-const sortedUnits = computed(() => {
-  return [...store.dashboard].sort((a, b) => {
-    const left = Number(a.resumen?.total_registros || 0)
-    const right = Number(b.resumen?.total_registros || 0)
-    if (right !== left) return right - left
-    return String(a.nombre || '').localeCompare(String(b.nombre || ''))
-  })
-})
-
-const unitTotalPages = computed(() => Math.max(1, Math.ceil(sortedUnits.value.length / unitsPerPage.value)))
-const unitPageStart = computed(() => (unitPage.value - 1) * unitsPerPage.value)
-const unitPageEnd = computed(() => Math.min(unitPageStart.value + unitsPerPage.value, sortedUnits.value.length))
-const pagedUnits = computed(() => sortedUnits.value.slice(unitPageStart.value, unitPageEnd.value))
-
-const globalTotals = computed(() => {
-  return store.dashboard.reduce((acc, unidad) => {
-    const resumen = unidad.resumen || {}
-    acc.total_registros += Number(resumen.total_registros || 0)
-    acc.registros_hoy += Number(resumen.registros_hoy || 0)
-    acc.produccion_total += Number(resumen.produccion_total || 0)
-    acc.tn_despachadas_total += Number(resumen.tn_despachadas_total || 0)
-    acc.combustible_total += Number(resumen.combustible_total || 0)
-    acc.operadores_activos += Number(resumen.operadores_activos || 0)
-    acc.equipos_activos += Number(resumen.equipos_activos || 0)
-    return acc
-  }, {
-    total_registros: 0,
-    registros_hoy: 0,
-    produccion_total: 0,
-    tn_despachadas_total: 0,
-    combustible_total: 0,
-    operadores_activos: 0,
-    equipos_activos: 0,
-  })
-})
-
-const globalSummary = computed(() => [
-  { label: 'Total registros', value: formatNumber(globalTotals.value.total_registros), detail: 'Periodo activo' },
-  { label: 'Produccion', value: formatNumber(globalTotals.value.produccion_total), detail: 'Total general' },
-  { label: 'Combustible', value: `${formatNumber(globalTotals.value.combustible_total)} L`, detail: 'Consumo total' },
-  { label: 'Unidades', value: formatNumber(store.dashboard.length), detail: 'Activas' },
+const executiveStats = computed(() => [
+  {
+    label: 'Produccion',
+    value: formatNumber(totals.value.produccion_total),
+    detail: variationLabel(primaryVariation.value),
+  },
+  {
+    label: 'TN',
+    value: formatNumber(totals.value.tn_despachadas_total),
+    detail: 'Despachadas',
+  },
+  {
+    label: 'Combustible',
+    value: `${formatNumber(totals.value.combustible_total)} L`,
+    detail: 'Consumo total',
+  },
+  {
+    label: 'Registros',
+    value: formatNumber(totals.value.total_registros),
+    detail: 'Cargas del periodo',
+  },
 ])
 
-const processSummary = computed(() => {
-  const map = new Map()
-  for (const unidad of store.dashboard) {
-    for (const tipo of unidad.tipos_proceso || []) {
-      const current = map.get(tipo.nombre) || { nombre: tipo.nombre, unidades: 0, registros: 0, produccion: 0 }
-      current.unidades += 1
-      current.registros += Number(tipo.registros || 0)
-      current.produccion += Number(tipo.produccion || 0)
-      map.set(tipo.nombre, current)
-    }
-  }
-  return [...map.values()].sort((a, b) => b.registros - a.registros).slice(0, 8)
-})
+const metricCards = computed(() => [
+  {
+    label: 'TN despachadas',
+    value: formatNumber(totals.value.tn_despachadas_total),
+    detail: `${formatNumber(previousTotals.value.tn_despachadas_total)} en periodo anterior`,
+    icon: 'truck',
+  },
+  {
+    label: 'Combustible',
+    value: `${formatNumber(totals.value.combustible_total)} L`,
+    detail: `${formatNumber(previousTotals.value.combustible_total)} L en periodo anterior`,
+    icon: 'fuel',
+  },
+  {
+    label: 'Operadores',
+    value: formatNumber(totals.value.operadores_activos),
+    detail: 'Con registros en el rango',
+    icon: 'personnel',
+  },
+  {
+    label: 'Equipos',
+    value: formatNumber(totals.value.equipos_activos),
+    detail: 'Con actividad productiva',
+    icon: 'machine',
+  },
+])
 
-const filteredProcesses = computed(() => {
-  if (!selectedUnidad.value) return []
-  if (selectedProcessId.value === 'all') return selectedUnidad.value.tipos_proceso || []
-  return (selectedUnidad.value.tipos_proceso || []).filter((tipo) => String(tipo.id) === selectedProcessId.value)
-})
-
-const processShareLabel = computed(() => {
-  const totalProduction = filteredProcesses.value.reduce((sum, item) => sum + Number(item.produccion || 0), 0)
-  return totalProduction > 0 ? 'del total visible por produccion' : 'del total visible por registros'
-})
-
-const selectedUnitStats = computed(() => {
-  if (!selectedUnidad.value) return []
-  const unidad = selectedUnidad.value
-  return [
-    {
-      label: selectedMetric.value.label,
-      value: formatNumber(metricValue(unidad, selectedMetric.value.key)),
-      detail: selectedMetricDetail.value,
-    },
-    {
-      label: 'Registros hoy',
-      value: formatNumber(unidad.resumen.registros_hoy),
-      detail: Number(unidad.resumen.registros_hoy || 0) > 0 ? 'Actividad registrada hoy' : 'Sin actividad hoy',
-    },
-    {
-      label: 'Operadores / Equipos',
-      value: `${unidad.resumen.operadores_activos} / ${unidad.resumen.equipos_activos}`,
-      detail: 'Con actividad en el rango',
-    },
-  ]
-})
-
-const selectedMetricDetail = computed(() => {
-  const key = selectedMetric.value.key
-  if (key === 'total_registros') return 'Registros en el periodo'
-  if (key === 'registros_hoy') return 'Actividad del dia'
-  if (key === 'combustible_total') return 'Consumo en el periodo'
-  if (key === 'tn_despachadas_total') return 'Toneladas en el periodo'
-  return 'Segun el indicador seleccionado'
-})
-
-const selectedUnitHighlights = computed(() => {
-  if (!selectedUnidad.value) return []
-  const resumen = selectedUnidad.value.resumen
-  return [
-    {
-      label: 'Produccion total',
-      value: `${formatNumber(resumen.produccion_total)} m3`,
-      detail: 'Segun procesos de la unidad',
-    },
-    {
-      label: 'TN despachadas',
-      value: `${formatNumber(resumen.tn_despachadas_total)} TN`,
-      detail: 'Cuando aplica al proceso',
-    },
-  ].filter((item) => !item.value.startsWith('0') || item.label === 'Produccion total')
-})
-
-const selectedUnitRows = computed(() => {
-  if (!selectedUnidad.value) return []
-  const resumen = selectedUnidad.value.resumen
-  return [
-    { label: 'Total registros', value: formatNumber(resumen.total_registros) },
-    { label: 'Registros hoy', value: formatNumber(resumen.registros_hoy) },
-    { label: 'Combustible', value: `${formatNumber(resumen.combustible_total)} L` },
-    { label: 'Operadores / Equipos', value: `${resumen.operadores_activos} / ${resumen.equipos_activos}` },
-  ].filter((row) => !row.value.startsWith('0') || ['Total registros', 'Registros hoy'].includes(row.label))
-})
-
-const rangeLabel = computed(() => {
-  return `${formatDate(fechaDesde.value)} al ${formatDate(fechaHasta.value)}`
+const rangeLabel = computed(() => `${formatDate(fechaDesde.value)} al ${formatDate(fechaHasta.value)}`)
+const previousRangeLabel = computed(() => {
+  if (!overview.value) return 'Sin periodo anterior'
+  return `${formatDate(overview.value.periodo_anterior_desde)} al ${formatDate(overview.value.periodo_anterior_hasta)}`
 })
 
 const lastUpdatedLabel = computed(() => {
@@ -559,41 +400,43 @@ const lastUpdatedLabel = computed(() => {
   }).format(lastUpdated.value)
 })
 
-watch(unitMetricOptions, (options) => {
-  if (options.length > 0 && !options.some((metric) => metric.key === selectedMetricKey.value)) {
-    selectedMetricKey.value = options[0].key
-  }
+const chartW = 640
+const chartH = 220
+const chartPad = 18
+const chartGrid = [50, 100, 150, 200]
+
+const maxProduction = computed(() => {
+  const values = overview.value?.evolucion?.map((item) => Number(item.produccion || 0)) || []
+  return Math.max(...values, 1)
 })
 
-watch(unitTotalPages, (totalPages) => {
-  if (unitPage.value > totalPages) {
-    unitPage.value = totalPages
-  }
+const chartPoints = computed(() => {
+  const rows = overview.value?.evolucion || []
+  if (rows.length < 2) return []
+  const usableW = chartW - chartPad * 2
+  const usableH = chartH - chartPad * 2
+  return rows.map((row, index) => ({
+    x: chartPad + (index / (rows.length - 1)) * usableW,
+    y: chartH - chartPad - (Number(row.produccion || 0) / maxProduction.value) * usableH,
+  }))
 })
 
-watch(unitsPerPage, () => {
-  unitPage.value = 1
+const linePoints = computed(() => chartPoints.value.map((point) => `${point.x},${point.y}`).join(' '))
+const firstEvolutionDate = computed(() => formatDate(overview.value?.evolucion?.[0]?.fecha))
+const lastEvolutionDate = computed(() => {
+  const rows = overview.value?.evolucion || []
+  return formatDate(rows[rows.length - 1]?.fecha)
 })
 
-async function loadDashboard() {
+async function loadOverview() {
   activePreset.value = ''
-  unitPage.value = 1
-  await store.fetchDashboard({
-    fecha_desde: fechaDesde.value || null,
-    fecha_hasta: fechaHasta.value || null,
-  })
-  lastUpdated.value = new Date()
-  if (selectedUnidadId.value && !selectedUnidad.value) {
-    selectedUnidadId.value = null
-  }
+  await fetchOverview()
 }
 
 async function applyPreset(key) {
   const now = new Date()
   const start = new Date(now)
-  if (key === 'today') {
-    // same date
-  } else if (key === '7d') {
+  if (key === '7d') {
     start.setDate(now.getDate() - 6)
   } else if (key === '30d') {
     start.setDate(now.getDate() - 29)
@@ -603,35 +446,34 @@ async function applyPreset(key) {
   fechaDesde.value = toYmd(start)
   fechaHasta.value = toYmd(now)
   activePreset.value = key
-  unitPage.value = 1
-  await store.fetchDashboard({
-    fecha_desde: fechaDesde.value,
-    fecha_hasta: fechaHasta.value,
+  await fetchOverview()
+}
+
+async function fetchOverview() {
+  await store.fetchDashboardOverview({
+    fecha_desde: fechaDesde.value || null,
+    fecha_hasta: fechaHasta.value || null,
   })
   lastUpdated.value = new Date()
 }
 
-function openUnidad(id) {
-  selectedUnidadId.value = id
-  selectedProcessId.value = 'all'
-}
-
-function hasUnitData(unidad) {
-  return Number(unidad.resumen?.total_registros || 0) > 0
-}
-
-function metricValue(unidad, key) {
-  return Number(unidad?.resumen?.[key] || 0)
-}
-
-function processShare(tipo) {
-  const totalProduction = filteredProcesses.value.reduce((sum, item) => sum + Number(item.produccion || 0), 0)
-  if (totalProduction > 0) {
-    return Math.max(4, Math.round((Number(tipo.produccion || 0) / totalProduction) * 100))
+function emptyTotals() {
+  return {
+    total_registros: 0,
+    produccion_total: 0,
+    tn_despachadas_total: 0,
+    combustible_total: 0,
+    unidades_activas: 0,
+    operadores_activos: 0,
+    equipos_activos: 0,
   }
-  const totalRecords = filteredProcesses.value.reduce((sum, item) => sum + Number(item.registros || 0), 0)
-  if (totalRecords <= 0) return 0
-  return Math.max(4, Math.round((Number(tipo.registros || 0) / totalRecords) * 100))
+}
+
+function toYmd(value) {
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const day = String(value.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function formatNumber(value) {
@@ -644,6 +486,18 @@ function formatDate(value) {
   const [year, month, day] = String(value).split('-')
   if (!year || !month || !day) return value
   return `${day}/${month}/${year}`
+}
+
+function variationLabel(item) {
+  if (!item || item.variation_percent == null) return 'Sin base previa'
+  const sign = Number(item.variation_percent) > 0 ? '+' : ''
+  return `${sign}${formatNumber(item.variation_percent)}%`
+}
+
+function variationTone(item) {
+  if (!item || item.variation_percent == null) return 'border-neutral-200 bg-neutral-50 text-neutral-500'
+  if (Number(item.variation_percent) >= 0) return 'border-success-light bg-success-light/30 text-success-dark'
+  return 'border-error-light bg-error-light/40 text-error-dark'
 }
 
 onMounted(() => {

@@ -55,6 +55,17 @@ def get_current_encargado(
     return user
 
 
+def get_current_admin_or_encargado(
+    user: Personal = Depends(get_current_user),
+) -> Personal:
+    if user.is_admin != 1 and user.encargado != 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso restringido a administradores o encargados",
+        )
+    return user
+
+
 def get_current_admin(
     user: Personal = Depends(get_current_user),
 ) -> Personal:

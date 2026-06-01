@@ -26,6 +26,19 @@
 
         <!-- Filter row -->
         <div :class="['md:flex md:items-end md:gap-4 flex-wrap', showFilters ? 'mt-3 flex flex-col gap-3' : 'hidden md:flex']">
+          <!-- Unidad de negocio -->
+          <div class="flex-1 min-w-45">
+            <AutocompleteField
+              v-model="unidadNegocioFilter"
+              label="Unidad de Negocio"
+              :items="unidadOptions"
+              labelKey="nombre"
+              valueKey="idUnidadNegocio"
+              placeholder="Seleccionar unidad"
+              :disabled="unidadOptions.length === 0"
+            />
+          </div>
+
           <!-- Tipo proceso -->
           <div class="flex-1 min-w-45">
             <AutocompleteField
@@ -33,7 +46,7 @@
               label="Tipo de Proceso"
               :items="store.tiposProceso"
               labelKey="nombre"
-              valueKey="id"
+              valueKey="value"
               placeholder="Todos los procesos"
             />
             <button
@@ -105,8 +118,8 @@
       <!-- Missing UN warning -->
       <div v-if="missingUn" class="bg-warning-light border border-warning rounded-2xl p-6 text-center">
         <AppIcon name="warning" size="xl" :stroke-width="1.8" class="mx-auto mb-3 text-warning-dark" />
-        <p class="text-warning-dark font-bold text-base mb-1">Sesión desactualizada</p>
-        <p class="text-neutral-600 text-sm">Tu perfil no tiene la unidad de negocio cargada. Cerrá sesión e ingresá de nuevo para actualizar los datos.</p>
+        <p class="text-warning-dark font-bold text-base mb-1">Sin unidades disponibles</p>
+        <p class="text-neutral-600 text-sm">No se encontraron unidades de negocio habilitadas para consultar el dashboard.</p>
         <button @click="handleRelogin" class="mt-4 px-6 py-2 bg-warning-dark text-white text-sm font-semibold rounded-xl hover:bg-warning transition-colors">
           Cerrar sesión
         </button>
@@ -197,6 +210,19 @@
 
         <!-- Evolución temporal -->
         <div class="lg:col-span-3 bg-white rounded-2xl border border-neutral-200 p-5 md:p-6">
+          <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div class="w-full md:w-64">
+              <AutocompleteField
+                v-model="evolucionTipoProcesoFilter"
+                label="Tipo de Proceso"
+                :items="store.tiposProceso"
+                labelKey="nombre"
+                valueKey="value"
+                placeholder="Todos los procesos"
+                selectedDisplay="input"
+              />
+            </div>
+          </div>
           <h2 class="text-sm font-bold text-primary-dark uppercase tracking-wide mb-4">
             {{ store.evolucion.datasets?.[0]?.nombre || 'Evolución' }} — Evolución diaria
           </h2>
@@ -258,11 +284,76 @@
           <div v-else class="h-52 flex items-center justify-center text-neutral-400 text-sm">
             Sin datos de evolución para el período
           </div>
+          <div class="mt-6 border-t border-neutral-100 pt-5">
+            <h3 class="mb-4 text-sm font-bold uppercase tracking-wide text-warning-dark">Combustible - Evolucion diaria</h3>
+            <div v-if="store.loading.evolucionCombustible" class="h-52 flex items-center justify-center">
+              <div class="w-8 h-8 border-3 border-warning border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <div v-else-if="fuelChartPoints.length > 1" class="relative" @mouseleave="fuelTooltip = null">
+              <svg :viewBox="`0 0 ${chartW} ${chartH + 30}`" class="w-full" preserveAspectRatio="xMidYMid meet">
+                <line v-for="i in 4" :key="'fg'+i"
+                  :x1="chartPad" :y1="chartH - (chartH - chartPad) * (i/4)" :x2="chartW - chartPad" :y2="chartH - (chartH - chartPad) * (i/4)"
+                  stroke="var(--color-neutral-200)" stroke-width="0.5" stroke-dasharray="4 4"
+                />
+                <text v-for="i in 4" :key="'fyl'+i"
+                  :x="chartPad - 4" :y="chartH - (chartH - chartPad) * (i/4) + 3"
+                  text-anchor="end" fill="var(--color-neutral-400)" font-size="9"
+                >{{ formatNumber(fuelMaxVal * i / 4) }}</text>
+                <defs>
+                  <linearGradient id="fuelAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--color-warning)" stop-opacity="0.24"/>
+                    <stop offset="100%" stop-color="var(--color-warning)" stop-opacity="0.02"/>
+                  </linearGradient>
+                </defs>
+                <path :d="fuelAreaPath" fill="url(#fuelAreaGrad)" />
+                <polyline :points="fuelLinePoints" fill="none" stroke="var(--color-warning-dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                <circle
+                  v-for="(p, i) in fuelChartPoints" :key="'fp'+i"
+                  :cx="p.x" :cy="p.y" r="4"
+                  fill="white" stroke="var(--color-warning-dark)" stroke-width="2"
+                  class="cursor-pointer"
+                  @mouseenter="fuelTooltip = { x: p.x, y: p.y, label: store.evolucionCombustible.labels[i], value: store.evolucionCombustible.datasets[0].valores[i] }"
+                />
+                <text v-for="(p, i) in fuelChartXLabels" :key="'fxl'+i"
+                  :x="p.x" :y="chartH + 20" text-anchor="middle" fill="var(--color-neutral-400)" font-size="8"
+                >{{ p.label }}</text>
+              </svg>
+              <div v-if="fuelTooltip"
+                class="absolute pointer-events-none bg-neutral-900 text-white text-xs rounded-lg px-3 py-1.5 shadow-lg"
+                :style="{ left: `${(fuelTooltip.x / chartW) * 100}%`, top: `${(fuelTooltip.y / (chartH + 30)) * 100 - 10}%`, transform: 'translate(-50%, -100%)' }"
+              >
+                <div class="font-bold">{{ formatNumber(fuelTooltip.value) }} L</div>
+                <div class="text-neutral-400 text-[10px]">{{ fuelTooltip.label }}</div>
+              </div>
+            </div>
+            <div v-else class="h-52 flex items-center justify-center text-neutral-400 text-sm">
+              Sin datos de combustible para el periodo
+            </div>
+          </div>
         </div>
 
         <!-- Ranking Máquinas -->
         <div class="lg:col-span-2 bg-white rounded-2xl border border-neutral-200 p-5 md:p-6">
           <h2 class="text-sm font-bold text-primary-dark uppercase tracking-wide mb-4">Ranking de Máquinas</h2>
+          <div class="mb-4 space-y-3">
+            <AutocompleteField
+              v-model="rankingTipoProcesoFilter"
+              label="Tipo de Proceso"
+              :items="store.tiposProceso"
+              labelKey="nombre"
+              valueKey="value"
+              placeholder="Todos los procesos"
+              selectedDisplay="input"
+            />
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" :class="rankingMetricClass('produccion')" @click="store.setRankingMetric('produccion')">
+                Produccion
+              </button>
+              <button type="button" :class="rankingMetricClass('combustible')" @click="store.setRankingMetric('combustible')">
+                Combustible
+              </button>
+            </div>
+          </div>
 
           <div v-if="store.loading.ranking" class="space-y-4">
             <div v-for="i in 5" :key="i" class="animate-pulse">
@@ -327,10 +418,37 @@ const router = useRouter()
 
 const showFilters = ref(false)
 const tooltip = ref(null)
+const fuelTooltip = ref(null)
+
+const unidadNegocioFilter = computed({
+  get: () => store.filtros.un_id || '',
+  set: (value) => store.setUnidadNegocio(value),
+})
+
+const userUnidadIds = computed(() => {
+  const ids = Array.isArray(authStore.user?.unidad_ids) ? authStore.user.unidad_ids : []
+  const main = authStore.user?.unidad_negocio
+  return new Set([...ids, main].map((value) => Number(value || 0)).filter(Boolean))
+})
+
+const unidadOptions = computed(() => {
+  if (authStore.isAdmin) return store.unidadesNegocio
+  return store.unidadesNegocio.filter((unidad) => userUnidadIds.value.has(Number(unidad.idUnidadNegocio)))
+})
 
 const tipoProcesoFilter = computed({
-  get: () => store.filtros.tipo_proceso_id || '',
-  set: (value) => store.setFiltro('tipo_proceso_id', value ? Number(value) : null),
+  get: () => store.filtros.tipo_proceso_key || '',
+  set: (value) => store.setFiltro('tipo_proceso_key', value || null),
+})
+
+const evolucionTipoProcesoFilter = computed({
+  get: () => store.filtros.evolucion_tipo_proceso_key || '',
+  set: (value) => store.setEvolucionTipoProceso(value || null),
+})
+
+const rankingTipoProcesoFilter = computed({
+  get: () => store.filtros.ranking_tipo_proceso_key || '',
+  set: (value) => store.setRankingTipoProceso(value || null),
 })
 
 const movilFilter = computed({
@@ -389,6 +507,15 @@ const iconMap = {
   timer: 'timer',
   percent: 'dashboard',
   'clipboard-list': 'records',
+}
+
+function rankingMetricClass(metric) {
+  return [
+    'rounded-lg border px-3 py-2 text-xs font-extrabold transition-colors',
+    store.filtros.ranking_metric === metric
+      ? 'border-primary-dark bg-primary-dark text-white'
+      : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-primary/40',
+  ]
 }
 
 function getIconName(name) {
@@ -452,6 +579,47 @@ const chartXLabels = computed(() => {
 })
 
 // ─── Ranking ───
+const fuelMaxVal = computed(() => {
+  const vals = store.evolucionCombustible.datasets?.[0]?.valores || []
+  return Math.max(...vals, 1)
+})
+
+const fuelChartPoints = computed(() => {
+  const vals = store.evolucionCombustible.datasets?.[0]?.valores || []
+  if (vals.length < 2) return []
+  const usableW = chartW - chartPad * 2
+  const usableH = chartH - chartPad
+  return vals.map((v, i) => ({
+    x: chartPad + (i / (vals.length - 1)) * usableW,
+    y: chartH - (v / fuelMaxVal.value) * usableH,
+  }))
+})
+
+const fuelLinePoints = computed(() => fuelChartPoints.value.map((p) => `${p.x},${p.y}`).join(' '))
+
+const fuelAreaPath = computed(() => {
+  const pts = fuelChartPoints.value
+  if (pts.length < 2) return ''
+  let d = `M ${pts[0].x},${chartH}`
+  pts.forEach((p) => (d += ` L ${p.x},${p.y}`))
+  d += ` L ${pts[pts.length - 1].x},${chartH} Z`
+  return d
+})
+
+const fuelChartXLabels = computed(() => {
+  const labels = store.evolucionCombustible.labels || []
+  const pts = fuelChartPoints.value
+  if (pts.length === 0) return []
+  const step = Math.max(1, Math.ceil(labels.length / 8))
+  return labels.reduce((acc, label, i) => {
+    if (i % step === 0 && pts[i]) {
+      const short = label.length > 5 ? label.slice(5) : label
+      acc.push({ x: pts[i].x, label: short })
+    }
+    return acc
+  }, [])
+})
+
 const rankingMaxVal = computed(() => {
   if (store.rankingMaquinas.length === 0) return 1
   return Math.max(...store.rankingMaquinas.map((r) => r.valor), 1)
@@ -461,7 +629,18 @@ const rankingMaxVal = computed(() => {
 const missingUn = ref(false)
 
 onMounted(async () => {
-  const unId = authStore.user?.unidad_negocio
+  await store.loadUnidadesNegocio()
+
+  const savedFilters = store.loadPersistedFiltros()
+  const availableUnits = unidadOptions.value.map((unidad) => Number(unidad.idUnidadNegocio))
+  const candidates = [
+    savedFilters.un_id,
+    authStore.user?.unidad_negocio,
+    ...(Array.isArray(authStore.user?.unidad_ids) ? authStore.user.unidad_ids : []),
+    unidadOptions.value[0]?.idUnidadNegocio,
+  ].map((value) => Number(value || 0))
+  const unId = candidates.find((value) => value > 0 && availableUnits.includes(value))
+
   if (!unId) {
     missingUn.value = true
     return

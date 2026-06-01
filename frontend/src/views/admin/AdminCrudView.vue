@@ -64,59 +64,16 @@
           {{ error }}
         </div>
 
-        <div v-if="entity === 'asignaciones'" class="rounded-xl border border-neutral-200 bg-white p-4">
-          <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
-            <AutocompleteField
-              v-model="quickAssignment.unidad_id"
-              class="w-full lg:w-64"
-              label="Unidad de Negocio"
-              :items="referenceOptionsForEntity('unidades-negocio')"
-              labelKey="_adminLabel"
-              valueKey="idUnidadNegocio"
-              placeholder="Buscar unidad"
-            />
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
-              <AutocompleteField
-                v-model="quickAssignment.idChofer"
-                label="Chofer"
-                :items="assignmentOptions.personal"
-                labelKey="_adminLabel"
-                valueKey="idPersonal"
-                :disabled="!quickAssignment.unidad_id"
-                placeholder="Buscar chofer"
-              />
-              <AutocompleteField
-                v-model="quickAssignment.idMovil"
-                label="Movil"
-                :items="assignmentOptions.moviles"
-                labelKey="_adminLabel"
-                valueKey="idMovil"
-                :disabled="!quickAssignment.unidad_id"
-                placeholder="Buscar movil"
-              />
-              <AutocompleteField
-                v-model="quickAssignment.idProceso"
-                label="Tipo de Proceso"
-                :items="assignmentOptions.procesos"
-                labelKey="_adminLabel"
-                valueKey="id"
-                :disabled="!quickAssignment.unidad_id"
-                placeholder="Buscar proceso"
-              />
-            </div>
-
-            <button
-              @click="submitQuickAssignment"
-              :disabled="submitting || !quickAssignmentReady"
-              class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary-dark text-white text-sm font-semibold disabled:opacity-50"
-              type="button"
-            >
-              <AppIcon name="assignment" size="sm" />
-              Asignar
-            </button>
-          </div>
-        </div>
+        <AdminQuickAssignment
+          v-if="entity === 'asignaciones'"
+          :model-value="quickAssignment"
+          :unidad-options="referenceOptionsForEntity('unidades-negocio')"
+          :assignment-options="assignmentOptions"
+          :ready="Boolean(quickAssignmentReady)"
+          :submitting="submitting"
+          @update:model-value="updateQuickAssignment"
+          @submit="submitQuickAssignment"
+        />
 
         <div class="space-y-3 md:hidden">
           <div v-if="loading" class="rounded-xl border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
@@ -521,6 +478,7 @@ import SectionCard from '@/components/SectionCard.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import AdminQuickAssignment from '@/components/admin/AdminQuickAssignment.vue'
 import { useAdminStore } from '@/stores/admin'
 
 const SECTIONS = {
@@ -868,6 +826,10 @@ function resetQuickAssignment() {
   quickAssignment.idProceso = ''
 }
 
+function updateQuickAssignment(value) {
+  Object.assign(quickAssignment, value)
+}
+
 async function loadReferences() {
   if (!meta.value) return
   const fromFields = meta.value.fields.filter((field) => field.optionsEntity).map((field) => field.optionsEntity)
@@ -894,7 +856,12 @@ async function loadRows() {
   loading.value = true
   error.value = null
   try {
-    rows.value = await adminStore.fetchEntity(entity.value, { skip: page.value * limit.value, limit: limit.value })
+    rows.value = await adminStore.fetchEntity(entity.value, {
+      skip: page.value * limit.value,
+      limit: limit.value,
+      buscar: searchText.value,
+      unidad_id: unidadFilter.value || null,
+    })
   } catch (err) {
     rows.value = []
     error.value = err.response?.data?.detail || `No se pudo cargar ${meta.value.title.toLowerCase()}`

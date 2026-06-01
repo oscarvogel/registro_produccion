@@ -46,6 +46,10 @@ const routes = [
     children: [
       {
         path: '',
+        redirect: { name: 'dashboard' },
+      },
+      {
+        path: 'dashboard',
         name: 'admin-dashboard',
         component: () => import('../views/admin/AdminDashboardView.vue'),
         meta: { requiresAuth: true, requiresAdmin: true },
@@ -78,7 +82,7 @@ router.beforeEach((to, from, next) => {
     next({ name: 'login' })
   } else if (to.meta.requiresAdmin && authStore.user?.is_admin !== 1) {
     next({ name: 'home' })
-  } else if (to.meta.requiresEncargado && authStore.user?.encargado !== 1) {
+  } else if (to.meta.requiresEncargado && authStore.user?.encargado !== 1 && authStore.user?.is_admin !== 1) {
     next({ name: 'home' })
   } else if (to.name === 'login' && authStore.isAuthenticated) {
     next({ name: 'home' })
