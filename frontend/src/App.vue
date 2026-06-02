@@ -5,9 +5,7 @@
       v-if="!isOnline"
       class="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-amber-500 text-white text-xs font-semibold py-1.5 px-3"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M1 1l22 22" /><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" /><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" /><path d="M10.71 5.05A16 16 0 0 1 22.56 9" /><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" /><path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><line x1="12" x2="12.01" y1="20" y2="20" />
-      </svg>
+      <AppIcon name="offline" size="sm" :stroke-width="2.5" class="shrink-0" />
       Sin conexión · Los registros se guardarán localmente y se sincronizarán al reconectar
       <span v-if="produccionStore.pendingCount > 0" class="ml-1 bg-white/20 rounded px-1.5">{{ produccionStore.pendingCount }} pendiente{{ produccionStore.pendingCount !== 1 ? 's' : '' }}</span>
     </div>
@@ -34,15 +32,16 @@
               <div class="flex gap-1">
                 <router-link
                   to="/"
-                  class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                  class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
                   active-class="!bg-primary-light/20 !text-primary-dark"
                   exact-active-class="!bg-primary-light/20 !text-primary-dark"
                 >
+                  <AppIcon name="home" size="sm" />
                   Inicio
                 </router-link>
                 <router-link
                   to="/produccion"
-                  class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                  class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
                   active-class="!bg-primary-light/20 !text-primary-dark"
                   exact-active-class="!bg-primary-light/20 !text-primary-dark"
                 >
@@ -50,43 +49,47 @@
                 </router-link>
                 <router-link
                   to="/pendientes"
-                  class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                  class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
                   active-class="!bg-primary-light/20 !text-primary-dark"
                   exact-active-class="!bg-primary-light/20 !text-primary-dark"
                 >
+                  <AppIcon name="pending" size="sm" />
                   Pendientes
                   <span v-if="produccionStore.pendingCount > 0" class="ml-1 rounded bg-warning/20 px-1.5 text-warning-dark">{{ produccionStore.pendingCount }}</span>
                 </router-link>
                 <router-link
                   v-if="authStore.user?.encargado !== 1"
                   to="/mis-registros"
-                  class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                  class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
                   active-class="!bg-primary-light/20 !text-primary-dark"
                   exact-active-class="!bg-primary-light/20 !text-primary-dark"
                 >
+                  <AppIcon name="records" size="sm" />
                   Mis Registros
                 </router-link>
                 <router-link
                   v-if="authStore.user?.encargado === 1"
                   to="/dashboard"
-                  class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                  class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
                   active-class="!bg-primary-light/20 !text-primary-dark"
                   exact-active-class="!bg-primary-light/20 !text-primary-dark"
                 >
+                  <AppIcon name="dashboard" size="sm" />
                   Dashboard
                 </router-link>
                 <router-link
                   v-if="authStore.isAdmin"
                   to="/admin"
-                  class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                  class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
                   active-class="!bg-primary-light/20 !text-primary-dark"
                   exact-active-class="!bg-primary-light/20 !text-primary-dark"
                 >
+                  <AppIcon name="admin" size="sm" />
                   Admin
                 </router-link>
                 <router-link
                   to="/configuracion"
-                  class="px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                  class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
                   active-class="!bg-primary-light/20 !text-primary-dark"
                   exact-active-class="!bg-primary-light/20 !text-primary-dark"
                 >
@@ -101,8 +104,9 @@
               </div>
               <button
                 @click="handleLogout"
-                class="px-3 py-1.5 text-sm font-medium text-neutral-600 hover:text-error border border-neutral-300 hover:border-error rounded-lg transition-colors"
+                class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:text-error border border-neutral-300 hover:border-error rounded-lg transition-colors"
               >
+                <AppIcon name="logout" size="sm" />
                 Salir
               </button>
             </div>
@@ -123,11 +127,7 @@
           >
             <span class="absolute -top-px h-1.5 w-16 rounded-b-xl bg-transparent group-[.router-link-exact-active]:bg-primary"></span>
             <span class="flex h-12 w-12 items-center justify-center rounded-3xl bg-transparent group-[.router-link-exact-active]:bg-primary-light/30">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 10.5 12 3l9 7.5" />
-                <path d="M5 9.8V21h14V9.8" />
-                <path d="M9 21v-6h6v6" />
-              </svg>
+              <AppIcon name="home" size="lg" :stroke-width="2.2" />
             </span>
             <span class="text-xs font-semibold">Inicio</span>
           </router-link>
@@ -138,11 +138,7 @@
           >
             <span class="absolute -top-px h-1.5 w-16 rounded-b-xl bg-transparent group-[.router-link-exact-active]:bg-primary"></span>
             <span class="flex h-12 w-12 items-center justify-center rounded-3xl bg-transparent group-[.router-link-exact-active]:bg-primary-light/30">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z" />
-                <path d="M8 5v4h8V5" />
-                <path d="M8 13h8" />
-              </svg>
+              <AppIcon name="production" size="lg" :stroke-width="2.1" />
             </span>
             <span class="text-xs font-semibold">Producción</span>
           </router-link>
@@ -153,11 +149,7 @@
           >
             <span class="absolute -top-px h-1.5 w-14 rounded-b-xl bg-transparent group-[.router-link-exact-active]:bg-primary"></span>
             <span class="relative flex h-12 w-12 items-center justify-center rounded-3xl bg-transparent group-[.router-link-exact-active]:bg-primary-light/30">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <path d="M7 10l5 5 5-5"/>
-                <path d="M12 15V3"/>
-              </svg>
+              <AppIcon name="pending" size="lg" :stroke-width="2.1" />
               <span v-if="produccionStore.pendingCount > 0" class="absolute -right-1 -top-1 min-w-5 rounded-full bg-warning px-1 text-[10px] font-extrabold text-white">{{ produccionStore.pendingCount }}</span>
             </span>
             <span class="text-xs font-semibold">Cola</span>
@@ -170,9 +162,7 @@
           >
             <span class="absolute -top-px h-1.5 w-16 rounded-b-xl bg-transparent group-[.router-link-exact-active]:bg-primary"></span>
             <span class="flex h-12 w-12 items-center justify-center rounded-3xl bg-transparent group-[.router-link-exact-active]:bg-primary-light/30">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-              </svg>
+              <AppIcon name="records" size="lg" :stroke-width="2.1" />
             </span>
             <span class="text-xs font-semibold">Registros</span>
           </router-link>
@@ -184,12 +174,7 @@
           >
             <span class="absolute -top-px h-1.5 w-16 rounded-b-xl bg-transparent group-[.router-link-exact-active]:bg-primary"></span>
             <span class="flex h-12 w-12 items-center justify-center rounded-3xl bg-transparent group-[.router-link-exact-active]:bg-primary-light/30">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" class="h-6 w-6">
-                <rect x="3" y="3" width="7" height="7" rx="1"/>
-                <rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/>
-                <rect x="14" y="14" width="7" height="7" rx="1"/>
-              </svg>
+              <AppIcon name="dashboard" size="lg" :stroke-width="2.1" />
             </span>
             <span class="text-xs font-semibold">Dashboard</span>
           </router-link>
@@ -201,10 +186,7 @@
           >
             <span class="absolute -top-px h-1.5 w-16 rounded-b-xl bg-transparent group-[.router-link-exact-active]:bg-primary"></span>
             <span class="flex h-12 w-12 items-center justify-center rounded-3xl bg-transparent group-[.router-link-exact-active]:bg-primary-light/30">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" class="h-6 w-6">
-                <path d="M4 7a2 2 0 0 1 2-2h8l6 6v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/>
-                <path d="M14 5v6h6"/>
-              </svg>
+              <AppIcon name="admin" size="lg" :stroke-width="2.1" />
             </span>
             <span class="text-xs font-semibold">Admin</span>
           </router-link>
@@ -215,10 +197,7 @@
           >
             <span class="absolute -top-px h-1.5 w-16 rounded-b-xl bg-transparent group-[.router-link-exact-active]:bg-primary"></span>
             <span class="flex h-12 w-12 items-center justify-center rounded-3xl bg-transparent group-[.router-link-exact-active]:bg-primary-light/30">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
+              <AppIcon name="settings" size="lg" :stroke-width="2.1" />
             </span>
             <span class="text-xs font-semibold">Config</span>
           </router-link>
@@ -237,6 +216,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
 import ToastHost from '@/components/ToastHost.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 
 const router = useRouter()
 const route = useRoute()

@@ -7,27 +7,18 @@
         @click="$router.push({ name: 'home' })"
         class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-200 transition-colors"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m15 18-6-6 6-6" />
-        </svg>
+        <AppIcon name="back" />
       </button>
       <h1 class="text-2xl font-bold text-neutral-900 leading-none">Carga de Producción</h1>
       </div>
       <button class="p-2 text-neutral-500" type="button" aria-label="Más opciones">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="5" r="1.2" />
-          <circle cx="12" cy="12" r="1.2" />
-          <circle cx="12" cy="19" r="1.2" />
-        </svg>
+        <AppIcon name="more" />
       </button>
     </div>
 
     <!-- Loading catalogs -->
     <div v-if="store.loading" class="flex items-center justify-center py-20">
-      <svg class="w-8 h-8 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-      </svg>
+      <AppIcon name="loading" size="xl" class="animate-spin text-primary" />
     </div>
 
     <form v-else class="md:grid md:grid-cols-[17rem_minmax(0,1fr)] md:items-start md:gap-6" @submit.prevent="handleSubmit">
@@ -191,10 +182,7 @@
         <!-- ── Estado: Máquina ya seleccionada ── -->
         <div v-if="form.cod_equipo && !mostrandoBuscador" class="space-y-3">
           <div class="flex items-center gap-3 p-3 bg-success-light/40 border border-success/30 rounded-xl">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-success-dark shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
+            <AppIcon name="success" class="text-success-dark shrink-0" />
             <div class="min-w-0 flex-1">
               <p class="text-sm font-bold text-neutral-900 truncate">{{ movilSeleccionadoDetalle }}</p>
               <p class="text-xs text-neutral-500">{{ movilSeleccionadoPatente }} · ID {{ form.cod_equipo }}</p>
@@ -266,9 +254,7 @@
                 @click="busquedaMovil = ''"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+                <AppIcon name="close" size="sm" />
               </button>
             </div>
             <div
@@ -347,16 +333,12 @@
             min="0"
           />
           <div>
-            <label class="block text-sm font-medium text-neutral-600 mb-1.5">Motivo (lista)</label>
-            <select
+            <AutocompleteField
               v-model="motivoSeleccionado"
-              :class="fieldClass"
-            >
-              <option value="">— Seleccionar motivo —</option>
-              <option v-for="motivo in motivosNoOperativos" :key="motivo" :value="motivo">
-                {{ motivo }}
-              </option>
-            </select>
+              label="Motivo (lista)"
+              :items="motivosNoOperativos"
+              placeholder="Buscar motivo"
+            />
           </div>
         </div>
         <div class="mt-3">
@@ -749,9 +731,7 @@
         v-if="store.error"
         class="flex items-center gap-2 p-3 bg-error-light text-error-dark rounded-lg text-sm"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-error shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" />
-        </svg>
+        <AppIcon name="error" class="text-error shrink-0" />
         <span>{{ store.error }}</span>
       </div>
       <div class="hidden items-center justify-end gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm md:flex">
@@ -799,9 +779,7 @@
             @click="retroceder"
             class="flex-1 py-3.5 px-4 bg-neutral-100 text-neutral-700 font-semibold rounded-2xl border border-neutral-200 flex items-center justify-center gap-2 active:bg-neutral-200 transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
+            <AppIcon name="back" size="sm" :stroke-width="2.5" />
             Anterior
           </button>
           <div v-else class="flex-1" />
@@ -814,9 +792,7 @@
             class="flex-1 py-3.5 px-4 bg-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(20,61,35,0.25)] disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed active:bg-primary-dark transition-colors"
           >
             Siguiente
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
+            <AppIcon name="forward" size="sm" :stroke-width="2.5" />
           </button>
           <button
             v-else
@@ -824,15 +800,8 @@
             :disabled="store.submitting"
             class="flex-1 py-3.5 px-4 bg-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2.5 shadow-[0_8px_18px_rgba(20,61,35,0.25)] disabled:opacity-60 disabled:cursor-not-allowed active:bg-primary-dark transition-colors"
           >
-            <svg v-if="store.submitting" class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-              <polyline points="17 21 17 13 7 13 7 21"/>
-              <polyline points="7 3 7 8 15 8"/>
-            </svg>
+            <AppIcon v-if="store.submitting" name="loading" class="animate-spin" />
+            <AppIcon v-else name="save" />
             {{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}
           </button>
         </div>
@@ -853,6 +822,7 @@ import Swal from 'sweetalert2'
 import SectionCard from '@/components/SectionCard.vue'
 import InputField from '@/components/InputField.vue'
 import AutocompleteField from '@/components/AutocompleteField.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
 
 const router = useRouter()
@@ -1584,5 +1554,4 @@ async function handleSubmit() {
   }
 }
 </script>
-
 

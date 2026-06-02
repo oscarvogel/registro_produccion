@@ -17,39 +17,53 @@
           class="md:hidden flex items-center justify-between w-full text-sm font-medium text-neutral-700"
         >
           <span class="flex items-center gap-2">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+            <AppIcon name="filter" size="sm" />
             Filtros
             <span v-if="store.filtrosActivos" class="bg-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ store.filtrosActivos }}</span>
           </span>
-          <svg :class="['w-4 h-4 transition-transform', showFilters ? 'rotate-180' : '']" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          <AppIcon name="chevronDown" size="sm" :class="['transition-transform', showFilters ? 'rotate-180' : '']" />
         </button>
 
         <!-- Filter row -->
         <div :class="['md:flex md:items-end md:gap-4 flex-wrap', showFilters ? 'mt-3 flex flex-col gap-3' : 'hidden md:flex']">
           <!-- Tipo proceso -->
           <div class="flex-1 min-w-45">
-            <label class="block text-xs font-medium text-neutral-500 mb-1">Tipo de Proceso</label>
-            <select
-              :value="store.filtros.tipo_proceso_id || ''"
-              @change="store.setFiltro('tipo_proceso_id', $event.target.value ? Number($event.target.value) : null)"
-              class="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40"
+            <AutocompleteField
+              v-model="tipoProcesoFilter"
+              label="Tipo de Proceso"
+              :items="store.tiposProceso"
+              labelKey="nombre"
+              valueKey="id"
+              placeholder="Todos los procesos"
+            />
+            <button
+              v-if="tipoProcesoFilter"
+              @click="tipoProcesoFilter = ''"
+              class="mt-1 text-xs font-semibold text-neutral-400 underline underline-offset-2 hover:text-neutral-600"
+              type="button"
             >
-              <option value="">Todos</option>
-              <option v-for="tp in store.tiposProceso" :key="tp.id" :value="tp.id">{{ tp.nombre }}</option>
-            </select>
+              Limpiar proceso
+            </button>
           </div>
 
           <!-- Máquina -->
           <div class="flex-1 min-w-45">
             <label class="block text-xs font-medium text-neutral-500 mb-1">Máquina / Equipo</label>
-            <select
-              :value="store.filtros.movil_id || ''"
-              @change="store.setFiltro('movil_id', $event.target.value ? Number($event.target.value) : null)"
-              class="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40"
+            <AutocompleteField
+              v-model="movilFilter"
+              :items="movilOptions"
+              labelKey="_label"
+              valueKey="idMovil"
+              placeholder="Todas las maquinas"
+            />
+            <button
+              v-if="movilFilter"
+              @click="movilFilter = ''"
+              class="mt-1 text-xs font-semibold text-neutral-400 underline underline-offset-2 hover:text-neutral-600"
+              type="button"
             >
-              <option value="">Todas</option>
-              <option v-for="m in store.movilesDisponibles" :key="m.idMovil" :value="m.idMovil">{{ m.patente }} - {{ m.detalle }}</option>
-            </select>
+              Limpiar equipo
+            </button>
           </div>
 
           <!-- Fecha desde -->
@@ -90,7 +104,7 @@
 
       <!-- Missing UN warning -->
       <div v-if="missingUn" class="bg-warning-light border border-warning rounded-2xl p-6 text-center">
-        <svg class="mx-auto mb-3 w-12 h-12 text-warning-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <AppIcon name="warning" size="xl" :stroke-width="1.8" class="mx-auto mb-3 text-warning-dark" />
         <p class="text-warning-dark font-bold text-base mb-1">Sesión desactualizada</p>
         <p class="text-neutral-600 text-sm">Tu perfil no tiene la unidad de negocio cargada. Cerrá sesión e ingresá de nuevo para actualizar los datos.</p>
         <button @click="handleRelogin" class="mt-4 px-6 py-2 bg-warning-dark text-white text-sm font-semibold rounded-xl hover:bg-warning transition-colors">
@@ -116,11 +130,11 @@
         <!-- Hero KPI card -->
         <div v-if="store.kpiPrincipal" class="bg-linear-to-br from-primary to-primary-dark rounded-2xl shadow-lg p-6 md:p-8 text-white relative overflow-hidden group">
           <div class="absolute right-4 top-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <component :is="getIcon(store.kpiPrincipal.icono)" class="w-24 h-24 md:w-32 md:h-32" />
+            <AppIcon :name="getIconName(store.kpiPrincipal.icono)" class="h-24 w-24 md:h-32 md:w-32" />
           </div>
           <div class="relative z-10">
             <div class="flex items-center gap-2 mb-2">
-              <component :is="getIcon(store.kpiPrincipal.icono)" class="w-5 h-5 opacity-80" />
+              <AppIcon :name="getIconName(store.kpiPrincipal.icono)" class="opacity-80" />
               <span class="text-sm font-medium opacity-80 uppercase tracking-wide">{{ store.kpiPrincipal.nombre }}</span>
             </div>
             <div class="flex items-baseline gap-3">
@@ -134,8 +148,7 @@
                 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold',
                 store.kpiPrincipal.variacion_porcentual >= 0 ? 'bg-white/20 text-white' : 'bg-error-light/20 text-error-light'
               ]">
-                <svg v-if="store.kpiPrincipal.variacion_porcentual >= 0" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
-                <svg v-else class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
+                <AppIcon :name="store.kpiPrincipal.variacion_porcentual >= 0 ? 'arrowUp' : 'arrowDown'" size="xs" :stroke-width="3" />
                 {{ Math.abs(store.kpiPrincipal.variacion_porcentual) }}%
               </span>
               <span class="text-xs opacity-60">vs período anterior</span>
@@ -152,7 +165,7 @@
           >
             <div class="flex items-center gap-2 mb-2">
               <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-light/20 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                <component :is="getIcon(kpi.icono)" class="w-4 h-4" />
+                <AppIcon :name="getIconName(kpi.icono)" size="sm" />
               </span>
               <span class="text-xs font-medium text-neutral-500 leading-tight">{{ kpi.nombre }}</span>
             </div>
@@ -174,10 +187,7 @@
 
       <!-- Empty state -->
       <div v-else-if="!store.loading.kpis" class="bg-white rounded-2xl border border-neutral-200 p-10 text-center">
-        <svg class="mx-auto mb-4 w-16 h-16 text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <path d="M3 9h18M9 21V9"/>
-        </svg>
+        <AppIcon name="empty" size="xl" :stroke-width="1.5" class="mx-auto mb-4 h-16 w-16 text-neutral-300" />
         <p class="text-neutral-500 font-medium">No hay datos para los filtros seleccionados</p>
         <p class="text-neutral-400 text-sm mt-1">Probá modificando el rango de fechas o los filtros</p>
       </div>
@@ -308,10 +318,8 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/dashboard'
-import {
-  Truck, Box, Leaf, Layers, Route, MapPin, Map, Grid3x3,
-  Clock, Fuel, AlertCircle, Timer, Percent, ClipboardList,
-} from 'lucide-vue-next'
+import AutocompleteField from '@/components/AutocompleteField.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 
 const authStore = useAuthStore()
 const store = useDashboardStore()
@@ -319,6 +327,23 @@ const router = useRouter()
 
 const showFilters = ref(false)
 const tooltip = ref(null)
+
+const tipoProcesoFilter = computed({
+  get: () => store.filtros.tipo_proceso_id || '',
+  set: (value) => store.setFiltro('tipo_proceso_id', value ? Number(value) : null),
+})
+
+const movilFilter = computed({
+  get: () => store.filtros.movil_id || '',
+  set: (value) => store.setFiltro('movil_id', value ? Number(value) : null),
+})
+
+const movilOptions = computed(() => {
+  return store.movilesDisponibles.map((movil) => ({
+    ...movil,
+    _label: [movil.patente, movil.detalle].filter(Boolean).join(' - '),
+  }))
+})
 
 function handleRelogin() {
   authStore.logout()
@@ -350,24 +375,24 @@ watch(() => store.kpiPrincipal?.valor, (newVal, oldVal) => {
 
 // ─── Icon mapping ───
 const iconMap = {
-  truck: Truck,
-  box: Box,
-  leaf: Leaf,
-  layers: Layers,
-  route: Route,
-  'map-pin': MapPin,
-  map: Map,
-  'grid-3x3': Grid3x3,
-  clock: Clock,
-  fuel: Fuel,
-  'alert-circle': AlertCircle,
-  timer: Timer,
-  percent: Percent,
-  'clipboard-list': ClipboardList,
+  truck: 'truck',
+  box: 'empty',
+  leaf: 'leaf',
+  layers: 'process',
+  route: 'location',
+  'map-pin': 'location',
+  map: 'field',
+  'grid-3x3': 'dashboard',
+  clock: 'timer',
+  fuel: 'fuel',
+  'alert-circle': 'warning',
+  timer: 'timer',
+  percent: 'dashboard',
+  'clipboard-list': 'records',
 }
 
-function getIcon(name) {
-  return iconMap[name] || Box
+function getIconName(name) {
+  return iconMap[name] || 'empty'
 }
 
 // ─── Number formatting ───

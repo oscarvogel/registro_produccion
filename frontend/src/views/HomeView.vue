@@ -27,7 +27,7 @@
                 <span class="mt-0.5 block text-lg font-extrabold">Cargar produccion</span>
               </span>
               <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-dark text-white">
-                <Play class="h-5 w-5 fill-current" />
+                <AppIcon name="play" class="fill-current" />
               </span>
             </button>
           </div>
@@ -52,7 +52,7 @@
                   <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Estado por unidad de negocio</p>
                   <h2 class="mt-1 text-lg font-extrabold text-neutral-900">Actividad del dia</h2>
                 </div>
-                <Building2 class="h-6 w-6 text-primary" />
+                <AppIcon name="unit" size="lg" class="text-primary" />
               </div>
 
               <div v-if="adminStore.loading" class="space-y-2">
@@ -82,10 +82,22 @@
                 </div>
               </div>
 
-              <div v-if="adminUnitTotalPages > 1" class="mt-4 flex flex-col gap-3 border-t border-neutral-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <p class="text-xs font-semibold text-neutral-400">
-                  Mostrando {{ adminUnitPageStart + 1 }}-{{ adminUnitPageEnd }} de {{ adminUnits.length }} unidades
-                </p>
+              <div v-if="adminUnits.length > 0" class="mt-4 flex flex-col gap-3 border-t border-neutral-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <p class="text-xs font-semibold text-neutral-400">
+                    Mostrando {{ adminUnitPageStart + 1 }}-{{ adminUnitPageEnd }} de {{ adminUnits.length }} unidades
+                  </p>
+                  <label class="flex items-center gap-2 text-xs font-semibold text-neutral-500">
+                    Ver
+                    <select
+                      v-model.number="adminUnitsPerPage"
+                      class="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs font-bold text-neutral-700 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option v-for="size in pageSizeOptions" :key="size" :value="size">{{ size }}</option>
+                    </select>
+                    por pagina
+                  </label>
+                </div>
                 <div class="flex items-center gap-2">
                   <button
                     @click="adminUnitPage = Math.max(1, adminUnitPage - 1)"
@@ -116,7 +128,7 @@
                   <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Ultimos registros del sistema</p>
                   <h2 class="mt-1 text-lg font-extrabold text-neutral-900">Cargas de hoy</h2>
                 </div>
-                <ClipboardList class="h-6 w-6 text-primary" />
+                <AppIcon name="records" size="lg" class="text-primary" />
               </div>
 
               <div v-if="adminStore.loadingRecentRecords" class="space-y-2">
@@ -147,7 +159,7 @@
                   <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Alertas operativas</p>
                   <h2 class="mt-1 text-lg font-extrabold text-neutral-900">{{ adminAlerts.length }} alerta{{ adminAlerts.length !== 1 ? 's' : '' }}</h2>
                 </div>
-                <AlertTriangle class="h-6 w-6 text-warning-dark" />
+                <AppIcon name="warning" size="lg" class="text-warning-dark" />
               </div>
               <div class="space-y-2">
                 <p v-for="alert in adminAlerts" :key="alert" class="rounded-xl bg-warning-light/50 px-3 py-2 text-sm font-medium text-warning-dark">
@@ -197,7 +209,7 @@
                   <span class="mt-0.5 block text-lg font-extrabold">Carga de Produccion</span>
                 </span>
                 <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-dark text-white">
-                  <Play class="h-5 w-5 fill-current" />
+                  <AppIcon name="play" class="fill-current" />
                 </span>
               </button>
             </div>
@@ -225,7 +237,7 @@
             <article v-for="metric in operatorCards" :key="metric.label" class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
               <div class="mb-3 flex items-center justify-between gap-3">
                 <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">{{ metric.label }}</p>
-                <component :is="metric.icon" class="h-5 w-5 text-primary" />
+                <AppIcon :name="metric.icon" class="text-primary" />
               </div>
               <div class="flex items-baseline gap-1.5">
                 <span class="text-3xl font-extrabold text-neutral-900">{{ recordsStore.loading ? '-' : metric.value }}</span>
@@ -253,17 +265,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
 import { useMisRegistrosStore } from '@/stores/misRegistros'
 import { useAdminStore } from '@/stores/admin'
-import {
-  AlertTriangle,
-  Building2,
-  ClipboardList,
-  Clock,
-  Cloud,
-  CloudOff,
-  Fuel,
-  Play,
-  Timer,
-} from 'lucide-vue-next'
+import AppIcon from '@/components/ui/AppIcon.vue'
 
 const authStore = useAuthStore()
 const produccionStore = useProduccionStore()
@@ -273,7 +275,8 @@ const router = useRouter()
 const pwaInstall = inject('pwaInstall', null)
 const isOnline = ref(navigator.onLine)
 const adminUnitPage = ref(1)
-const ADMIN_UNITS_PER_PAGE = 6
+const adminUnitsPerPage = ref(5)
+const pageSizeOptions = [5, 10, 25, 50]
 
 const isAdmin = computed(() => authStore.isAdmin)
 
@@ -312,15 +315,19 @@ const adminTotals = computed(() => {
 
 const adminUnits = computed(() => [...adminStore.dashboard].sort((a, b) => String(a.prefijo || a.nombre).localeCompare(String(b.prefijo || b.nombre))))
 const inactiveUnits = computed(() => adminUnits.value.filter((unidad) => Number(unidad.resumen?.total_registros || 0) === 0))
-const adminUnitTotalPages = computed(() => Math.max(1, Math.ceil(adminUnits.value.length / ADMIN_UNITS_PER_PAGE)))
-const adminUnitPageStart = computed(() => (adminUnitPage.value - 1) * ADMIN_UNITS_PER_PAGE)
-const adminUnitPageEnd = computed(() => Math.min(adminUnitPageStart.value + ADMIN_UNITS_PER_PAGE, adminUnits.value.length))
+const adminUnitTotalPages = computed(() => Math.max(1, Math.ceil(adminUnits.value.length / adminUnitsPerPage.value)))
+const adminUnitPageStart = computed(() => (adminUnitPage.value - 1) * adminUnitsPerPage.value)
+const adminUnitPageEnd = computed(() => Math.min(adminUnitPageStart.value + adminUnitsPerPage.value, adminUnits.value.length))
 const pagedAdminUnits = computed(() => adminUnits.value.slice(adminUnitPageStart.value, adminUnitPageEnd.value))
 
 watch(adminUnitTotalPages, (totalPages) => {
   if (adminUnitPage.value > totalPages) {
     adminUnitPage.value = totalPages
   }
+})
+
+watch(adminUnitsPerPage, () => {
+  adminUnitPage.value = 1
 })
 
 const adminSummaryCards = computed(() => [
@@ -412,28 +419,28 @@ const operatorCards = computed(() => [
     value: fmt(recordsStore.totales.total_horas),
     unit: 'hs',
     detail: `${fmt(recordsStore.totales.total)} registro${Number(recordsStore.totales.total) !== 1 ? 's' : ''} hoy`,
-    icon: Timer,
+    icon: 'timer',
   },
   {
     label: 'Combustible',
     value: fmt(recordsStore.totales.total_combustible),
     unit: 'lts',
     detail: recordsStore.totales.combustible_por_hora != null ? `${fmt(recordsStore.totales.combustible_por_hora)} lts/hs` : 'Sin promedio disponible',
-    icon: Fuel,
+    icon: 'fuel',
   },
   {
     label: 'Pendientes',
     value: fmt(produccionStore.pendingCount),
     unit: '',
     detail: isOnline.value ? 'Listo para sincronizar' : 'Se enviaran al reconectar',
-    icon: CloudOff,
+    icon: 'offline',
   },
   {
     label: 'Ultima carga',
     value: lastRecord.value ? horaRegistro(lastRecord.value) : '-',
     unit: '',
     detail: lastRecord.value?.equipo || 'Sin registros hoy',
-    icon: Clock,
+    icon: 'timer',
   },
 ])
 
@@ -509,7 +516,7 @@ const LastPersonalRecord = defineComponent({
           h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, 'Ultimo registro'),
           h('h2', { class: 'mt-1 text-lg font-extrabold text-neutral-900' }, lastRecordTitle.value),
         ]),
-        h(ClipboardList, { class: 'h-6 w-6 text-primary' }),
+        h(AppIcon, { name: 'records', size: 'lg', class: 'text-primary' }),
       ]),
       recordsStore.loading
         ? h('div', { class: 'space-y-2' }, [h('div', { class: 'h-4 w-2/3 animate-pulse rounded bg-neutral-200' }), h('div', { class: 'h-4 w-1/2 animate-pulse rounded bg-neutral-100' })])
@@ -531,7 +538,7 @@ const SyncCard = defineComponent({
           h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, 'Sincronizacion'),
           h('h2', { class: 'mt-1 text-lg font-extrabold text-neutral-900' }, `${produccionStore.pendingCount} pendiente${produccionStore.pendingCount !== 1 ? 's' : ''}`),
         ]),
-        h(isOnline.value ? Cloud : CloudOff, { class: ['h-6 w-6', isOnline.value ? 'text-success' : 'text-warning-dark'] }),
+        h(AppIcon, { name: isOnline.value ? 'online' : 'offline', size: 'lg', class: isOnline.value ? 'text-success' : 'text-warning-dark' }),
       ]),
       h('p', { class: 'text-sm text-neutral-500' }, syncText.value),
     ])

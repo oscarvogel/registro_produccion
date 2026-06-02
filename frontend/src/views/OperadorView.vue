@@ -4,7 +4,7 @@
     <div class="bg-white border-b border-neutral-200 shadow-sm">
       <div class="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
         <button @click="$router.back()" aria-label="Volver" title="Volver" class="p-2 rounded-xl hover:bg-neutral-100 transition-colors text-neutral-500">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
+          <AppIcon name="back" :stroke-width="2.2" />
         </button>
         <div>
           <h1 class="text-lg font-extrabold text-primary-dark">Mis Registros</h1>
@@ -140,10 +140,7 @@
 
         <!-- Empty state -->
         <div v-else class="bg-white rounded-2xl border border-neutral-200 p-10 text-center">
-          <svg class="mx-auto mb-4 w-14 h-14 text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <path d="M3 9h18M9 21V9"/>
-          </svg>
+          <AppIcon name="empty" :stroke-width="1.5" class="mx-auto mb-4 h-14 w-14 text-neutral-300" />
           <p class="text-neutral-500 font-medium">No hay registros para este período</p>
           <p class="text-neutral-400 text-sm mt-1">Probá con otro rango de fechas</p>
         </div>
@@ -157,6 +154,7 @@
 import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMisRegistrosStore } from '@/stores/misRegistros'
+import AppIcon from '@/components/ui/AppIcon.vue'
 
 const authStore = useAuthStore()
 const store = useMisRegistrosStore()

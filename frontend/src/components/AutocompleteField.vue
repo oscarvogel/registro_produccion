@@ -1,17 +1,26 @@
 <template>
-  <div>
+  <div class="relative">
     <label v-if="label" class="block text-sm font-medium text-neutral-700 mb-1">
       {{ label }}
     </label>
 
     <!-- ── Selected state (like machine assignment) ── -->
+    <button
+      v-if="selectedLabel && !searching && selectedDisplay === 'input'"
+      type="button"
+      :disabled="disabled"
+      @click="startSearch"
+      class="flex w-full items-center justify-between gap-3 rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-left text-sm font-semibold text-neutral-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:bg-neutral-200"
+    >
+      <span class="min-w-0 truncate">{{ selectedLabel }}</span>
+      <AppIcon name="chevronDown" size="sm" class="shrink-0 text-neutral-500" />
+    </button>
+
     <div
-      v-if="selectedLabel && !searching"
+      v-else-if="selectedLabel && !searching"
       class="flex items-center gap-3 p-3 bg-success-light/40 border border-success/30 rounded-xl"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-success-dark shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-      </svg>
+      <AppIcon name="success" class="text-success-dark shrink-0" />
       <span class="text-sm font-semibold text-neutral-900 min-w-0 flex-1 truncate">{{ selectedLabel }}</span>
       <button
         v-if="!disabled"
@@ -60,9 +69,7 @@
           class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
           tabindex="-1"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
+          <AppIcon name="close" size="sm" />
         </button>
       </div>
 
@@ -71,7 +78,7 @@
         v-if="isOpen && filteredItems.length > 0"
         :id="listboxId"
         role="listbox"
-        class="mt-1.5 border border-neutral-200 rounded-xl bg-white max-h-52 overflow-y-auto shadow-sm"
+        class="absolute left-0 right-0 top-full z-50 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-xl"
       >
         <button
           v-for="(item, i) in filteredItems"
@@ -95,7 +102,7 @@
       <!-- No results -->
       <div
         v-else-if="isOpen && query.length >= 1 && filteredItems.length === 0"
-        class="mt-1.5 p-2.5 text-xs text-neutral-400 bg-neutral-50 rounded-lg border border-neutral-200"
+        class="absolute left-0 right-0 top-full z-50 mt-1.5 rounded-lg border border-neutral-200 bg-white p-2.5 text-xs text-neutral-400 shadow-xl"
       >
         Sin resultados para "{{ query }}"
       </div>
@@ -115,6 +122,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 
 const props = defineProps({
   modelValue: { type: [String, Number, null], default: null },
@@ -125,6 +133,7 @@ const props = defineProps({
   placeholder: { type: String, default: '— Escribí para buscar —' },
   disabled: { type: Boolean, default: false },
   invalid: { type: Boolean, default: false },
+  selectedDisplay: { type: String, default: 'chip' },
 })
 
 const emit = defineEmits(['update:modelValue', 'select'])
@@ -141,7 +150,7 @@ const activeDescendantId = computed(() => highlightedIndex.value >= 0 ? optionId
 
 const selectedLabel = computed(() => {
   if (props.modelValue === null || props.modelValue === undefined || props.modelValue === '' || props.modelValue === 0) return ''
-  const found = props.items.find(item => getKey(item) === props.modelValue)
+  const found = props.items.find(item => String(getKey(item)) === String(props.modelValue))
   return found ? getLabel(found) : ''
 })
 

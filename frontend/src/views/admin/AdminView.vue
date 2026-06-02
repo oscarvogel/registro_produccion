@@ -35,8 +35,11 @@
                         : 'border-neutral-200 bg-neutral-50 text-neutral-700 hover:border-primary/30 hover:bg-white hover:text-primary-dark',
                     ]"
                   >
-                    <span class="min-w-0 truncate">{{ item.label }}</span>
-                    <span class="text-xs opacity-80">&gt;</span>
+                    <span class="flex min-w-0 items-center gap-2">
+                      <AppIcon :name="item.icon" size="sm" class="shrink-0" />
+                      <span class="truncate">{{ item.label }}</span>
+                    </span>
+                    <AppIcon name="chevronDown" size="xs" class="-rotate-90 opacity-80" />
                   </router-link>
                 </div>
               </div>
@@ -54,6 +57,7 @@
 
 <script setup>
 import { useRoute } from 'vue-router'
+import AppIcon from '@/components/ui/AppIcon.vue'
 
 const route = useRoute()
 
@@ -61,26 +65,26 @@ const navGroups = [
   {
     title: 'Operacion',
     items: [
-      { key: 'dashboard', label: 'Dashboard operativo', to: { name: 'admin-dashboard' } },
-      { key: 'personal', label: 'Personal', to: { name: 'admin-crud', params: { entity: 'personal' } } },
-      { key: 'moviles', label: 'Moviles', to: { name: 'admin-crud', params: { entity: 'moviles' } } },
-      { key: 'asignaciones', label: 'Asignaciones Operativas', to: { name: 'admin-crud', params: { entity: 'asignaciones' } } },
+      { key: 'dashboard', label: 'Dashboard operativo', icon: 'dashboard', to: { name: 'admin-dashboard' } },
+      { key: 'personal', label: 'Personal', icon: 'personnel', to: { name: 'admin-crud', params: { entity: 'personal' } } },
+      { key: 'moviles', label: 'Moviles', icon: 'machine', to: { name: 'admin-crud', params: { entity: 'moviles' } } },
+      { key: 'asignaciones', label: 'Asignaciones Operativas', icon: 'assignment', to: { name: 'admin-crud', params: { entity: 'asignaciones' } } },
     ],
   },
   {
     title: 'Catalogos',
     items: [
-      { key: 'unidades', label: 'Unidades de Negocio', to: { name: 'admin-crud', params: { entity: 'unidades-negocio' } } },
-      { key: 'tipos', label: 'Tipos de Proceso', to: { name: 'admin-crud', params: { entity: 'tipos-proceso' } } },
-      { key: 'lugares', label: 'Lugares de Carga', to: { name: 'admin-crud', params: { entity: 'lugares-carga' } } },
-      { key: 'predios', label: 'Predios', to: { name: 'admin-crud', params: { entity: 'predios' } } },
-      { key: 'rodales', label: 'Rodales', to: { name: 'admin-crud', params: { entity: 'rodales' } } },
+      { key: 'unidades', label: 'Unidades de Negocio', icon: 'unit', to: { name: 'admin-crud', params: { entity: 'unidades-negocio' } } },
+      { key: 'tipos', label: 'Tipos de Proceso', icon: 'process', to: { name: 'admin-crud', params: { entity: 'tipos-proceso' } } },
+      { key: 'lugares', label: 'Lugares de Carga', icon: 'location', to: { name: 'admin-crud', params: { entity: 'lugares-carga' } } },
+      { key: 'predios', label: 'Predios', icon: 'field', to: { name: 'admin-crud', params: { entity: 'predios' } } },
+      { key: 'rodales', label: 'Rodales', icon: 'plot', to: { name: 'admin-crud', params: { entity: 'rodales' } } },
     ],
   },
   {
     title: 'Sistema',
     items: [
-      { key: 'config', label: 'Configuracion de Acceso', to: { name: 'admin-configuracion' } },
+      { key: 'config', label: 'Configuracion de Acceso', icon: 'settings', to: { name: 'admin-configuracion' } },
     ],
   },
 ]

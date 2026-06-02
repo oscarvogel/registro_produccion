@@ -145,10 +145,22 @@
             </article>
           </div>
 
-          <div v-if="unitTotalPages > 1" class="mt-4 flex flex-col gap-3 border-t border-neutral-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p class="text-xs font-semibold text-neutral-400">
-              Mostrando {{ unitPageStart + 1 }}-{{ unitPageEnd }} de {{ sortedUnits.length }} unidades
-            </p>
+          <div v-if="sortedUnits.length > 0" class="mt-4 flex flex-col gap-3 border-t border-neutral-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <p class="text-xs font-semibold text-neutral-400">
+                Mostrando {{ unitPageStart + 1 }}-{{ unitPageEnd }} de {{ sortedUnits.length }} unidades
+              </p>
+              <label class="flex items-center gap-2 text-xs font-semibold text-neutral-500">
+                Ver
+                <select
+                  v-model.number="unitsPerPage"
+                  class="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs font-bold text-neutral-700 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option v-for="size in pageSizeOptions" :key="size" :value="size">{{ size }}</option>
+                </select>
+                por pagina
+              </label>
+            </div>
             <div class="flex items-center gap-2">
               <button
                 @click="unitPage = Math.max(1, unitPage - 1)"
@@ -207,16 +219,18 @@
             <p class="mt-1 text-sm text-neutral-500">Procesos y metricas disponibles para {{ selectedUnidad.prefijo || 'esta unidad' }}.</p>
           </div>
 
-          <div class="grid gap-2 sm:grid-cols-2 lg:w-[28rem]">
-            <select
+          <div class="grid gap-2 sm:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:w-[34rem]">
+            <AutocompleteField
               v-model="selectedProcessId"
-              class="h-11 rounded-xl border border-neutral-300 bg-neutral-50 px-3 text-sm text-neutral-800 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="all">Todos los procesos</option>
-              <option v-for="tipo in selectedUnidad.tipos_proceso" :key="tipo.id" :value="String(tipo.id)">
-                {{ tipo.nombre }}
-              </option>
-            </select>
+              label="Procesos"
+              :items="selectedProcessOptions"
+              labelKey="nombre"
+              valueKey="id"
+              placeholder="Procesos: todos"
+              selectedDisplay="input"
+            />
+            <div>
+              <label class="mb-1 block text-sm font-medium text-neutral-700">Indicador</label>
             <select
               v-model="selectedMetricKey"
               class="h-11 rounded-xl border border-neutral-300 bg-neutral-50 px-3 text-sm text-neutral-800 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -225,6 +239,7 @@
                 {{ metric.label }}
               </option>
             </select>
+            </div>
           </div>
         </div>
 
@@ -247,24 +262,45 @@
               </div>
             </div>
 
-            <div>
-              <p class="mb-3 text-xs font-bold uppercase tracking-wide text-neutral-400">Tipos de proceso</p>
-              <div class="space-y-2">
+            <div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+              <div class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Produccion por proceso</p>
+                  <h4 class="text-base font-extrabold text-neutral-900">Tipos de proceso</h4>
+                </div>
+                <p class="text-xs font-semibold text-neutral-400">{{ filteredProcesses.length }} proceso{{ filteredProcesses.length !== 1 ? 's' : '' }} visible{{ filteredProcesses.length !== 1 ? 's' : '' }}</p>
+              </div>
+
+              <div v-if="filteredProcesses.length === 0" class="rounded-xl border border-dashed border-neutral-300 bg-white p-5 text-center">
+                <p class="text-sm font-bold text-neutral-700">Sin desglose disponible</p>
+                <p class="mt-1 text-xs text-neutral-400">
+                  Hay {{ formatNumber(selectedUnidad.resumen.total_registros) }} registro{{ Number(selectedUnidad.resumen.total_registros || 0) !== 1 ? 's' : '' }} en el periodo, pero no se encontraron procesos agrupados.
+                </p>
+              </div>
+
+              <div v-else class="space-y-2">
                 <div
                   v-for="tipo in filteredProcesses"
                   :key="`${selectedUnidad.id}-${tipo.id}`"
-                  class="grid gap-3 rounded-xl border border-neutral-200 px-4 py-3 md:grid-cols-[minmax(0,1fr)_8rem_8rem] md:items-center"
+                  class="rounded-xl border border-neutral-200 bg-white px-4 py-3"
                 >
-                  <div class="min-w-0">
-                    <p class="truncate text-sm font-extrabold text-neutral-800">{{ tipo.nombre }}</p>
-                    <p class="text-xs text-neutral-400">{{ tipo.registros }} registro{{ tipo.registros !== 1 ? 's' : '' }}</p>
-                  </div>
-                  <div class="text-sm">
-                    <span class="block text-xs font-bold uppercase tracking-wide text-neutral-400">Produccion</span>
-                    <span class="font-extrabold text-primary-dark">{{ formatNumber(tipo.produccion) }}</span>
-                  </div>
-                  <div class="h-2 rounded-full bg-neutral-100">
-                    <div class="h-full rounded-full bg-primary" :style="{ width: `${processShare(tipo)}%` }"></div>
+                  <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_8rem] md:items-center">
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <p class="truncate text-sm font-extrabold text-neutral-800">{{ tipo.nombre }}</p>
+                        <span class="rounded-md bg-primary-fixed px-2 py-0.5 text-xs font-bold text-primary-dark">
+                          {{ formatNumber(tipo.registros) }} registro{{ Number(tipo.registros || 0) !== 1 ? 's' : '' }}
+                        </span>
+                      </div>
+                      <div class="mt-2 h-2.5 overflow-hidden rounded-full bg-neutral-100">
+                        <div class="h-full rounded-full bg-primary" :style="{ width: `${processShare(tipo)}%` }"></div>
+                      </div>
+                      <p class="mt-1 text-xs text-neutral-400">{{ processShare(tipo) }}% {{ processShareLabel }}.</p>
+                    </div>
+                    <div class="text-sm md:text-right">
+                      <span class="block text-xs font-bold uppercase tracking-wide text-neutral-400">Produccion</span>
+                      <span class="font-extrabold text-primary-dark">{{ formatNumber(tipo.produccion) }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -273,6 +309,17 @@
 
           <aside class="rounded-2xl bg-neutral-50 p-5">
             <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Indicadores</p>
+            <div class="mt-4 grid gap-3">
+              <div
+                v-for="item in selectedUnitHighlights"
+                :key="item.label"
+                class="rounded-xl bg-white p-4"
+              >
+                <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">{{ item.label }}</p>
+                <p class="mt-1 text-2xl font-extrabold text-primary-dark">{{ item.value }}</p>
+                <p class="mt-1 text-xs text-neutral-400">{{ item.detail }}</p>
+              </div>
+            </div>
             <div class="mt-4 divide-y divide-neutral-200">
               <div
                 v-for="row in selectedUnitRows"
@@ -292,6 +339,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import AutocompleteField from '@/components/AutocompleteField.vue'
 import InputField from '@/components/InputField.vue'
 import { useAdminStore } from '@/stores/admin'
 
@@ -320,7 +368,8 @@ const selectedUnidadId = ref(null)
 const selectedMetricKey = ref('produccion_total')
 const selectedProcessId = ref('all')
 const unitPage = ref(1)
-const UNITS_PER_PAGE = 6
+const unitsPerPage = ref(5)
+const pageSizeOptions = [5, 10, 25, 50]
 
 const metricOptions = [
   { key: 'produccion_total', label: 'Produccion total' },
@@ -354,6 +403,16 @@ const unitMetricOptions = computed(() => {
   })
 })
 
+const selectedProcessOptions = computed(() => {
+  return [
+    { id: 'all', nombre: 'Todos los procesos' },
+    ...(selectedUnidad.value?.tipos_proceso || []).map((tipo) => ({
+      ...tipo,
+      id: String(tipo.id),
+    })),
+  ]
+})
+
 const selectedUnidad = computed(() => {
   return store.dashboard.find((unidad) => Number(unidad.id) === Number(selectedUnidadId.value)) || null
 })
@@ -367,9 +426,9 @@ const sortedUnits = computed(() => {
   })
 })
 
-const unitTotalPages = computed(() => Math.max(1, Math.ceil(sortedUnits.value.length / UNITS_PER_PAGE)))
-const unitPageStart = computed(() => (unitPage.value - 1) * UNITS_PER_PAGE)
-const unitPageEnd = computed(() => Math.min(unitPageStart.value + UNITS_PER_PAGE, sortedUnits.value.length))
+const unitTotalPages = computed(() => Math.max(1, Math.ceil(sortedUnits.value.length / unitsPerPage.value)))
+const unitPageStart = computed(() => (unitPage.value - 1) * unitsPerPage.value)
+const unitPageEnd = computed(() => Math.min(unitPageStart.value + unitsPerPage.value, sortedUnits.value.length))
 const pagedUnits = computed(() => sortedUnits.value.slice(unitPageStart.value, unitPageEnd.value))
 
 const globalTotals = computed(() => {
@@ -421,6 +480,11 @@ const filteredProcesses = computed(() => {
   return (selectedUnidad.value.tipos_proceso || []).filter((tipo) => String(tipo.id) === selectedProcessId.value)
 })
 
+const processShareLabel = computed(() => {
+  const totalProduction = filteredProcesses.value.reduce((sum, item) => sum + Number(item.produccion || 0), 0)
+  return totalProduction > 0 ? 'del total visible por produccion' : 'del total visible por registros'
+})
+
 const selectedUnitStats = computed(() => {
   if (!selectedUnidad.value) return []
   const unidad = selectedUnidad.value
@@ -428,12 +492,12 @@ const selectedUnitStats = computed(() => {
     {
       label: selectedMetric.value.label,
       value: formatNumber(metricValue(unidad, selectedMetric.value.key)),
-      detail: 'Metrica seleccionada',
+      detail: selectedMetricDetail.value,
     },
     {
-      label: 'Registros',
-      value: formatNumber(unidad.resumen.total_registros),
-      detail: `${formatNumber(unidad.resumen.registros_hoy)} hoy`,
+      label: 'Registros hoy',
+      value: formatNumber(unidad.resumen.registros_hoy),
+      detail: Number(unidad.resumen.registros_hoy || 0) > 0 ? 'Actividad registrada hoy' : 'Sin actividad hoy',
     },
     {
       label: 'Operadores / Equipos',
@@ -443,14 +507,38 @@ const selectedUnitStats = computed(() => {
   ]
 })
 
+const selectedMetricDetail = computed(() => {
+  const key = selectedMetric.value.key
+  if (key === 'total_registros') return 'Registros en el periodo'
+  if (key === 'registros_hoy') return 'Actividad del dia'
+  if (key === 'combustible_total') return 'Consumo en el periodo'
+  if (key === 'tn_despachadas_total') return 'Toneladas en el periodo'
+  return 'Segun el indicador seleccionado'
+})
+
+const selectedUnitHighlights = computed(() => {
+  if (!selectedUnidad.value) return []
+  const resumen = selectedUnidad.value.resumen
+  return [
+    {
+      label: 'Produccion total',
+      value: `${formatNumber(resumen.produccion_total)} m3`,
+      detail: 'Segun procesos de la unidad',
+    },
+    {
+      label: 'TN despachadas',
+      value: `${formatNumber(resumen.tn_despachadas_total)} TN`,
+      detail: 'Cuando aplica al proceso',
+    },
+  ].filter((item) => !item.value.startsWith('0') || item.label === 'Produccion total')
+})
+
 const selectedUnitRows = computed(() => {
   if (!selectedUnidad.value) return []
   const resumen = selectedUnidad.value.resumen
   return [
     { label: 'Total registros', value: formatNumber(resumen.total_registros) },
     { label: 'Registros hoy', value: formatNumber(resumen.registros_hoy) },
-    { label: 'Produccion total', value: formatNumber(resumen.produccion_total) },
-    { label: 'TN despachadas', value: formatNumber(resumen.tn_despachadas_total) },
     { label: 'Combustible', value: `${formatNumber(resumen.combustible_total)} L` },
     { label: 'Operadores / Equipos', value: `${resumen.operadores_activos} / ${resumen.equipos_activos}` },
   ].filter((row) => !row.value.startsWith('0') || ['Total registros', 'Registros hoy'].includes(row.label))
@@ -481,6 +569,10 @@ watch(unitTotalPages, (totalPages) => {
   if (unitPage.value > totalPages) {
     unitPage.value = totalPages
   }
+})
+
+watch(unitsPerPage, () => {
+  unitPage.value = 1
 })
 
 async function loadDashboard() {
@@ -533,9 +625,13 @@ function metricValue(unidad, key) {
 }
 
 function processShare(tipo) {
-  const total = filteredProcesses.value.reduce((sum, item) => sum + Number(item.produccion || 0), 0)
-  if (total <= 0) return tipo.registros > 0 ? 100 : 0
-  return Math.max(4, Math.round((Number(tipo.produccion || 0) / total) * 100))
+  const totalProduction = filteredProcesses.value.reduce((sum, item) => sum + Number(item.produccion || 0), 0)
+  if (totalProduction > 0) {
+    return Math.max(4, Math.round((Number(tipo.produccion || 0) / totalProduction) * 100))
+  }
+  const totalRecords = filteredProcesses.value.reduce((sum, item) => sum + Number(item.registros || 0), 0)
+  if (totalRecords <= 0) return 0
+  return Math.max(4, Math.round((Number(tipo.registros || 0) / totalRecords) * 100))
 }
 
 function formatNumber(value) {
