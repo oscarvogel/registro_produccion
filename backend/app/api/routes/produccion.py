@@ -72,6 +72,37 @@ def _personal_unidad_ids(db: Session, personal: Personal) -> list[int]:
     return _normalize_ids([], personal.unidad_negocio)
 
 
+def _personal_unidad_ids_map(db: Session, people: list[Personal]) -> dict[int, list[int]]:
+    people_by_id = {
+        int(person.idPersonal): person
+        for person in people
+        if person.idPersonal is not None
+    }
+    unit_ids_by_person = {
+        person_id: _normalize_ids([], person.unidad_negocio)
+        for person_id, person in people_by_id.items()
+    }
+    if not people_by_id or not _table_exists(db, "personal_unidad_negocio"):
+        return unit_ids_by_person
+
+    relation_rows = (
+        db.query(PersonalUnidadNegocio.idPersonal, PersonalUnidadNegocio.idUnidadNegocio)
+        .filter(PersonalUnidadNegocio.idPersonal.in_(people_by_id.keys()))
+        .all()
+    )
+    grouped_ids: dict[int, list[int]] = {person_id: [] for person_id in people_by_id}
+    for person_id, unit_id in relation_rows:
+        try:
+            grouped_ids[int(person_id)].append(int(unit_id))
+        except (TypeError, ValueError):
+            continue
+
+    return {
+        person_id: _normalize_ids(grouped_ids.get(person_id), people_by_id[person_id].unidad_negocio)
+        for person_id in people_by_id
+    }
+
+
 def _full_tree_unidad_ids(db: Session) -> list[int]:
     if not _table_exists(db, "unidadnegocio"):
         return []
@@ -165,6 +196,7 @@ async def list_operadores(
         else:
             query = query.filter(Personal.unidad_negocio.in_(allowed_ids))
     rows = query.distinct().order_by(Personal.Nombre).all()
+    unit_ids_by_person = _personal_unidad_ids_map(db, rows)
     return [
         OperadorResponse(
             idPersonal=r.idPersonal,
@@ -172,7 +204,7 @@ async def list_operadores(
             dni=r.dni,
             encargado=r.encargado,
             tipo_de_proceso_id=r.tipo_de_proceso_id,
-            unidad_ids=_personal_unidad_ids(db, r),
+            unidad_ids=unit_ids_by_person.get(int(r.idPersonal), []),
         )
         for r in rows
     ]
