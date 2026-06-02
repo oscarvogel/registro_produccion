@@ -9,7 +9,7 @@
     </div>
 
     <!-- Filtros -->
-    <div class="sticky top-0 z-30 bg-white border-b border-neutral-200 shadow-sm">
+    <div class="sticky top-0 z-30 bg-white/95 border-b border-neutral-200 shadow-sm backdrop-blur-sm">
       <div class="max-w-7xl mx-auto px-4 py-3">
         <!-- Mobile: toggle -->
         <button
@@ -25,7 +25,16 @@
         </button>
 
         <!-- Filter row -->
-        <div :class="['md:flex md:items-end md:gap-4 flex-wrap', showFilters ? 'mt-3 flex flex-col gap-3' : 'hidden md:flex']">
+        <div :class="['rounded-xl border border-neutral-200 bg-white p-3 shadow-sm md:flex md:items-end md:gap-4 flex-wrap', showFilters ? 'mt-3 flex flex-col gap-3' : 'hidden md:flex']">
+          <div v-if="activeFilterChips.length > 0" class="flex w-full flex-wrap gap-2">
+            <span
+              v-for="chip in activeFilterChips"
+              :key="chip"
+              class="rounded-full bg-primary-light/30 px-3 py-1 text-xs font-extrabold text-primary-dark"
+            >
+              {{ chip }}
+            </span>
+          </div>
           <!-- Unidad de negocio -->
           <div class="flex-1 min-w-45">
             <AutocompleteField
@@ -104,7 +113,7 @@
           <!-- Limpiar -->
           <button
             @click="store.limpiarFiltros()"
-            class="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700 border border-neutral-300 rounded-xl hover:bg-neutral-50 transition-colors whitespace-nowrap"
+            class="px-4 py-2 text-sm font-semibold text-neutral-500 hover:text-neutral-700 border border-neutral-300 rounded-xl hover:bg-neutral-50 transition-colors whitespace-nowrap"
           >
             Limpiar filtros
           </button>
@@ -170,7 +179,7 @@
         </div>
 
         <!-- Secondary KPIs grid -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+        <div :class="secondaryKpiGridClass">
           <div
             v-for="kpi in store.kpisSecundarios"
             :key="kpi.id"
@@ -202,7 +211,7 @@
       <div v-else-if="!store.loading.kpis" class="bg-white rounded-2xl border border-neutral-200 p-10 text-center">
         <AppIcon name="empty" size="xl" :stroke-width="1.5" class="mx-auto mb-4 h-16 w-16 text-neutral-300" />
         <p class="text-neutral-500 font-medium">No hay datos para los filtros seleccionados</p>
-        <p class="text-neutral-400 text-sm mt-1">Probá modificando el rango de fechas o los filtros</p>
+        <p class="text-neutral-400 text-sm mt-1">{{ emptyFilterMessage }}</p>
       </div>
 
       <!-- ═══ CHART + RANKING ═══ -->
@@ -371,8 +380,8 @@
               <div class="flex items-center justify-between mb-1">
                 <div class="flex items-center gap-2 min-w-0">
                   <span :class="[
-                    'shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
-                    idx === 0 ? 'bg-primary text-white' : idx === 1 ? 'bg-primary-light/40 text-primary-dark' : idx === 2 ? 'bg-neutral-200 text-neutral-600' : 'bg-neutral-100 text-neutral-500'
+                    'shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-extrabold',
+                    idx === 0 ? 'bg-primary-dark text-white shadow-sm' : idx === 1 ? 'bg-primary-light/60 text-primary-dark' : idx === 2 ? 'bg-warning-light text-warning-dark' : 'bg-neutral-100 text-neutral-500'
                   ]">{{ idx + 1 }}</span>
                   <div class="min-w-0">
                     <p class="text-sm font-bold text-neutral-800 truncate">{{ item.patente }}</p>
@@ -461,6 +470,32 @@ const movilOptions = computed(() => {
     ...movil,
     _label: [movil.patente, movil.detalle].filter(Boolean).join(' - '),
   }))
+})
+
+const activeFilterChips = computed(() => {
+  const chips = []
+  const unidad = unidadOptions.value.find((item) => String(item.idUnidadNegocio) === String(store.filtros.un_id || ''))
+  const proceso = store.tiposProceso.find((item) => String(item.value) === String(store.filtros.tipo_proceso_key || ''))
+  const movil = movilOptions.value.find((item) => String(item.idMovil) === String(store.filtros.movil_id || ''))
+
+  if (unidad?.nombre) chips.push(unidad.nombre)
+  if (proceso?.nombre) chips.push(proceso.nombre)
+  if (movil?._label) chips.push(movil._label)
+  if (store.filtros.fecha_desde || store.filtros.fecha_hasta) {
+    chips.push(`${store.filtros.fecha_desde || 'Inicio'} - ${store.filtros.fecha_hasta || 'Hoy'}`)
+  }
+  return chips
+})
+
+const emptyFilterMessage = computed(() => {
+  if (activeFilterChips.value.length === 0) return 'Proba modificando el rango de fechas o los filtros.'
+  return `Sin resultados para: ${activeFilterChips.value.join(', ')}. Proba ampliando fechas o quitando algun filtro.`
+})
+
+const secondaryKpiGridClass = computed(() => {
+  const count = store.kpisSecundarios.length
+  const desktopCols = count >= 5 ? 'lg:grid-cols-5' : count === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
+  return ['grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4', desktopCols]
 })
 
 function handleRelogin() {

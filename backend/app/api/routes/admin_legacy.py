@@ -654,9 +654,24 @@ async def list_personal(
         query = query.filter(or_(Personal.Nombre.ilike(pattern), Personal.dni.ilike(pattern)))
     if activo in (0, 1):
         query = query.filter(Personal.activo == activo)
-    rows = query.order_by(Personal.Nombre).offset(skip).limit(limit).all()
     if unidad_id:
-        rows = [row for row in rows if unidad_id in _personal_unidad_ids(db, row)]
+        if _table_exists(db, "personal_unidad_negocio"):
+            query = (
+                query.outerjoin(
+                    PersonalUnidadNegocio,
+                    PersonalUnidadNegocio.idPersonal == Personal.idPersonal,
+                )
+                .filter(
+                    or_(
+                        Personal.unidad_negocio == unidad_id,
+                        PersonalUnidadNegocio.idUnidadNegocio == unidad_id,
+                    )
+                )
+                .distinct()
+            )
+        else:
+            query = query.filter(Personal.unidad_negocio == unidad_id)
+    rows = query.order_by(Personal.Nombre).offset(skip).limit(limit).all()
     return [_to_personal_response(db, r) for r in rows]
 
 

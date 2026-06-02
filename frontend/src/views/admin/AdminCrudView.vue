@@ -1,20 +1,39 @@
 <template>
   <div class="space-y-4">
-    <SectionCard :title="meta.title">
-      <div class="space-y-4">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p class="text-sm text-neutral-500">{{ meta.description }}</p>
-            <p class="text-xs text-neutral-400 mt-1">
-              Mostrando {{ filteredRows.length }} registro{{ filteredRows.length !== 1 ? 's' : '' }} de esta pagina.
-            </p>
-          </div>
+    <PageHeader :title="meta.title" :description="meta.description">
+      <template #kicker>
+        <span class="rounded-full bg-primary-light/30 px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-primary-dark">
+          Administracion
+        </span>
+        <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-extrabold text-neutral-600">
+          {{ filteredRows.length }} registro{{ filteredRows.length !== 1 ? 's' : '' }}
+        </span>
+      </template>
+      <template #actions>
+        <AppButton variant="secondary" :loading="loading" @click="loadRows">
+          <AppIcon name="refresh" size="sm" />
+          Refrescar
+        </AppButton>
+        <AppButton v-if="entity !== 'asignaciones'" @click="openCreate">
+          <AppIcon name="add" size="sm" />
+          Nuevo
+        </AppButton>
+      </template>
+    </PageHeader>
 
-          <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+    <SectionCard title="Gestion">
+      <div class="space-y-4">
+        <FilterBar title="Busqueda y filtros" eyebrow="Vista actual">
+          <template #summary>
+            <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-extrabold text-neutral-600">
+              Pagina {{ page + 1 }}
+            </span>
+          </template>
+          <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-end">
             <input
               v-model="searchText"
               type="search"
-              class="w-full sm:w-64 px-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              class="w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/30 sm:w-80"
               placeholder="Buscar"
             />
 
@@ -38,27 +57,8 @@
                 Limpiar unidad
               </button>
             </div>
-
-            <button
-              @click="loadRows"
-              class="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-neutral-300 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
-              type="button"
-            >
-              <AppIcon name="refresh" size="sm" />
-              Refrescar
-            </button>
-
-            <button
-              v-if="entity !== 'asignaciones'"
-              @click="openCreate"
-              class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary-dark text-white text-sm font-semibold hover:bg-primary transition-colors"
-              type="button"
-            >
-              <AppIcon name="add" size="sm" />
-              Nuevo
-            </button>
           </div>
-        </div>
+        </FilterBar>
 
         <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
           {{ error }}
@@ -88,7 +88,7 @@
           <article
             v-for="row in filteredRows"
             :key="`mobile-${row[meta.idKey]}`"
-            class="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm"
+            class="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-all hover:border-primary/25 hover:shadow-md"
           >
             <div class="mb-3 flex items-start justify-between gap-3">
               <div class="min-w-0">
@@ -180,9 +180,9 @@
           </template>
         </div>
 
-        <div class="hidden overflow-x-auto border border-neutral-200 rounded-xl bg-white md:block">
+        <div class="hidden max-h-[68vh] overflow-auto rounded-xl border border-neutral-200 bg-white shadow-sm md:block">
           <table class="min-w-full text-sm">
-            <thead class="bg-neutral-50 text-neutral-600">
+            <thead class="sticky top-0 z-10 bg-neutral-50 text-neutral-600 shadow-[0_1px_0_var(--color-neutral-200)]">
               <tr>
                 <th
                   v-for="column in meta.columns"
@@ -205,7 +205,7 @@
               </tr>
 
               <template v-for="row in filteredRows" :key="row[meta.idKey]">
-                <tr class="hover:bg-neutral-50/70">
+                <tr class="transition-colors hover:bg-primary-light/10">
                   <td
                     v-for="column in meta.columns"
                     :key="`${row[meta.idKey]}-${column.key}`"
@@ -478,6 +478,8 @@ import SectionCard from '@/components/SectionCard.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import FilterBar from '@/components/ui/FilterBar.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
 import AdminQuickAssignment from '@/components/admin/AdminQuickAssignment.vue'
 import { useAdminStore } from '@/stores/admin'
 
@@ -724,6 +726,7 @@ const page = ref(0)
 const limit = ref(5)
 const pageSizeOptions = [5, 10, 25, 50]
 const referenceCache = new Map()
+let searchTimer = null
 
 const entity = computed(() => String(route.params.entity || ''))
 const meta = computed(() => ENTITY_DEFINITIONS[entity.value] || null)
@@ -744,14 +747,7 @@ const showUnidadFilter = computed(() => {
 })
 
 const filteredRows = computed(() => {
-  const query = searchText.value.trim().toLowerCase()
-  const selectedUnidad = Number(unidadFilter.value || 0)
-
-  return rows.value.filter((row) => {
-    if (selectedUnidad && !rowUnidadIds(row).includes(selectedUnidad)) return false
-    if (!query) return true
-    return searchableText(row).includes(query)
-  })
+  return rows.value
 })
 
 const mobileColumns = computed(() => {
@@ -799,6 +795,15 @@ watch(
     quickAssignment.idProceso = ''
   }
 )
+
+watch([searchText, unidadFilter], () => {
+  if (!meta.value) return
+  page.value = 0
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    loadRows()
+  }, 300)
+})
 
 function resetForm() {
   Object.keys(form).forEach((key) => delete form[key])

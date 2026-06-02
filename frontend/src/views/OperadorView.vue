@@ -1,172 +1,238 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 pb-24 md:pb-8">
-    <!-- Header -->
-    <div class="bg-white border-b border-neutral-200 shadow-sm">
-      <div class="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
-        <button @click="$router.back()" aria-label="Volver" title="Volver" class="p-2 rounded-xl hover:bg-neutral-100 transition-colors text-neutral-500">
-          <AppIcon name="back" :stroke-width="2.2" />
-        </button>
-        <div>
-          <h1 class="text-lg font-extrabold text-primary-dark">Mis Registros</h1>
-          <p class="text-xs text-neutral-500">{{ authStore.userName }}</p>
-        </div>
-      </div>
-    </div>
+  <div class="min-h-screen bg-neutral-100 px-4 py-5 pb-24 md:px-6 md:py-6 md:pb-8">
+    <div class="mx-auto max-w-4xl space-y-4">
+      <PageHeader
+        title="Mis Registros"
+        :description="`${authStore.userName} · historial personal y totales del periodo`"
+      >
+        <template #actions>
+          <AppButton variant="secondary" @click="$router.back()">
+            <AppIcon name="back" size="sm" />
+            Volver
+          </AppButton>
+          <AppButton @click="$router.push({ name: 'produccion' })">
+            <AppIcon name="production" size="sm" />
+            Cargar produccion
+          </AppButton>
+        </template>
+      </PageHeader>
 
-    <!-- Filtros de fecha -->
-    <div class="bg-white border-b border-neutral-200 shadow-sm">
-      <div class="max-w-3xl mx-auto px-4 py-3 flex items-end gap-3 flex-wrap">
-        <div class="flex-1 min-w-36">
-          <label class="block text-xs font-medium text-neutral-500 mb-1">Desde</label>
+      <FilterBar title="Periodo" eyebrow="Filtros rapidos">
+        <template #summary>
+          <span class="rounded-full bg-primary-light/30 px-3 py-1 text-xs font-extrabold text-primary-dark">
+            {{ store.registros.length }} registro{{ store.registros.length !== 1 ? 's' : '' }}
+          </span>
+        </template>
+
+        <div class="flex flex-wrap gap-2 md:w-full">
+          <button
+            v-for="preset in datePresets"
+            :key="preset.key"
+            type="button"
+            :class="quickFilterClass(preset.key)"
+            @click="applyPreset(preset.key)"
+          >
+            {{ preset.label }}
+          </button>
+        </div>
+
+        <div class="min-w-36 flex-1">
+          <label class="mb-1 block text-xs font-medium text-neutral-500">Desde</label>
           <input
             type="date"
             :value="store.filtros.fecha_desde"
-            @change="store.setFiltro('fecha_desde', $event.target.value || null)"
-            class="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40"
+            @change="handleManualDate('fecha_desde', $event.target.value || null)"
+            class="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
-        <div class="flex-1 min-w-36">
-          <label class="block text-xs font-medium text-neutral-500 mb-1">Hasta</label>
+
+        <div class="min-w-36 flex-1">
+          <label class="mb-1 block text-xs font-medium text-neutral-500">Hasta</label>
           <input
             type="date"
             :value="store.filtros.fecha_hasta"
-            @change="store.setFiltro('fecha_hasta', $event.target.value || null)"
-            class="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40"
+            @change="handleManualDate('fecha_hasta', $event.target.value || null)"
+            class="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
-        <button
-          @click="store.limpiarFiltros()"
-          class="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700 border border-neutral-300 rounded-xl hover:bg-neutral-50 transition-colors whitespace-nowrap"
-        >
-          Este mes
-        </button>
-      </div>
-    </div>
+      </FilterBar>
 
-    <div class="max-w-3xl mx-auto px-4 py-5 space-y-4">
-
-      <!-- Loading -->
       <div v-if="store.loading" class="flex justify-center py-16">
-        <div class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div class="h-8 w-8 animate-spin rounded-full border-3 border-primary border-t-transparent"></div>
       </div>
 
       <template v-else>
-        <!-- Totales -->
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-white rounded-2xl border border-neutral-200 p-4">
-            <p class="text-xs font-medium text-neutral-500 mb-1">Registros</p>
-            <p class="text-2xl font-extrabold text-neutral-900">{{ store.totales.total }}</p>
-          </div>
-          <div class="bg-white rounded-2xl border border-neutral-200 p-4">
-            <p class="text-xs font-medium text-neutral-500 mb-1">Horas trabajadas</p>
-            <p class="text-2xl font-extrabold text-neutral-900">{{ fmt(store.totales.total_horas) }} <span class="text-sm font-medium text-neutral-400">hs</span></p>
-          </div>
-          <div class="bg-white rounded-2xl border border-neutral-200 p-4">
-            <p class="text-xs font-medium text-neutral-500 mb-1">Combustible</p>
-            <p class="text-2xl font-extrabold text-neutral-900">{{ store.totales.total_combustible }} <span class="text-sm font-medium text-neutral-400">lts</span></p>
-          </div>
-          <div v-if="store.totales.combustible_por_hora != null" class="bg-white rounded-2xl border border-neutral-200 p-4">
-            <p class="text-xs font-medium text-neutral-500 mb-1">Combustible / hora</p>
-            <p class="text-2xl font-extrabold text-neutral-900">{{ fmt(store.totales.combustible_por_hora) }} <span class="text-sm font-medium text-neutral-400">lts/hs</span></p>
-          </div>
+          <MetricCard label="Registros" :value="store.totales.total" icon="records" tone="primary" />
+          <MetricCard label="Horas trabajadas" :value="fmt(store.totales.total_horas)" unit="hs" icon="timer" />
+          <MetricCard label="Combustible" :value="fmt(store.totales.total_combustible)" unit="lts" icon="fuel" tone="warning" />
+          <MetricCard
+            v-if="store.totales.combustible_por_hora != null"
+            label="Combustible / hora"
+            :value="fmt(store.totales.combustible_por_hora)"
+            unit="lts/hs"
+            icon="fuel"
+            tone="warning"
+          />
 
-          <!-- Producción: mostramos solo los campos con valor > 0 -->
-          <div v-if="store.totales.total_tn > 0" class="bg-primary/5 border border-primary/20 rounded-2xl p-4">
-            <p class="text-xs font-medium text-primary-dark mb-1">Toneladas despachadas</p>
-            <p class="text-2xl font-extrabold text-primary-dark">{{ fmt(store.totales.total_tn) }} <span class="text-sm font-medium text-primary/60">TN</span></p>
-            <p v-if="store.totales.tn_por_hora != null" class="text-xs text-primary/60 mt-1">{{ fmt(store.totales.tn_por_hora) }} TN/hs</p>
-          </div>
-          <div v-if="store.totales.total_m3 > 0" class="bg-primary/5 border border-primary/20 rounded-2xl p-4">
-            <p class="text-xs font-medium text-primary-dark mb-1">Metros cúbicos</p>
-            <p class="text-2xl font-extrabold text-primary-dark">{{ store.totales.total_m3 }} <span class="text-sm font-medium text-primary/60">M³</span></p>
-            <p v-if="store.totales.m3_por_hora != null" class="text-xs text-primary/60 mt-1">{{ fmt(store.totales.m3_por_hora) }} M³/hs</p>
-          </div>
-          <div v-if="store.totales.total_has > 0" class="bg-primary/5 border border-primary/20 rounded-2xl p-4">
-            <p class="text-xs font-medium text-primary-dark mb-1">Hectáreas</p>
-            <p class="text-2xl font-extrabold text-primary-dark">{{ fmt(store.totales.total_has) }} <span class="text-sm font-medium text-primary/60">HAS</span></p>
-            <p v-if="store.totales.has_por_hora != null" class="text-xs text-primary/60 mt-1">{{ fmt(store.totales.has_por_hora) }} HAS/hs</p>
-          </div>
-          <div v-if="store.totales.total_carros > 0" class="bg-primary/5 border border-primary/20 rounded-2xl p-4">
-            <p class="text-xs font-medium text-primary-dark mb-1">Carros</p>
-            <p class="text-2xl font-extrabold text-primary-dark">{{ store.totales.total_carros }} <span class="text-sm font-medium text-primary/60">uds</span></p>
-            <p v-if="store.totales.carros_por_hora != null" class="text-xs text-primary/60 mt-1">{{ fmt(store.totales.carros_por_hora) }} carros/hs</p>
-          </div>
-          <div v-if="store.totales.total_plantas > 0" class="bg-primary/5 border border-primary/20 rounded-2xl p-4">
-            <p class="text-xs font-medium text-primary-dark mb-1">Plantas</p>
-            <p class="text-2xl font-extrabold text-primary-dark">{{ store.totales.total_plantas }} <span class="text-sm font-medium text-primary/60">uds</span></p>
-            <p v-if="store.totales.plantas_por_hora != null" class="text-xs text-primary/60 mt-1">{{ fmt(store.totales.plantas_por_hora) }} plantas/hs</p>
-          </div>
-          <div v-if="store.totales.total_km_carreteo > 0" class="bg-primary/5 border border-primary/20 rounded-2xl p-4">
-            <p class="text-xs font-medium text-primary-dark mb-1">KM Carreteo</p>
-            <p class="text-2xl font-extrabold text-primary-dark">{{ fmt(store.totales.total_km_carreteo) }} <span class="text-sm font-medium text-primary/60">km</span></p>
-            <p v-if="store.totales.km_carreteo_por_hora != null" class="text-xs text-primary/60 mt-1">{{ fmt(store.totales.km_carreteo_por_hora) }} km/hs</p>
-          </div>
-          <div v-if="store.totales.total_km_perfilado > 0" class="bg-primary/5 border border-primary/20 rounded-2xl p-4">
-            <p class="text-xs font-medium text-primary-dark mb-1">KM Perfilado</p>
-            <p class="text-2xl font-extrabold text-primary-dark">{{ fmt(store.totales.total_km_perfilado) }} <span class="text-sm font-medium text-primary/60">km</span></p>
-            <p v-if="store.totales.km_perfilado_por_hora != null" class="text-xs text-primary/60 mt-1">{{ fmt(store.totales.km_perfilado_por_hora) }} km/hs</p>
-          </div>
+          <MetricCard
+            v-for="metric in productionMetrics"
+            :key="metric.label"
+            :label="metric.label"
+            :value="metric.value"
+            :unit="metric.unit"
+            :description="metric.detail"
+            icon="production"
+            tone="primary"
+          />
         </div>
 
-        <!-- Lista de registros -->
-        <div v-if="store.registros.length > 0" class="space-y-2">
-          <h2 class="text-xs font-bold text-neutral-500 uppercase tracking-wide px-1">Detalle de registros</h2>
-          <div
-            v-for="r in store.registros"
-            :key="r.id"
-            class="bg-white rounded-2xl border border-neutral-200 p-4"
+        <section v-if="store.registros.length > 0" class="space-y-2">
+          <h2 class="px-1 text-xs font-extrabold uppercase tracking-wide text-neutral-500">Detalle de registros</h2>
+
+          <article
+            v-for="record in store.registros"
+            :key="record.id"
+            v-motion-panel
+            class="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm"
           >
-            <div class="flex items-start justify-between gap-2 mb-2">
-              <div>
-                <span class="inline-block px-2 py-0.5 rounded-lg bg-primary/10 text-primary-dark text-xs font-bold uppercase tracking-wide">{{ r.operacion || '—' }}</span>
-                <p class="text-xs text-neutral-400 mt-1">{{ formatFecha(r.fecha) }}</p>
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <span class="inline-flex max-w-full rounded-lg bg-primary/10 px-2 py-0.5 text-xs font-extrabold uppercase tracking-wide text-primary-dark">
+                  <span class="truncate">{{ record.operacion || 'Produccion' }}</span>
+                </span>
+                <p class="mt-1 text-xs font-semibold text-neutral-400">{{ formatFecha(record.fecha) }}</p>
               </div>
-              <p class="text-xs text-neutral-500 text-right">{{ r.equipo || '—' }}</p>
+              <p class="max-w-[11rem] truncate text-right text-xs font-semibold text-neutral-500">
+                {{ record.equipo || 'Sin equipo' }}
+              </p>
             </div>
-            <div class="flex flex-wrap gap-3 mt-2">
-              <!-- Producción: solo campos con valor -->
-              <span v-if="r.tn_despachadas > 0" class="text-sm font-semibold text-neutral-700">{{ fmt(r.tn_despachadas) }} <span class="font-normal text-neutral-400">TN</span></span>
-              <span v-if="r.m3 > 0" class="text-sm font-semibold text-neutral-700">{{ r.m3 }} <span class="font-normal text-neutral-400">M³</span></span>
-              <span v-if="r.has > 0" class="text-sm font-semibold text-neutral-700">{{ fmt(r.has) }} <span class="font-normal text-neutral-400">HAS</span></span>
-              <span v-if="r.carros > 0" class="text-sm font-semibold text-neutral-700">{{ r.carros }} <span class="font-normal text-neutral-400">carros</span></span>
-              <span v-if="r.plantas > 0" class="text-sm font-semibold text-neutral-700">{{ r.plantas }} <span class="font-normal text-neutral-400">plantas</span></span>
-              <span v-if="r.km_carreteo > 0" class="text-sm font-semibold text-neutral-700">{{ fmt(r.km_carreteo) }} <span class="font-normal text-neutral-400">km carr.</span></span>
-              <span v-if="r.km_perfilado > 0" class="text-sm font-semibold text-neutral-700">{{ fmt(r.km_perfilado) }} <span class="font-normal text-neutral-400">km perf.</span></span>
-              <!-- Combustible siempre visible si > 0 -->
-              <span v-if="r.combustible > 0" class="text-sm font-semibold text-warning-dark">{{ r.combustible }} <span class="font-normal text-neutral-400">lts</span></span>
+
+            <div class="mt-3 flex flex-wrap gap-2">
+              <span
+                v-for="metric in recordMetrics(record)"
+                :key="metric.label"
+                :class="[
+                  'rounded-lg px-2.5 py-1 text-xs font-extrabold',
+                  metric.tone === 'warning' ? 'bg-warning-light text-warning-dark' : 'bg-neutral-100 text-neutral-700',
+                ]"
+              >
+                {{ metric.value }} <span class="font-semibold opacity-70">{{ metric.unit }}</span>
+              </span>
             </div>
-          </div>
-        </div>
+          </article>
+        </section>
 
-        <!-- Empty state -->
-        <div v-else class="bg-white rounded-2xl border border-neutral-200 p-10 text-center">
-          <AppIcon name="empty" :stroke-width="1.5" class="mx-auto mb-4 h-14 w-14 text-neutral-300" />
-          <p class="text-neutral-500 font-medium">No hay registros para este período</p>
-          <p class="text-neutral-400 text-sm mt-1">Probá con otro rango de fechas</p>
-        </div>
-
+        <EmptyState v-else title="No hay registros para este periodo" description="Proba con otro rango de fechas o carga una nueva produccion.">
+          <AppButton @click="$router.push({ name: 'produccion' })">
+            <AppIcon name="production" size="sm" />
+            Cargar produccion
+          </AppButton>
+        </EmptyState>
       </template>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMisRegistrosStore } from '@/stores/misRegistros'
+import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import FilterBar from '@/components/ui/FilterBar.vue'
+import MetricCard from '@/components/ui/MetricCard.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
 
 const authStore = useAuthStore()
 const store = useMisRegistrosStore()
+const activePreset = ref('month')
+
+const datePresets = [
+  { key: 'today', label: 'Hoy' },
+  { key: 'week', label: 'Esta semana' },
+  { key: 'month', label: 'Este mes' },
+]
+
+const productionMetrics = computed(() => {
+  const totals = store.totales
+  return [
+    { label: 'Toneladas despachadas', value: fmt(totals.total_tn), raw: totals.total_tn, unit: 'TN', detail: totals.tn_por_hora != null ? `${fmt(totals.tn_por_hora)} TN/hs` : '' },
+    { label: 'Metros cubicos', value: fmt(totals.total_m3), raw: totals.total_m3, unit: 'm3', detail: totals.m3_por_hora != null ? `${fmt(totals.m3_por_hora)} m3/hs` : '' },
+    { label: 'Hectareas', value: fmt(totals.total_has), raw: totals.total_has, unit: 'HAS', detail: totals.has_por_hora != null ? `${fmt(totals.has_por_hora)} HAS/hs` : '' },
+    { label: 'Carros', value: fmt(totals.total_carros), raw: totals.total_carros, unit: 'uds', detail: totals.carros_por_hora != null ? `${fmt(totals.carros_por_hora)} carros/hs` : '' },
+    { label: 'Plantas', value: fmt(totals.total_plantas), raw: totals.total_plantas, unit: 'uds', detail: totals.plantas_por_hora != null ? `${fmt(totals.plantas_por_hora)} plantas/hs` : '' },
+    { label: 'KM Carreteo', value: fmt(totals.total_km_carreteo), raw: totals.total_km_carreteo, unit: 'km', detail: totals.km_carreteo_por_hora != null ? `${fmt(totals.km_carreteo_por_hora)} km/hs` : '' },
+    { label: 'KM Perfilado', value: fmt(totals.total_km_perfilado), raw: totals.total_km_perfilado, unit: 'km', detail: totals.km_perfilado_por_hora != null ? `${fmt(totals.km_perfilado_por_hora)} km/hs` : '' },
+  ].filter((metric) => Number(metric.raw) > 0)
+})
 
 function fmt(val) {
-  return Number(val).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  return Number(val || 0).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
 function formatFecha(fecha) {
-  if (!fecha) return '—'
-  const [y, m, d] = fecha.split('-')
+  if (!fecha) return '---'
+  const [y, m, d] = String(fecha).split('-')
+  if (!y || !m || !d) return fecha
   return `${d}/${m}/${y}`
+}
+
+function toIso(date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function applyPreset(preset) {
+  activePreset.value = preset
+  const end = new Date()
+  const start = new Date()
+
+  if (preset === 'today') {
+    store.setFiltro('fecha_desde', toIso(start))
+    store.setFiltro('fecha_hasta', toIso(end))
+    return
+  }
+
+  if (preset === 'week') {
+    const day = start.getDay() || 7
+    start.setDate(start.getDate() - day + 1)
+    store.setFiltro('fecha_desde', toIso(start))
+    store.setFiltro('fecha_hasta', toIso(end))
+    return
+  }
+
+  store.limpiarFiltros()
+}
+
+function handleManualDate(key, value) {
+  activePreset.value = 'custom'
+  store.setFiltro(key, value)
+}
+
+function quickFilterClass(key) {
+  return [
+    'rounded-full border px-3 py-1.5 text-xs font-extrabold transition-colors',
+    activePreset.value === key
+      ? 'border-primary-dark bg-primary-dark text-white'
+      : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-primary/40 hover:text-primary-dark',
+  ]
+}
+
+function recordMetrics(record) {
+  return [
+    { label: 'tn', value: fmt(record.tn_despachadas), raw: record.tn_despachadas, unit: 'TN' },
+    { label: 'm3', value: fmt(record.m3), raw: record.m3, unit: 'm3' },
+    { label: 'has', value: fmt(record.has), raw: record.has, unit: 'HAS' },
+    { label: 'carros', value: fmt(record.carros), raw: record.carros, unit: 'carros' },
+    { label: 'plantas', value: fmt(record.plantas), raw: record.plantas, unit: 'plantas' },
+    { label: 'km_carreteo', value: fmt(record.km_carreteo), raw: record.km_carreteo, unit: 'km carr.' },
+    { label: 'km_perfilado', value: fmt(record.km_perfilado), raw: record.km_perfilado, unit: 'km perf.' },
+    { label: 'combustible', value: fmt(record.combustible), raw: record.combustible, unit: 'lts', tone: 'warning' },
+  ].filter((metric) => Number(metric.raw) > 0)
 }
 
 onMounted(() => {

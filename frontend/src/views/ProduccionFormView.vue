@@ -734,7 +734,11 @@
         <AppIcon name="error" class="text-error shrink-0" />
         <span>{{ store.error }}</span>
       </div>
-      <div class="hidden items-center justify-end gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm md:flex">
+      <div class="hidden items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm md:flex">
+        <p class="max-w-md text-sm font-semibold text-error-dark">
+          {{ mensajePasoIncompleto }}
+        </p>
+        <div class="flex items-center justify-end gap-3">
         <button
           v-if="pasoActual > 0"
           type="button"
@@ -767,11 +771,12 @@
         >
           {{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}
         </button>
+        </div>
       </div>
       </div>
 
       <!-- Step navigation — fixed bottom -->
-      <div class="fixed bottom-0 left-0 right-0 z-30 border-t border-neutral-200 bg-white/95 px-3 py-3 backdrop-blur-sm md:hidden">
+      <div class="fixed bottom-0 left-0 right-0 z-30 border-t border-neutral-200 bg-white/95 px-3 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm md:hidden">
         <div class="mx-auto flex max-w-2xl items-center gap-3">
           <button
             v-if="pasoActual > 0"
