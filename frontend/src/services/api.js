@@ -3,8 +3,13 @@ import { useToastStore } from '@/stores/toast'
 
 let onUnauthorized = null
 
+export function normalizeBaseURL(value) {
+  const baseURL = value || 'http://localhost:8000'
+  return baseURL.replace(/\/api\/?$/, '')
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: normalizeBaseURL(import.meta.env.VITE_API_URL),
   headers: { 'Content-Type': 'application/json' }
 })
 
