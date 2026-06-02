@@ -1,10 +1,15 @@
 <template>
-  <div class="fixed right-3 top-3 z-[70] flex w-[calc(100vw-1.5rem)] max-w-sm flex-col gap-2">
+  <TransitionGroup
+    name="toast-list"
+    tag="div"
+    class="fixed right-3 top-3 z-[70] flex w-[calc(100vw-1.5rem)] max-w-sm flex-col gap-2"
+  >
     <div
       v-for="toast in toastStore.items"
       :key="toast.id"
+      v-motion-pop
       :class="[
-        'rounded-xl border bg-white px-4 py-3 shadow-lg',
+        'rounded-xl border bg-white px-4 py-3 shadow-lg will-change-transform',
         toneClass(toast.tone),
       ]"
     >
@@ -22,7 +27,7 @@
         </button>
       </div>
     </div>
-  </div>
+  </TransitionGroup>
 </template>
 
 <script setup>

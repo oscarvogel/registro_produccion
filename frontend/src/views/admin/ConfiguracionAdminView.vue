@@ -2,7 +2,7 @@
   <div class="space-y-4">
     <SectionCard title="Configuracion de Acceso">
       <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 mb-3">
-        El acceso inicial fue otorgado al usuario ID 951. Desde aqui se puede habilitar o deshabilitar acceso admin a otros usuarios.
+        Desde aqui se puede habilitar o deshabilitar acceso admin a otros usuarios. No podes quitarte tu propio acceso.
       </div>
 
       <div class="flex flex-col gap-2 sm:flex-row sm:items-end">

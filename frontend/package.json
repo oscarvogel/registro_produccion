@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@vueuse/motion": "^3.0.3",
     "autoskill": "^0.1.0",
     "axios": "^1.6.5",
     "dexie": "^4.4.2",

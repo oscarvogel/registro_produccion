@@ -1,22 +1,29 @@
 <template>
   <div class="min-h-[calc(100vh-8.5rem)] bg-surface px-4 py-5 md:min-h-[calc(100vh-3.5rem)] md:py-6">
     <div class="mx-auto max-w-6xl space-y-4">
-      <AppToolbar
+      <PageHeader
         title="Registros Pendientes"
         :description="scopeDescription"
       >
-        <AppBadge :tone="navigatorOnline ? 'success' : 'warning'">
-          {{ navigatorOnline ? 'En linea' : 'Sin conexion' }}
-        </AppBadge>
-        <AppButton variant="secondary" @click="loadRecords">
-          <AppIcon name="refresh" size="sm" />
-          Refrescar
-        </AppButton>
-        <AppButton :loading="syncing" :disabled="!navigatorOnline || scopedPendingRecords.length === 0" @click="syncAll">
-          <AppIcon name="sync" size="sm" />
-          Sincronizar
-        </AppButton>
-      </AppToolbar>
+        <template #kicker>
+          <AppBadge :tone="navigatorOnline ? 'success' : 'warning'">
+            {{ navigatorOnline ? 'En linea' : 'Sin conexion' }}
+          </AppBadge>
+          <AppBadge v-if="scopedFailedRecords.length > 0" tone="error">
+            {{ scopedFailedRecords.length }} fallido{{ scopedFailedRecords.length !== 1 ? 's' : '' }}
+          </AppBadge>
+        </template>
+        <template #actions>
+          <AppButton variant="secondary" @click="loadRecords">
+            <AppIcon name="refresh" size="sm" />
+            Refrescar
+          </AppButton>
+          <AppButton :loading="syncing" :disabled="!navigatorOnline || scopedPendingRecords.length === 0" @click="syncAll">
+            <AppIcon name="sync" size="sm" />
+            Sincronizar
+          </AppButton>
+        </template>
+      </PageHeader>
 
       <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -38,24 +45,28 @@
           label="Pendientes locales"
           :value="localPendingRecords.length"
           description="Registros esperando sincronizacion"
+          icon="pending"
           tone="warning"
         />
         <MetricCard
           label="Fallidos locales"
           :value="localFailedRecords.length"
           description="Registros con error al enviar"
+          icon="warning"
           tone="error"
         />
         <MetricCard
           :label="systemPendingLabel"
           :value="scopedPendingRecords.length"
           :description="systemPendingDescription"
+          icon="sync"
           tone="primary"
         />
         <MetricCard
           :label="systemFailedLabel"
           :value="scopedFailedRecords.length"
           :description="systemFailedDescription"
+          icon="records"
           tone="neutral"
         />
       </div>
@@ -107,7 +118,10 @@
           <article
             v-for="record in visibleRecords"
             :key="record.id"
-            class="rounded-xl border border-outline-variant bg-white p-4 shadow-sm"
+            :class="[
+              'rounded-xl border bg-white p-4 shadow-sm',
+              isFailedRecord(record) ? 'border-error/30 bg-error-light/20' : 'border-warning/30 bg-warning-light/20',
+            ]"
           >
             <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div class="min-w-0">
@@ -144,7 +158,7 @@
                 </AppButton>
                 <AppButton variant="secondary" size="sm" @click="openDetail(record)">
                   <AppIcon name="edit" size="sm" />
-                  Editar
+                  Ver detalle
                 </AppButton>
                 <AppButton variant="danger" size="sm" @click="discardRecord(record)">
                   <AppIcon name="delete" size="sm" />
@@ -177,7 +191,7 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import api from '@/services/api'
 import db from '@/services/db'
 import { useAuthStore } from '@/stores/auth'
@@ -187,34 +201,8 @@ import AppBadge from '@/components/ui/AppBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import AppModal from '@/components/ui/AppModal.vue'
-import AppToolbar from '@/components/ui/AppToolbar.vue'
-
-const MetricCard = defineComponent({
-  name: 'MetricCard',
-  props: {
-    label: { type: String, required: true },
-    value: { type: [Number, String], required: true },
-    description: { type: String, required: true },
-    tone: { type: String, default: 'neutral' },
-  },
-  setup(props) {
-    const valueClass = computed(() => {
-      const tones = {
-        warning: 'text-warning-dark',
-        error: 'text-error',
-        primary: 'text-primary-dark',
-        neutral: 'text-on-surface',
-      }
-      return tones[props.tone] || tones.neutral
-    })
-
-    return () => h('div', { class: 'rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm' }, [
-      h('p', { class: 'text-xs font-extrabold uppercase tracking-wide text-on-surface-variant' }, props.label),
-      h('p', { class: ['mt-2 text-3xl font-extrabold', valueClass.value] }, props.value),
-      h('p', { class: 'mt-1 text-sm text-on-surface-variant' }, props.description),
-    ])
-  },
-})
+import MetricCard from '@/components/ui/MetricCard.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
 
 const authStore = useAuthStore()
 const produccionStore = useProduccionStore()

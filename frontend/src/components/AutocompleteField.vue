@@ -10,7 +10,7 @@
       type="button"
       :disabled="disabled"
       @click="startSearch"
-      class="flex w-full items-center justify-between gap-3 rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-left text-sm font-semibold text-neutral-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:bg-neutral-200"
+      class="flex w-full items-center justify-between gap-3 rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-left text-sm font-semibold text-neutral-900 transition-all duration-150 ease-out hover:-translate-y-px hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-neutral-200"
     >
       <span class="min-w-0 truncate">{{ selectedLabel }}</span>
       <AppIcon name="chevronDown" size="sm" class="shrink-0 text-neutral-500" />
@@ -18,6 +18,7 @@
 
     <div
       v-else-if="selectedLabel && !searching"
+      v-motion-pop
       class="flex items-center gap-3 p-3 bg-success-light/40 border border-success/30 rounded-xl"
     >
       <AppIcon name="success" class="text-success-dark shrink-0" />
@@ -74,48 +75,54 @@
       </div>
 
       <!-- Inline results list (no absolute — expands card naturally) -->
-      <div
-        v-if="isOpen && filteredItems.length > 0"
-        :id="listboxId"
-        role="listbox"
-        class="absolute left-0 right-0 top-full z-50 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-xl"
-      >
-        <button
-          v-for="(item, i) in filteredItems"
-          :key="getKey(item)"
-          :id="optionId(i)"
-          type="button"
-          role="option"
-          :aria-selected="i === highlightedIndex"
-          @mousedown.prevent="selectItem(item)"
-          :class="[
-            'w-full text-left px-4 py-2.5 border-b last:border-b-0 border-neutral-100 transition-colors text-sm',
-            i === highlightedIndex
-              ? 'bg-primary/10 text-primary-dark font-medium'
-              : 'hover:bg-neutral-50 text-neutral-900',
-          ]"
+      <Transition name="dropdown-soft">
+        <div
+          v-if="isOpen && filteredItems.length > 0"
+          :id="listboxId"
+          role="listbox"
+          class="absolute left-0 right-0 top-full z-50 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-xl"
         >
-          {{ getLabel(item) }}
-        </button>
-      </div>
+          <button
+            v-for="(item, i) in filteredItems"
+            :key="getKey(item)"
+            :id="optionId(i)"
+            type="button"
+            role="option"
+            :aria-selected="i === highlightedIndex"
+            @mousedown.prevent="selectItem(item)"
+            :class="[
+              'w-full text-left px-4 py-2.5 border-b last:border-b-0 border-neutral-100 transition-colors text-sm',
+              i === highlightedIndex
+                ? 'bg-primary/10 text-primary-dark font-medium'
+                : 'hover:bg-neutral-50 text-neutral-900',
+            ]"
+          >
+            {{ getLabel(item) }}
+          </button>
+        </div>
+      </Transition>
 
       <!-- No results -->
-      <div
-        v-else-if="isOpen && query.length >= 1 && filteredItems.length === 0"
-        class="absolute left-0 right-0 top-full z-50 mt-1.5 rounded-lg border border-neutral-200 bg-white p-2.5 text-xs text-neutral-400 shadow-xl"
-      >
-        Sin resultados para "{{ query }}"
-      </div>
+      <Transition name="dropdown-soft">
+        <div
+          v-if="isOpen && query.length >= 1 && filteredItems.length === 0"
+          class="absolute left-0 right-0 top-full z-50 mt-1.5 rounded-lg border border-neutral-200 bg-white p-2.5 text-xs text-neutral-400 shadow-xl"
+        >
+          Sin resultados para "{{ query }}"
+        </div>
+      </Transition>
 
       <!-- Cancel (only when switching from an already-selected value) -->
-      <button
-        v-if="modelValue && searching"
-        type="button"
-        @click="cancelSearch"
-        class="mt-2 text-xs text-neutral-400 hover:text-neutral-600 underline underline-offset-2 block"
-      >
-        Cancelar
-      </button>
+      <Transition name="fade-soft">
+        <button
+          v-if="modelValue && searching"
+          type="button"
+          @click="cancelSearch"
+          class="mt-2 block text-xs text-neutral-400 underline underline-offset-2 transition-colors hover:text-neutral-600"
+        >
+          Cancelar
+        </button>
+      </Transition>
     </div>
   </div>
 </template>

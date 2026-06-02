@@ -1,7 +1,7 @@
 param(
     [string]$VenvActivate = "h:\\venv\\produccion\\Scripts\\Activate.ps1",
     [string]$HostAddress = "0.0.0.0",
-    [int]$Port = 8000,
+    [int]$Port = 8004,
     [switch]$NoReload
 )
 

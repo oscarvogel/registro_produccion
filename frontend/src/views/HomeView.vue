@@ -19,7 +19,7 @@
 
             <button
               @click="$router.push({ name: 'produccion' })"
-              class="inline-flex w-full items-center justify-between gap-4 rounded-xl bg-white px-4 py-3 text-left text-primary-dark shadow-lg transition-transform active:scale-[0.99] md:w-72"
+              class="inline-flex w-full items-center justify-between gap-4 rounded-xl bg-white px-4 py-3 text-left text-primary-dark shadow-lg ring-1 ring-white/50 transition-all hover:-translate-y-px hover:shadow-xl active:scale-[0.99] md:w-72"
               type="button"
             >
               <span>
@@ -201,7 +201,7 @@
 
               <button
                 @click="$router.push({ name: 'produccion' })"
-                class="inline-flex w-full items-center justify-between gap-4 rounded-xl bg-white px-4 py-3 text-left text-primary-dark shadow-lg transition-transform active:scale-[0.99] md:w-72"
+                class="inline-flex w-full items-center justify-between gap-4 rounded-xl bg-white px-4 py-3 text-left text-primary-dark shadow-lg ring-1 ring-white/50 transition-all hover:-translate-y-px hover:shadow-xl active:scale-[0.99] md:w-72"
                 type="button"
               >
                 <span>
@@ -486,7 +486,7 @@ const QuickActions = defineComponent({
         ...props.actions.map((action) => h('button', {
           key: action.name,
           type: 'button',
-          class: 'flex w-full items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-white',
+          class: 'flex w-full items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-left transition-all hover:-translate-y-px hover:border-primary/40 hover:bg-white hover:shadow-sm',
           onClick: () => router.push(action.to),
         }, [
           h('span', { class: 'min-w-0' }, [
@@ -497,7 +497,7 @@ const QuickActions = defineComponent({
         ])),
         props.showInstall ? h('button', {
           type: 'button',
-          class: 'flex w-full items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-white',
+          class: 'flex w-full items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-left transition-all hover:-translate-y-px hover:border-primary/40 hover:bg-white hover:shadow-sm',
           onClick: () => emit('install'),
         }, h('span', [
           h('span', { class: 'block text-sm font-extrabold text-neutral-800' }, 'Instalar app'),

@@ -49,6 +49,8 @@ class RankingMaquinaItem(BaseModel):
 class TipoProcesoDisponible(BaseModel):
     id: int
     nombre: str
+    value: str | None = None
+    source: str | None = None
 
     class Config:
         from_attributes = True
