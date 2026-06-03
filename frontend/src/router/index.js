@@ -32,6 +32,12 @@ const routes = [
     component: () => import('../views/PendientesView.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/manuales',
+    name: 'manuales',
+    component: () => import('../views/ManualesView.vue'),
+    meta: { requiresAuth: true },
+  },
   { path: '/items', name: 'items', component: ItemsView, meta: { requiresAuth: true } },
   {
     path: '/configuracion',

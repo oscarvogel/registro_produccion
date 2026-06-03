@@ -17,6 +17,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  BookOpen,
   Boxes,
   Building2,
   CheckCircle,
@@ -121,6 +122,7 @@ const icons = {
   arrowDown: ArrowDown,
   loading: LoaderCircle,
   login: LogIn,
+  manual: BookOpen,
 }
 
 const sizes = {
