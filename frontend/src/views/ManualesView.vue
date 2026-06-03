@@ -3,7 +3,7 @@
     <div class="mx-auto max-w-7xl space-y-4">
       <PageHeader
         title="Manuales de Usuario"
-        description="Guia de uso del sistema por tipo de usuario."
+        description="Guía de uso del sistema por tipo de usuario."
       >
         <template #kicker>
           <span class="rounded-full bg-primary-light/30 px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-primary-dark">
@@ -102,7 +102,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 const authStore = useAuthStore()
 const loading = ref(false)
 const error = ref('')
-const activeManualId = ref(defaultManualId())
+const activeManualId = ref('operador')
 const manualMarkdown = ref('')
 
 const manuals = [
@@ -146,13 +146,13 @@ const currentRoleLabel = computed(() => {
 const renderedManual = computed(() => renderMarkdown(manualMarkdown.value))
 
 onMounted(() => {
+  activeManualId.value = defaultManualId()
   loadManual(activeManualId.value)
 })
 
 function defaultManualId() {
-  const user = JSON.parse(localStorage.getItem('user') || 'null')
-  if (user?.is_admin === 1) return 'admin'
-  if (user?.encargado === 1) return 'encargado'
+  if (authStore.isAdmin) return 'admin'
+  if (authStore.user?.encargado === 1) return 'encargado'
   return 'operador'
 }
 
@@ -172,7 +172,7 @@ async function loadManual(id) {
     manualMarkdown.value = await response.text()
   } catch {
     manualMarkdown.value = ''
-    error.value = 'No se pudo cargar el manual. Revisa que el archivo exista en frontend/public/manuales.'
+    error.value = 'No se pudo cargar el manual. Intentá nuevamente o contactá al administrador.'
   } finally {
     loading.value = false
   }
@@ -247,10 +247,11 @@ function renderMarkdown(markdown) {
       return
     }
 
-    if (trimmed.startsWith('<') && trimmed.endsWith('>')) {
+    const allowedHtml = renderAllowedHtmlLine(trimmed)
+    if (allowedHtml) {
       flushParagraph()
       flushList()
-      html.push(trimmed)
+      html.push(allowedHtml)
       return
     }
 
@@ -301,6 +302,25 @@ function inline(value) {
   return escapeHtml(value)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+}
+
+function renderAllowedHtmlLine(value) {
+  if (value === '</div>') return '</div>'
+
+  const div = value.match(/^<div\s+class="(cover|page-break|warning|note)">$/)
+  if (div) return `<div class="${div[1]}">`
+
+  const img = value.match(/^<img\s+src="([^"]+)"\s+alt="([^"]*)"\s*\/?>$/)
+  if (!img) return ''
+
+  const normalizedSrc = img[1].replace('../../frontend/public/logo-forestal.png', '/logo-forestal.png')
+  if (!isSafeImageSrc(normalizedSrc)) return ''
+
+  return `<img src="${escapeHtml(normalizedSrc)}" alt="${escapeHtml(img[2])}">`
+}
+
+function isSafeImageSrc(value) {
+  return value.startsWith('/') && !value.startsWith('//') && !/[<>"']/g.test(value)
 }
 
 function escapeHtml(value) {
