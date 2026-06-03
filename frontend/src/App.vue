@@ -214,6 +214,7 @@ const userRoleLabel = computed(() => {
 
 const primaryItems = computed(() => [
   { key: 'home', label: 'Inicio', icon: 'home', to: { name: 'home' } },
+  { key: 'manuales', label: 'Manuales', icon: 'manual', to: { name: 'manuales' } },
 ])
 
 const navSections = computed(() => {

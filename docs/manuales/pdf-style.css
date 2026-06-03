@@ -1,0 +1,135 @@
+@page {
+  size: A4;
+  margin: 18mm 16mm 20mm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  color: #1f2933;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+  color: #143d23;
+  line-height: 1.2;
+  margin: 1.2em 0 0.45em;
+}
+
+h1 {
+  font-size: 25pt;
+}
+
+h2 {
+  border-bottom: 1px solid #d7ded9;
+  font-size: 17pt;
+  padding-bottom: 4px;
+}
+
+h3 {
+  font-size: 13pt;
+}
+
+p {
+  margin: 0 0 0.75em;
+}
+
+ul,
+ol {
+  margin: 0 0 0.85em 1.25em;
+  padding: 0;
+}
+
+li {
+  margin: 0.22em 0;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 0.7em 0 1em;
+  width: 100%;
+}
+
+th,
+td {
+  border: 1px solid #d7ded9;
+  padding: 7px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #eef6f0;
+  color: #143d23;
+}
+
+code {
+  background: #eef2ef;
+  border-radius: 4px;
+  color: #143d23;
+  padding: 1px 4px;
+}
+
+a {
+  color: #2f7b4b;
+}
+
+.cover {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  min-height: 88vh;
+  justify-content: center;
+  text-align: center;
+}
+
+.cover img {
+  height: auto;
+  margin-bottom: 28px;
+  max-width: 220px;
+}
+
+.cover h1 {
+  font-size: 30pt;
+  margin: 0 0 8px;
+}
+
+.cover .subtitle {
+  color: #3d935d;
+  font-size: 17pt;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.cover .meta {
+  color: #53615a;
+  font-size: 10pt;
+}
+
+.note {
+  background: #f3f8f4;
+  border-left: 4px solid #3d935d;
+  margin: 1em 0;
+  padding: 10px 12px;
+}
+
+.warning {
+  background: #fff7e5;
+  border-left: 4px solid #d18a00;
+  margin: 1em 0;
+  padding: 10px 12px;
+}
+
+.page-break {
+  break-after: page;
+}
+
+.avoid-break {
+  break-inside: avoid;
+}
