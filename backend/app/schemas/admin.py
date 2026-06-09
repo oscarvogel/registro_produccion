@@ -210,6 +210,12 @@ class MovilResponse(BaseModel):
     observaciones: str | None = None
 
 
+class TipoMovilResponse(BaseModel):
+    id: int
+    detalle: str
+    activo: int
+
+
 class UnidadNegocioCreate(BaseModel):
     nombre: str = Field(min_length=1)
     prefijo: str = ""

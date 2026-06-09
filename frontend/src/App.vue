@@ -50,15 +50,24 @@
 
         <aside
           :class="[
-            'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[86vw] flex-col border-r border-neutral-200 bg-white shadow-xl transition-transform duration-200 md:z-20 md:translate-x-0 md:shadow-none',
+            'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[86vw] flex-col border-r border-neutral-200/80 bg-white/95 shadow-xl backdrop-blur transition-[transform,width] duration-200 md:z-20 md:max-w-none md:translate-x-0 md:shadow-none',
+            sidebarCollapsed ? 'md:w-20' : 'md:w-64',
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full',
           ]"
         >
-          <div class="flex h-16 shrink-0 items-center justify-between border-b border-neutral-100 px-4">
-            <div class="min-w-0">
+          <div :class="['flex h-16 shrink-0 items-center border-b border-neutral-100 px-4', sidebarCollapsed ? 'md:justify-center md:px-3' : 'justify-between']">
+            <div :class="['min-w-0', sidebarCollapsed ? 'md:hidden' : '']">
               <p class="truncate text-lg font-extrabold text-primary-dark">Registro Produccion</p>
               <p class="truncate text-xs font-semibold text-neutral-400">{{ authStore.userName }}</p>
             </div>
+            <button
+              type="button"
+              class="hidden h-10 w-10 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 hover:border-primary/30 hover:text-primary-dark md:flex"
+              :aria-label="sidebarCollapsed ? 'Expandir navegacion' : 'Contraer navegacion'"
+              @click="toggleSidebar"
+            >
+              <AppIcon :name="sidebarCollapsed ? 'forward' : 'back'" size="sm" />
+            </button>
             <button
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 md:hidden"
@@ -69,60 +78,67 @@
             </button>
           </div>
 
-          <nav class="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-            <div class="space-y-2">
+          <nav :class="['min-h-0 flex-1 overflow-y-auto py-4', sidebarCollapsed ? 'md:px-2 px-3' : 'px-3']">
+            <div :class="sidebarCollapsed ? 'space-y-1.5' : 'space-y-2'">
               <router-link
                 v-for="item in primaryItems"
                 :key="item.key"
                 :to="item.to"
                 :class="navItemClass(isItemActive(item))"
+                :title="sidebarCollapsed ? item.label : undefined"
                 exact-active-class="!border-primary-dark !bg-primary-dark !text-white"
                 @click="mobileMenuOpen = false"
               >
-                <span class="flex min-w-0 items-center gap-3">
+                <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
                   <AppIcon :name="item.icon" size="sm" class="shrink-0" />
-                  <span class="truncate">{{ item.label }}</span>
+                  <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ item.label }}</span>
                 </span>
               </router-link>
 
-              <section v-for="section in navSections" :key="section.key" class="pt-2">
+              <section v-for="section in navSections" :key="section.key" :class="sidebarCollapsed ? 'pt-2' : 'pt-2'">
                 <button
                   type="button"
                   :class="navSectionClass(section)"
+                  :title="sidebarCollapsed ? section.label : undefined"
                   @click="toggleSection(section.key)"
                 >
-                  <span class="flex min-w-0 items-center gap-2">
+                  <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-2' : 'gap-2']">
                     <span
                       :class="[
-                        'h-1.5 w-1.5 rounded-full transition-colors',
+                        'rounded-full transition-colors',
+                        sidebarCollapsed ? 'md:h-2 md:w-2 h-1.5 w-1.5' : 'h-1.5 w-1.5',
                         isSectionActive(section) ? 'bg-primary-dark' : 'bg-neutral-400',
                       ]"
                     ></span>
-                    <span class="truncate">{{ section.label }}</span>
+                    <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ section.label }}</span>
                   </span>
                   <AppIcon
                     name="chevronDown"
                     size="xs"
-                    :class="['shrink-0 transition-transform', openSections[section.key] ? 'rotate-180' : '']"
+                    :class="['shrink-0 transition-transform', sidebarCollapsed ? 'md:hidden' : '', openSections[section.key] ? 'rotate-180' : '']"
                   />
                 </button>
 
                 <Transition name="nav-section">
-                  <div v-show="openSections[section.key]" class="mt-1 space-y-1 overflow-hidden">
+                  <div v-show="sidebarCollapsed || openSections[section.key]" class="mt-1 space-y-1 overflow-hidden">
                     <router-link
                       v-for="item in section.items"
                       :key="item.key"
                       :to="item.to"
                       :class="navItemClass(isItemActive(item))"
+                      :title="sidebarCollapsed ? item.label : undefined"
                       @click="mobileMenuOpen = false"
                     >
-                      <span class="flex min-w-0 items-center gap-3">
+                      <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
                         <AppIcon :name="item.icon" size="sm" class="shrink-0" />
-                        <span class="truncate">{{ item.label }}</span>
+                        <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ item.label }}</span>
                       </span>
                       <span
                         v-if="Number(item.badge || 0) > 0"
-                        class="ml-2 rounded-full bg-warning px-2 py-0.5 text-[10px] font-extrabold text-white"
+                        :class="[
+                          'rounded-full bg-warning text-[10px] font-extrabold text-white',
+                          sidebarCollapsed ? 'md:absolute md:right-2 md:top-2 md:h-2 md:w-2 md:px-0 md:py-0 md:text-transparent ml-2 px-2 py-0.5' : 'ml-2 px-2 py-0.5',
+                        ]"
                       >
                         {{ item.badge }}
                       </span>
@@ -133,19 +149,20 @@
             </div>
           </nav>
 
-          <div class="shrink-0 border-t border-neutral-100 p-3">
+          <div :class="['shrink-0 border-t border-neutral-100 p-3', sidebarCollapsed ? 'md:px-2' : '']">
             <router-link
               :to="{ name: 'configuracion' }"
               :class="navItemClass(route.name === 'configuracion')"
+              :title="sidebarCollapsed ? 'Configuracion' : undefined"
               @click="mobileMenuOpen = false"
             >
-              <span class="flex min-w-0 items-center gap-3">
+              <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
                 <AppIcon name="settings" size="sm" />
-                <span class="truncate">Configuracion</span>
+                <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">Configuracion</span>
               </span>
             </router-link>
 
-            <div class="mt-3 rounded-lg bg-neutral-50 p-3">
+            <div :class="['mt-3 rounded-lg bg-neutral-50 p-3', sidebarCollapsed ? 'md:hidden' : '']">
               <p class="truncate text-sm font-bold text-neutral-800">{{ authStore.userName }}</p>
               <p class="mt-0.5 text-xs font-semibold text-neutral-400">{{ userRoleLabel }} - {{ isOnline ? 'En linea' : 'Sin conexion' }}</p>
               <button
@@ -160,7 +177,7 @@
           </div>
         </aside>
 
-        <main class="min-h-screen md:pl-72">
+        <main :class="['min-h-screen transition-[padding] duration-200', sidebarCollapsed ? 'md:pl-20' : 'md:pl-64']">
           <router-view v-slot="{ Component, route: viewRoute }">
             <Transition name="route-fade" mode="out-in">
               <div :key="viewRoute.fullPath" v-motion-page class="min-h-screen">
@@ -196,10 +213,12 @@ const route = useRoute()
 const authStore = useAuthStore()
 const produccionStore = useProduccionStore()
 const mobileMenuOpen = ref(false)
+const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === '1')
 const openSections = reactive({
-  operacion: true,
-  catalogos: true,
-  produccion: true,
+  operacion: false,
+  catalogos: false,
+  combustible: false,
+  produccion: false,
 })
 
 const isAdmin = computed(() => authStore.isAdmin)
@@ -250,6 +269,14 @@ const navSections = computed(() => {
     })
   }
 
+  sections.push({
+    key: 'combustible',
+    label: 'Combustible',
+    items: [
+      { key: 'carga-combustible', label: 'Carga de Combustible', icon: 'fuel', to: { name: 'combustible' } },
+    ],
+  })
+
   const produccionItems = [
     { key: 'carga-produccion', label: 'Carga de Produccion', icon: 'production', to: { name: 'produccion' } },
     { key: 'pendientes', label: 'Pendientes', icon: 'pending', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
@@ -267,12 +294,17 @@ function toggleSection(key) {
   openSections[key] = !openSections[key]
 }
 
+function toggleSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+}
+
 function navItemClass(active) {
   return [
-    'flex min-h-11 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm font-bold transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
+    'relative flex min-h-11 items-center gap-2 rounded-lg border py-2 text-sm font-bold transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
+    sidebarCollapsed.value ? 'md:justify-center md:px-2 justify-between px-3' : 'justify-between px-3',
     active
       ? 'border-primary-dark bg-primary-dark text-white'
-      : 'border-neutral-200/80 bg-white text-neutral-800 shadow-sm hover:border-primary/25 hover:bg-primary-light/20 hover:text-primary-dark hover:shadow',
+      : 'border-transparent bg-transparent text-neutral-700 hover:border-primary/20 hover:bg-primary-light/25 hover:text-primary-dark',
   ]
 }
 
@@ -281,12 +313,13 @@ function navSectionClass(section) {
   const open = openSections[section.key]
 
   return [
-    'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs font-extrabold uppercase tracking-wide transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
+    'flex w-full items-center rounded-lg border py-2 text-left text-xs font-extrabold uppercase tracking-wide transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
+    sidebarCollapsed.value ? 'md:justify-center md:px-2 justify-between px-3' : 'justify-between px-3',
     active
-      ? 'border-primary/25 bg-primary-light/35 text-primary-dark shadow-sm'
+      ? 'border-primary/20 bg-primary-light/30 text-primary-dark'
       : open
-        ? 'border-neutral-200 bg-neutral-50 text-neutral-700'
-        : 'border-neutral-200/80 bg-white text-neutral-600 shadow-sm hover:border-primary/25 hover:bg-primary-light/20 hover:text-primary-dark',
+        ? 'border-transparent bg-neutral-50 text-neutral-600'
+        : 'border-transparent bg-transparent text-neutral-500 hover:bg-neutral-50 hover:text-primary-dark',
   ]
 }
 
@@ -307,6 +340,10 @@ watch(
     mobileMenuOpen.value = false
   },
 )
+
+watch(sidebarCollapsed, (value) => {
+  localStorage.setItem('sidebarCollapsed', value ? '1' : '0')
+})
 
 // PWA install prompt
 const deferredInstallPrompt = ref(null)

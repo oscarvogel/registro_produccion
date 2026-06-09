@@ -15,6 +15,12 @@ const routes = [
   { path: '/', name: 'home', component: HomeView, meta: { requiresAuth: true } },
   { path: '/produccion', name: 'produccion', component: ProduccionFormView, meta: { requiresAuth: true } },
   {
+    path: '/combustible',
+    name: 'combustible',
+    component: () => import('../views/CombustibleFormView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/dashboard',
     name: 'dashboard',
     component: () => import('../views/DashboardView.vue'),

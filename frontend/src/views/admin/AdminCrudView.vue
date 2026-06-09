@@ -159,16 +159,78 @@
               >
                 <div class="mb-2 flex items-center justify-between gap-3">
                   <p class="text-xs font-bold uppercase tracking-wide text-neutral-500">{{ block.title }}</p>
-                  <span class="text-xs font-bold text-primary-dark">{{ block.items.length }}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-primary-dark">{{ block.items.length }}</span>
+                    <button
+                      v-if="block.manageable"
+                      @click="startRelationAdd(row[meta.idKey], block.key)"
+                      class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-primary/30 bg-white text-primary-dark hover:bg-primary-light/20"
+                      type="button"
+                      :title="`Agregar ${block.title}`"
+                    >
+                      <AppIcon name="add" size="xs" />
+                    </button>
+                  </div>
+                </div>
+                <div v-if="isRelationAdding(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
+                  <select
+                    v-model="relationDraft.selectedId"
+                    class="min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm"
+                  >
+                    <option value="">Seleccionar</option>
+                    <option
+                      v-for="option in relationAddOptions(row[meta.idKey], block.key)"
+                      :key="option.id"
+                      :value="option.id"
+                    >
+                      {{ option.label }}
+                    </option>
+                  </select>
+                  <button class="rounded-md bg-primary px-2 text-white" type="button" @click="confirmRelationAdd">
+                    <AppIcon name="save" size="xs" />
+                  </button>
+                  <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" @click="cancelRelationDraft">
+                    <AppIcon name="close" size="xs" />
+                  </button>
+                </div>
+                <div v-if="isRelationMoving(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
+                  <select
+                    v-model="relationDraft.targetUnidadId"
+                    class="min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm"
+                  >
+                    <option value="">Mover a unidad</option>
+                    <option
+                      v-for="option in relationMoveOptions(row[meta.idKey])"
+                      :key="option.idUnidadNegocio"
+                      :value="option.idUnidadNegocio"
+                    >
+                      {{ option.nombre }}
+                    </option>
+                  </select>
+                  <button class="rounded-md bg-primary px-2 text-white" type="button" @click="confirmRelationMove">
+                    <AppIcon name="save" size="xs" />
+                  </button>
+                  <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" @click="cancelRelationDraft">
+                    <AppIcon name="close" size="xs" />
+                  </button>
                 </div>
                 <div class="space-y-1">
-                  <p
+                  <div
                     v-for="item in block.items.slice(0, 8)"
-                    :key="item"
-                    class="truncate text-sm text-neutral-700"
+                    :key="item.id"
+                    class="flex items-center justify-between gap-2"
                   >
-                    {{ item }}
-                  </p>
+                    <span class="truncate text-sm text-neutral-700">{{ item.label }}</span>
+                    <button
+                      v-if="block.manageable"
+                      @click="startRelationRemove(row[meta.idKey], block.key, item.id)"
+                      class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-red-200 text-red-700 hover:bg-red-50"
+                      type="button"
+                      :title="`Quitar ${item.label}`"
+                    >
+                      <AppIcon name="close" size="xs" />
+                    </button>
+                  </div>
                   <p v-if="block.items.length === 0" class="text-sm text-neutral-400">Sin vinculaciones.</p>
                   <p v-else-if="block.items.length > 8" class="text-xs text-neutral-400">
                     +{{ block.items.length - 8 }} mas
@@ -261,16 +323,56 @@
                       >
                         <div class="flex items-center justify-between gap-3 mb-2">
                           <p class="text-xs font-bold uppercase tracking-wide text-neutral-500">{{ block.title }}</p>
-                          <span class="text-xs font-bold text-primary-dark">{{ block.items.length }}</span>
+                          <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-primary-dark">{{ block.items.length }}</span>
+                            <button
+                              v-if="block.manageable"
+                              @click="startRelationAdd(row[meta.idKey], block.key)"
+                              class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-primary/30 text-primary-dark hover:bg-primary-light/20"
+                              type="button"
+                              :title="`Agregar ${block.title}`"
+                            >
+                              <AppIcon name="add" size="xs" />
+                            </button>
+                          </div>
+                        </div>
+                        <div v-if="isRelationAdding(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
+                          <select v-model="relationDraft.selectedId" class="min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm">
+                            <option value="">Seleccionar</option>
+                            <option v-for="option in relationAddOptions(row[meta.idKey], block.key)" :key="option.id" :value="option.id">
+                              {{ option.label }}
+                            </option>
+                          </select>
+                          <button class="rounded-md bg-primary px-2 text-white" type="button" @click="confirmRelationAdd"><AppIcon name="save" size="xs" /></button>
+                          <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" @click="cancelRelationDraft"><AppIcon name="close" size="xs" /></button>
+                        </div>
+                        <div v-if="isRelationMoving(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
+                          <select v-model="relationDraft.targetUnidadId" class="min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm">
+                            <option value="">Mover a unidad</option>
+                            <option v-for="option in relationMoveOptions(row[meta.idKey])" :key="option.idUnidadNegocio" :value="option.idUnidadNegocio">
+                              {{ option.nombre }}
+                            </option>
+                          </select>
+                          <button class="rounded-md bg-primary px-2 text-white" type="button" @click="confirmRelationMove"><AppIcon name="save" size="xs" /></button>
+                          <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" @click="cancelRelationDraft"><AppIcon name="close" size="xs" /></button>
                         </div>
                         <div class="space-y-1 max-h-32 overflow-y-auto">
-                          <p
+                          <div
                             v-for="item in block.items.slice(0, 12)"
-                            :key="item"
-                            class="text-sm text-neutral-700 truncate"
+                            :key="item.id"
+                            class="flex items-center justify-between gap-2"
                           >
-                            {{ item }}
-                          </p>
+                            <span class="truncate text-sm text-neutral-700">{{ item.label }}</span>
+                            <button
+                              v-if="block.manageable"
+                              @click="startRelationRemove(row[meta.idKey], block.key, item.id)"
+                              class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-red-200 text-red-700 hover:bg-red-50"
+                              type="button"
+                              :title="`Quitar ${item.label}`"
+                            >
+                              <AppIcon name="close" size="xs" />
+                            </button>
+                          </div>
                           <p v-if="block.items.length === 0" class="text-sm text-neutral-400">Sin vinculaciones.</p>
                           <p v-else-if="block.items.length > 12" class="text-xs text-neutral-400">
                             +{{ block.items.length - 12 }} mas
@@ -540,7 +642,7 @@ const ENTITY_DEFINITIONS = {
     formHint: 'Los datos tecnicos quedan agrupados para evitar formularios interminables.',
     idKey: 'idMovil',
     deleteVerb: 'Desactivar',
-    extraReferences: ['unidades-negocio'],
+    extraReferences: ['unidades-negocio', 'tipos-proceso', 'tipos-movil'],
     columns: [
       { key: 'idMovil', label: 'ID' },
       { key: 'patente', label: 'Patente' },
@@ -553,8 +655,8 @@ const ENTITY_DEFINITIONS = {
       { key: 'detalle', label: 'Detalle', type: 'text', required: true, section: 'principal' },
       { key: 'id_unidad_negocio', label: 'Unidad de Negocio', type: 'autocomplete', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre', default: 1, section: 'principal' },
       { key: 'activo', label: 'Activo', type: 'checkbox', output: 'int', default: true, section: 'principal' },
-      { key: 'tipo_proceso', label: 'Tipo Proceso', type: 'text', default: '1', section: 'tecnico' },
-      { key: 'tipo_movil', label: 'Tipo Movil', type: 'number', default: 1, section: 'tecnico' },
+      { key: 'tipo_proceso', label: 'Tipo Proceso', type: 'autocomplete', optionsEntity: 'tipos-proceso', optionValue: 'id', optionLabel: 'nombre', output: 'string', default: '1', section: 'tecnico' },
+      { key: 'tipo_movil', label: 'Tipo Movil', type: 'autocomplete', optionsEntity: 'tipos-movil', optionValue: 'id', optionLabel: 'detalle', default: 1, section: 'tecnico' },
       { key: 'cant_neumaticos', label: 'Cantidad Neumaticos', type: 'number', default: 0, section: 'tecnico' },
       { key: 'capacidad_tanque', label: 'Capacidad Tanque', type: 'number', default: 0, section: 'tecnico' },
       { key: 'consumo_promedio', label: 'Consumo Promedio', type: 'number', default: 0, section: 'tecnico' },
@@ -571,10 +673,10 @@ const ENTITY_DEFINITIONS = {
     title: 'Unidades de Negocio',
     singular: 'unidad de negocio',
     description: 'Mantiene unidades y permite revisar sus vinculaciones operativas.',
-    formHint: 'Usa Relaciones en la tabla para ver personal, moviles y procesos asociados.',
+    formHint: 'Usa Relaciones en la tabla para ver personal, moviles y procesos vinculados.',
     idKey: 'idUnidadNegocio',
     deleteVerb: 'Desactivar',
-    extraReferences: ['personal', 'moviles', 'tipos-proceso'],
+    extraReferences: ['unidades-negocio', 'personal', 'moviles', 'tipos-proceso'],
     columns: [
       { key: 'idUnidadNegocio', label: 'ID' },
       { key: 'nombre', label: 'Nombre' },
@@ -721,6 +823,13 @@ const quickAssignment = reactive({
   idMovil: '',
   idProceso: '',
 })
+const relationDraft = reactive({
+  mode: '',
+  unidadId: '',
+  type: '',
+  selectedId: '',
+  targetUnidadId: '',
+})
 
 const page = ref(0)
 const limit = ref(5)
@@ -831,6 +940,14 @@ function resetQuickAssignment() {
   quickAssignment.idProceso = ''
 }
 
+function cancelRelationDraft() {
+  relationDraft.mode = ''
+  relationDraft.unidadId = ''
+  relationDraft.type = ''
+  relationDraft.selectedId = ''
+  relationDraft.targetUnidadId = ''
+}
+
 function updateQuickAssignment(value) {
   Object.assign(quickAssignment, value)
 }
@@ -929,6 +1046,10 @@ function normalizePayload() {
     }
 
     if (field.type === 'select' || field.type === 'autocomplete') {
+      if (field.output === 'string') {
+        payload[field.key] = value === '' || value === null || value === undefined ? (field.nullable ? null : '') : String(value)
+        continue
+      }
       payload[field.key] = value === '' || value === null || value === undefined ? (field.nullable ? null : 0) : Number(value)
       continue
     }
@@ -1094,25 +1215,126 @@ function changePageSize() {
 
 function toggleRelations(id) {
   expandedUnidadId.value = expandedUnidadId.value === id ? null : id
+  cancelRelationDraft()
 }
 
 function unidadRelations(unidadId) {
   const id = Number(unidadId)
   const personal = (referenceData.personal || [])
     .filter((item) => Array.isArray(item.unidad_ids) && item.unidad_ids.map(Number).includes(id))
-    .map((item) => item.nombre)
+    .map((item) => ({ id: item.idPersonal, label: item.nombre }))
   const moviles = (referenceData.moviles || [])
     .filter((item) => Number(item.id_unidad_negocio) === id)
-    .map((item) => formatOptionLabel(item, { optionsEntity: 'moviles', optionLabel: 'detalle' }))
+    .map((item) => ({ id: item.idMovil, label: formatOptionLabel(item, { optionsEntity: 'moviles', optionLabel: 'detalle' }) }))
   const procesos = (referenceData['tipos-proceso'] || [])
     .filter((item) => Array.isArray(item.unidad_ids) && item.unidad_ids.map(Number).includes(id))
-    .map((item) => item.nombre)
+    .map((item) => ({ id: item.id, label: item.nombre }))
 
   return [
-    { title: 'Personal', items: personal },
-    { title: 'Moviles', items: moviles },
-    { title: 'Procesos', items: procesos },
+    { key: 'personal', title: 'Personal', items: personal, manageable: true },
+    { key: 'moviles', title: 'Moviles', items: moviles, manageable: true },
+    { key: 'procesos', title: 'Procesos', items: procesos, manageable: false },
   ]
+}
+
+function isRelationAdding(unidadId, type) {
+  return relationDraft.mode === 'add' && Number(relationDraft.unidadId) === Number(unidadId) && relationDraft.type === type
+}
+
+function isRelationMoving(unidadId, type) {
+  return relationDraft.mode === 'move' && Number(relationDraft.unidadId) === Number(unidadId) && relationDraft.type === type
+}
+
+function startRelationAdd(unidadId, type) {
+  relationDraft.mode = 'add'
+  relationDraft.unidadId = Number(unidadId)
+  relationDraft.type = type
+  relationDraft.selectedId = ''
+  relationDraft.targetUnidadId = ''
+}
+
+async function startRelationRemove(unidadId, type, selectedId) {
+  if (type === 'moviles') {
+    relationDraft.mode = 'move'
+    relationDraft.unidadId = Number(unidadId)
+    relationDraft.type = type
+    relationDraft.selectedId = Number(selectedId)
+    relationDraft.targetUnidadId = ''
+    return
+  }
+
+  await unlinkPersonalFromUnidad(selectedId, unidadId)
+}
+
+function relationAddOptions(unidadId, type) {
+  const id = Number(unidadId)
+  if (type === 'personal') {
+    return (referenceData.personal || [])
+      .filter((item) => !Array.isArray(item.unidad_ids) || !item.unidad_ids.map(Number).includes(id))
+      .map((item) => ({ id: item.idPersonal, label: formatOptionLabel(item, { optionsEntity: 'personal', optionLabel: 'nombre' }) }))
+  }
+
+  if (type === 'moviles') {
+    return (referenceData.moviles || [])
+      .filter((item) => Number(item.id_unidad_negocio) !== id)
+      .map((item) => ({ id: item.idMovil, label: formatOptionLabel(item, { optionsEntity: 'moviles', optionLabel: 'detalle' }) }))
+  }
+
+  return []
+}
+
+function relationMoveOptions(unidadId) {
+  const id = Number(unidadId)
+  return (referenceData['unidades-negocio'] || []).filter((unidad) => Number(unidad.idUnidadNegocio) !== id)
+}
+
+async function confirmRelationAdd() {
+  if (!relationDraft.selectedId || !relationDraft.unidadId) return
+  if (relationDraft.type === 'personal') {
+    await linkPersonalToUnidad(relationDraft.selectedId, relationDraft.unidadId)
+  } else if (relationDraft.type === 'moviles') {
+    await moveMovilToUnidad(relationDraft.selectedId, relationDraft.unidadId)
+  }
+}
+
+async function confirmRelationMove() {
+  if (!relationDraft.selectedId || !relationDraft.targetUnidadId) return
+  await moveMovilToUnidad(relationDraft.selectedId, relationDraft.targetUnidadId)
+}
+
+async function linkPersonalToUnidad(personalId, unidadId) {
+  const person = findReference('personal', personalId, 'idPersonal')
+  if (!person) return
+  const unidadIds = Array.isArray(person.unidad_ids) ? person.unidad_ids.map(Number) : []
+  if (!unidadIds.includes(Number(unidadId))) unidadIds.push(Number(unidadId))
+  await updateRelationEntity('personal', personalId, { unidad_ids: unidadIds })
+}
+
+async function unlinkPersonalFromUnidad(personalId, unidadId) {
+  const person = findReference('personal', personalId, 'idPersonal')
+  if (!person) return
+  const unidadIds = (Array.isArray(person.unidad_ids) ? person.unidad_ids.map(Number) : [])
+    .filter((id) => id !== Number(unidadId))
+  await updateRelationEntity('personal', personalId, { unidad_ids: unidadIds })
+}
+
+async function moveMovilToUnidad(movilId, unidadId) {
+  await updateRelationEntity('moviles', movilId, { id_unidad_negocio: Number(unidadId) })
+}
+
+async function updateRelationEntity(refEntity, id, payload) {
+  submitting.value = true
+  error.value = null
+  try {
+    await adminStore.updateEntity(refEntity, id, payload)
+    clearReferenceCacheFor(refEntity)
+    await loadReferences()
+    cancelRelationDraft()
+  } catch (err) {
+    error.value = err.response?.data?.detail || 'No se pudo actualizar la vinculacion'
+  } finally {
+    submitting.value = false
+  }
 }
 
 function fieldClass(field) {
@@ -1194,6 +1416,7 @@ function optionFieldForEntity(refEntity) {
     personal: { optionsEntity: 'personal', optionLabel: 'nombre' },
     moviles: { optionsEntity: 'moviles', optionLabel: 'detalle' },
     'tipos-proceso': { optionsEntity: 'tipos-proceso', optionLabel: 'nombre' },
+    'tipos-movil': { optionsEntity: 'tipos-movil', optionLabel: 'detalle' },
     'unidades-negocio': { optionsEntity: 'unidades-negocio', optionLabel: 'nombre' },
     predios: { optionsEntity: 'predios', optionLabel: 'nombre' },
   }

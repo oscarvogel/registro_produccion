@@ -14,6 +14,7 @@ from app.models.personal import Personal
 from app.models.personal_unidad_negocio import PersonalUnidadNegocio
 from app.models.produccion import TableroProduccion
 from app.models.tipo_proceso import TipoDeProceso, UnidadNegocioTipoProceso
+from app.models.tipo_movil import TipoMovil
 from app.models.ubicacion import Predio, Rodal
 from app.models.unidad_negocio import UnidadNegocio
 from app.schemas.admin import (
@@ -50,6 +51,7 @@ from app.schemas.admin import (
     TipoProcesoCreate,
     TipoProcesoResponse,
     TipoProcesoUpdate,
+    TipoMovilResponse,
     UnidadNegocioCreate,
     UnidadNegocioResponse,
     UnidadNegocioUpdate,
@@ -228,6 +230,14 @@ def _to_tipo_proceso_response(db: Session, row: TipoDeProceso) -> TipoProcesoRes
         nombre=row.nombre or "",
         campos=row.campos or "",
         unidad_ids=_tipo_proceso_unidad_ids(db, row),
+        activo=int(row.activo or 0),
+    )
+
+
+def _to_tipo_movil_response(row: TipoMovil) -> TipoMovilResponse:
+    return TipoMovilResponse(
+        id=row.id,
+        detalle=row.detalle or "",
         activo=int(row.activo or 0),
     )
 
@@ -1092,6 +1102,25 @@ async def delete_tipo_proceso(
     row.activo = 0
     db.commit()
     return DeleteResponse()
+
+
+@router.get("/tipos-movil", response_model=list[TipoMovilResponse])
+async def list_tipos_movil(
+    skip: int = 0,
+    limit: int = 50,
+    buscar: str | None = None,
+    activo: int | None = None,
+    db: Session = Depends(get_db),
+    _: Personal = Depends(get_current_admin),
+):
+    query = db.query(TipoMovil)
+    if buscar:
+        pattern = f"%{buscar.strip()}%"
+        query = query.filter(TipoMovil.detalle.ilike(pattern))
+    if activo in (0, 1):
+        query = query.filter(TipoMovil.activo == activo)
+    rows = query.order_by(TipoMovil.detalle).offset(skip).limit(limit).all()
+    return [_to_tipo_movil_response(r) for r in rows]
 
 
 @router.get("/lugares-carga", response_model=list[LugarCargaResponse])
