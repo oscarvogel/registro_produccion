@@ -97,6 +97,38 @@ def _personal_unidad_ids(db: Session, row: Personal) -> list[int]:
     return _normalize_ids(ids, row.unidad_negocio)
 
 
+def _personal_unidad_ids_map(db: Session, rows: list[Personal]) -> dict[int, list[int]]:
+    rows_by_id = {
+        int(row.idPersonal): row
+        for row in rows
+        if row.idPersonal is not None
+    }
+    fallback = {
+        person_id: _normalize_ids([], row.unidad_negocio)
+        for person_id, row in rows_by_id.items()
+    }
+    if not rows_by_id or not _table_exists(db, "personal_unidad_negocio"):
+        return fallback
+
+    relation_rows = (
+        db.query(PersonalUnidadNegocio.idPersonal, PersonalUnidadNegocio.idUnidadNegocio)
+        .filter(PersonalUnidadNegocio.idPersonal.in_(rows_by_id.keys()))
+        .order_by(PersonalUnidadNegocio.idPersonal, PersonalUnidadNegocio.idUnidadNegocio)
+        .all()
+    )
+    grouped: dict[int, list[int]] = {person_id: [] for person_id in rows_by_id}
+    for person_id, unidad_id in relation_rows:
+        try:
+            grouped[int(person_id)].append(int(unidad_id))
+        except (TypeError, ValueError):
+            continue
+
+    return {
+        person_id: _normalize_ids(grouped.get(person_id), rows_by_id[person_id].unidad_negocio)
+        for person_id in rows_by_id
+    }
+
+
 def _tipo_proceso_unidad_ids(db: Session, row: TipoDeProceso) -> list[int]:
     if not _table_exists(db, "unidadnegocio_tipo_proceso"):
         return []
@@ -169,6 +201,11 @@ def _ensure_asignacion_consistente(db: Session, id_movil: int, id_chofer: int, i
 
 
 def _to_personal_response(db: Session, row: Personal) -> PersonalResponse:
+    unit_ids_by_person = _personal_unidad_ids_map(db, [row])
+    return _to_personal_response_with_units(row, unit_ids_by_person.get(int(row.idPersonal), []))
+
+
+def _to_personal_response_with_units(row: Personal, unidad_ids: list[int]) -> PersonalResponse:
     return PersonalResponse(
         idPersonal=row.idPersonal,
         nombre=row.Nombre or "",
@@ -176,7 +213,7 @@ def _to_personal_response(db: Session, row: Personal) -> PersonalResponse:
         cuit=row.CUIT or "",
         id_puesto=int(row.idPuesto or 1),
         unidad_negocio=int(row.unidad_negocio or 1),
-        unidad_ids=_personal_unidad_ids(db, row),
+        unidad_ids=unidad_ids,
         tipo_de_proceso_id=row.tipo_de_proceso_id,
         entrada_m=row.EntradaM or "00:00",
         salida_m=row.SalidaM or "00:00",
@@ -514,47 +551,87 @@ async def get_admin_dashboard(
     if not unidades:
         unidades = db.query(UnidadNegocio).order_by(UnidadNegocio.Nombre).all()
 
+    unidad_ids = [un.idUnidadNegocio for un in unidades]
+    totals_by_un = {
+        row.cod_un: row
+        for row in (
+            db.query(
+                TableroProduccion.cod_un.label("cod_un"),
+                func.count(TableroProduccion.id).label("total_registros"),
+                func.coalesce(func.sum(TableroProduccion.produccion), 0).label("produccion_total"),
+                func.coalesce(func.sum(TableroProduccion.tn_despachadas), 0).label("tn_despachadas_total"),
+                func.coalesce(func.sum(TableroProduccion.combustible), 0).label("combustible_total"),
+                func.count(func.distinct(TableroProduccion.cod_operador)).label("operadores_activos"),
+                func.count(func.distinct(TableroProduccion.cod_equipo)).label("equipos_activos"),
+            )
+            .filter(
+                TableroProduccion.cod_un.in_(unidad_ids),
+                TableroProduccion.fecha >= start,
+                TableroProduccion.fecha <= end,
+            )
+            .group_by(TableroProduccion.cod_un)
+            .all()
+        )
+    }
+
+    today_counts_by_un = {
+        cod_un: int(total or 0)
+        for cod_un, total in (
+            db.query(
+                TableroProduccion.cod_un,
+                func.count(TableroProduccion.id),
+            )
+            .filter(
+                TableroProduccion.cod_un.in_(unidad_ids),
+                TableroProduccion.fecha == today,
+            )
+            .group_by(TableroProduccion.cod_un)
+            .all()
+        )
+    }
+
+    tipos_by_un: dict[int, list[TipoDeProceso]] = {un_id: [] for un_id in unidad_ids}
+    for un_id, tipo in (
+        db.query(UnidadNegocioTipoProceso.un_id, TipoDeProceso)
+        .join(TipoDeProceso, UnidadNegocioTipoProceso.tipo_proceso_id == TipoDeProceso.id)
+        .filter(UnidadNegocioTipoProceso.un_id.in_(unidad_ids))
+        .order_by(UnidadNegocioTipoProceso.un_id, TipoDeProceso.nombre)
+        .all()
+    ):
+        tipos_by_un.setdefault(un_id, []).append(tipo)
+
+    type_totals_by_un_tipo = {
+        (row.cod_un, row.codigo_tabla): row
+        for row in (
+            db.query(
+                TableroProduccion.cod_un.label("cod_un"),
+                TableroProduccion.codigo_tabla.label("codigo_tabla"),
+                func.count(TableroProduccion.id).label("registros"),
+                func.coalesce(func.sum(TableroProduccion.produccion), 0).label("produccion"),
+            )
+            .filter(
+                TableroProduccion.cod_un.in_(unidad_ids),
+                TableroProduccion.fecha >= start,
+                TableroProduccion.fecha <= end,
+            )
+            .group_by(TableroProduccion.cod_un, TableroProduccion.codigo_tabla)
+            .all()
+        )
+    }
+
     result: list[DashboardUnidadNegocioItem] = []
 
     for un in unidades:
-        base = db.query(TableroProduccion).filter(
-            TableroProduccion.cod_un == un.idUnidadNegocio,
-            TableroProduccion.fecha >= start,
-            TableroProduccion.fecha <= end,
-        )
-
-        total_registros = int(base.with_entities(func.count(TableroProduccion.id)).scalar() or 0)
-        produccion_total = float(base.with_entities(func.coalesce(func.sum(TableroProduccion.produccion), 0)).scalar() or 0)
-        tn_despachadas_total = float(base.with_entities(func.coalesce(func.sum(TableroProduccion.tn_despachadas), 0)).scalar() or 0)
-        combustible_total = int(base.with_entities(func.coalesce(func.sum(TableroProduccion.combustible), 0)).scalar() or 0)
-        operadores_activos = int(base.with_entities(func.count(func.distinct(TableroProduccion.cod_operador))).scalar() or 0)
-        equipos_activos = int(base.with_entities(func.count(func.distinct(TableroProduccion.cod_equipo))).scalar() or 0)
-        registros_hoy = int(
-            base.filter(TableroProduccion.fecha == today)
-            .with_entities(func.count(TableroProduccion.id))
-            .scalar()
-            or 0
-        )
-
-        tipos = (
-            db.query(TipoDeProceso)
-            .join(UnidadNegocioTipoProceso, UnidadNegocioTipoProceso.tipo_proceso_id == TipoDeProceso.id)
-            .filter(UnidadNegocioTipoProceso.un_id == un.idUnidadNegocio)
-            .order_by(TipoDeProceso.nombre)
-            .all()
-        )
-
+        totals = totals_by_un.get(un.idUnidadNegocio)
         tipos_proceso: list[DashboardTipoProcesoItem] = []
-        for tipo in tipos:
-            tp_base = base.filter(TableroProduccion.codigo_tabla == tipo.id)
-            tp_registros = int(tp_base.with_entities(func.count(TableroProduccion.id)).scalar() or 0)
-            tp_produccion = float(tp_base.with_entities(func.coalesce(func.sum(TableroProduccion.produccion), 0)).scalar() or 0)
+        for tipo in tipos_by_un.get(un.idUnidadNegocio, []):
+            type_totals = type_totals_by_un_tipo.get((un.idUnidadNegocio, tipo.id))
             tipos_proceso.append(
                 DashboardTipoProcesoItem(
                     id=tipo.id,
                     nombre=tipo.nombre or "",
-                    registros=tp_registros,
-                    produccion=round(tp_produccion, 2),
+                    registros=int(type_totals.registros or 0) if type_totals else 0,
+                    produccion=round(float(type_totals.produccion or 0), 2) if type_totals else 0,
                 )
             )
 
@@ -564,13 +641,13 @@ async def get_admin_dashboard(
                 nombre=un.Nombre or "",
                 prefijo=un.Prefijo or "",
                 resumen=DashboardResumenItem(
-                    total_registros=total_registros,
-                    produccion_total=round(produccion_total, 2),
-                    tn_despachadas_total=round(tn_despachadas_total, 2),
-                    combustible_total=combustible_total,
-                    operadores_activos=operadores_activos,
-                    equipos_activos=equipos_activos,
-                    registros_hoy=registros_hoy,
+                    total_registros=int(totals.total_registros or 0) if totals else 0,
+                    produccion_total=round(float(totals.produccion_total or 0), 2) if totals else 0,
+                    tn_despachadas_total=round(float(totals.tn_despachadas_total or 0), 2) if totals else 0,
+                    combustible_total=int(totals.combustible_total or 0) if totals else 0,
+                    operadores_activos=int(totals.operadores_activos or 0) if totals else 0,
+                    equipos_activos=int(totals.equipos_activos or 0) if totals else 0,
+                    registros_hoy=today_counts_by_un.get(un.idUnidadNegocio, 0),
                 ),
                 tipos_proceso=tipos_proceso,
             )
@@ -682,7 +759,11 @@ async def list_personal(
         else:
             query = query.filter(Personal.unidad_negocio == unidad_id)
     rows = query.order_by(Personal.Nombre).offset(skip).limit(limit).all()
-    return [_to_personal_response(db, r) for r in rows]
+    unit_ids_by_person = _personal_unidad_ids_map(db, rows)
+    return [
+        _to_personal_response_with_units(r, unit_ids_by_person.get(int(r.idPersonal), []))
+        for r in rows
+    ]
 
 
 @router.post("/personal", response_model=PersonalResponse, status_code=status.HTTP_201_CREATED)

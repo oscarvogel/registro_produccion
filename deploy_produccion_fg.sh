@@ -64,7 +64,11 @@ cp -a "$tmp_dir/backend/app" "$APP_DIR/backend/"
 cp "$tmp_dir/backend/requirements.txt" "$APP_DIR/backend/requirements.txt"
 
 echo "==> Actualizando frontend"
-find "$APP_DIR/frontend" -mindepth 1 ! -name '.env' -exec rm -rf {} +
+find "$APP_DIR/frontend" -mindepth 1 \
+  ! -name '.env' \
+  ! -path "$APP_DIR/frontend/assets" \
+  ! -path "$APP_DIR/frontend/assets/*" \
+  -exec rm -rf {} +
 cp -a "$tmp_dir/frontend/dist/." "$APP_DIR/frontend/"
 
 echo "==> Instalando dependencias backend"
