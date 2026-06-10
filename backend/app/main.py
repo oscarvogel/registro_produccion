@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
-from app.api.routes import items, auth, produccion, dashboard, admin
+from app.api.routes import items, auth, produccion, dashboard, admin, combustible
 
 import pymysql
 
@@ -44,6 +44,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(auth.router, prefix="/api")
 app.include_router(items.router, prefix="/api")
 app.include_router(produccion.router, prefix="/api")
+app.include_router(combustible.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 

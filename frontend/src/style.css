@@ -3,16 +3,16 @@
 
 @theme {
   /* Arbor Insight semantic surfaces */
-  --color-surface: #f4fafd;
-  --color-surface-dim: #d4dbdd;
-  --color-surface-bright: #f4fafd;
+  --color-surface: #f6f7f5;
+  --color-surface-dim: #d8dbd6;
+  --color-surface-bright: #f8f9f7;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #eef5f7;
-  --color-surface-container: #e8eff1;
-  --color-surface-container-high: #e2e9ec;
-  --color-surface-container-highest: #dde4e6;
-  --color-surface-variant: #dde4e6;
-  --color-background: #f4fafd;
+  --color-surface-container-low: #f0f2ef;
+  --color-surface-container: #e9ece7;
+  --color-surface-container-high: #e3e6e1;
+  --color-surface-container-highest: #dde1da;
+  --color-surface-variant: #dde1da;
+  --color-background: #f6f7f5;
 
   /* Arbor Insight foregrounds and borders */
   --color-on-surface: #161d1f;
@@ -63,10 +63,10 @@
 
   /* Neutral compatibility scale */
   --color-neutral-50: #ffffff;
-  --color-neutral-100: #f4fafd;
-  --color-neutral-200: #e8eff1;
-  --color-neutral-300: #dde4e6;
-  --color-neutral-400: #c1c8c4;
+  --color-neutral-100: #f6f7f5;
+  --color-neutral-200: #e9ece7;
+  --color-neutral-300: #dde1da;
+  --color-neutral-400: #c1c6bf;
   --color-neutral-500: #717976;
   --color-neutral-600: #414846;
   --color-neutral-700: #2b3234;

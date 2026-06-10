@@ -8,6 +8,7 @@ from app.schemas.admin import (
     PredioResponse,
     RodalResponse,
     TipoProcesoResponse,
+    TipoMovilResponse,
     UnidadNegocioResponse,
 )
 
@@ -27,6 +28,8 @@ router.add_api_route("/tipos-proceso", admin_legacy.list_tipos_proceso, methods=
 router.add_api_route("/tipos-proceso", admin_legacy.create_tipo_proceso, methods=["POST"], response_model=TipoProcesoResponse, status_code=status.HTTP_201_CREATED)
 router.add_api_route("/tipos-proceso/{tipo_proceso_id}", admin_legacy.update_tipo_proceso, methods=["PUT"], response_model=TipoProcesoResponse)
 router.add_api_route("/tipos-proceso/{tipo_proceso_id}", admin_legacy.delete_tipo_proceso, methods=["DELETE"], response_model=DeleteResponse)
+
+router.add_api_route("/tipos-movil", admin_legacy.list_tipos_movil, methods=["GET"], response_model=list[TipoMovilResponse])
 
 router.add_api_route("/lugares-carga", admin_legacy.list_lugares_carga, methods=["GET"], response_model=list[LugarCargaResponse])
 router.add_api_route("/lugares-carga", admin_legacy.create_lugar_carga, methods=["POST"], response_model=LugarCargaResponse, status_code=status.HTTP_201_CREATED)
