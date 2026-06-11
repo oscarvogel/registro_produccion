@@ -8,15 +8,17 @@
     </label>
     <div class="relative">
       <input
-        :type="type"
+        :type="inputType"
         :value="modelValue"
-        @input="$emit('update:modelValue', $event.target.value)"
+        @input="handleInput"
         :placeholder="placeholder"
         :required="required"
         :disabled="disabled"
         :min="min"
         :max="max"
         :step="step"
+        :inputmode="inputMode"
+        :pattern="pattern"
         :class="[
           'app-input w-full rounded-xl border px-4 py-2.5 placeholder:text-neutral-400 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-500 disabled:opacity-100 transition-colors',
           invalid
@@ -34,8 +36,9 @@
 
 <script setup>
 import AppIcon from '@/components/ui/AppIcon.vue'
+import { computed } from 'vue'
 
-defineProps({
+const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
   label: { type: String, default: '' },
   type: { type: String, default: 'text' },
@@ -48,5 +51,17 @@ defineProps({
   invalid: { type: Boolean, default: false },
 })
 
-defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue'])
+
+const isNumeric = computed(() => props.type === 'number')
+const inputType = computed(() => isNumeric.value ? 'text' : props.type)
+const inputMode = computed(() => isNumeric.value ? 'decimal' : undefined)
+const pattern = computed(() => isNumeric.value ? '[0-9]*([.,][0-9]+)?' : undefined)
+
+function handleInput(event) {
+  const rawValue = event.target.value
+  const value = isNumeric.value ? rawValue.replace(',', '.') : rawValue
+  if (value !== rawValue) event.target.value = value
+  emit('update:modelValue', value)
+}
 </script>
