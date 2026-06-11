@@ -4,7 +4,7 @@ import { useToastStore } from '@/stores/toast'
 let onUnauthorized = null
 
 export function normalizeBaseURL(value) {
-  const baseURL = value || 'http://localhost:8000'
+  const baseURL = value || ''
   return baseURL.replace(/\/api\/?$/, '')
 }
 
