@@ -2,10 +2,10 @@
   <div class="space-y-4">
     <PageHeader :title="meta.title" :description="meta.description">
       <template #kicker>
-        <span class="rounded-full bg-primary-light/30 px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-primary-dark">
+        <span class="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide app-chip-info">
           Administracion
         </span>
-        <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-extrabold text-neutral-600">
+        <span class="rounded-full border px-3 py-1 text-xs font-bold app-state-inactive">
           {{ filteredRows.length }} registro{{ filteredRows.length !== 1 ? 's' : '' }}
         </span>
       </template>
@@ -25,7 +25,7 @@
       <div class="space-y-4">
         <FilterBar title="Busqueda y filtros" eyebrow="Vista actual">
           <template #summary>
-            <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-extrabold text-neutral-600">
+            <span class="rounded-full border px-3 py-1 text-xs font-bold app-state-inactive">
               Pagina {{ page + 1 }}
             </span>
           </template>
@@ -88,7 +88,7 @@
           <article
             v-for="row in filteredRows"
             :key="`mobile-${row[meta.idKey]}`"
-            class="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-all hover:border-primary/25 hover:shadow-md"
+            class="app-card rounded-xl p-4 transition-all hover:border-secondary/25 hover:shadow-md"
           >
             <div class="mb-3 flex items-start justify-between gap-3">
               <div class="min-w-0">
@@ -160,11 +160,11 @@
                 <div class="mb-2 flex items-center justify-between gap-3">
                   <p class="text-xs font-bold uppercase tracking-wide text-neutral-500">{{ block.title }}</p>
                   <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-primary-dark">{{ block.items.length }}</span>
+                    <span class="text-xs font-bold text-info-dark">{{ block.items.length }}</span>
                     <button
                       v-if="block.manageable"
                       @click="startRelationAdd(row[meta.idKey], block.key)"
-                      class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-primary/30 bg-white text-primary-dark hover:bg-primary-light/20"
+                      class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-secondary/30 bg-white text-info-dark hover:bg-info-light"
                       type="button"
                       :title="`Agregar ${block.title}`"
                     >
@@ -324,11 +324,11 @@
                         <div class="flex items-center justify-between gap-3 mb-2">
                           <p class="text-xs font-bold uppercase tracking-wide text-neutral-500">{{ block.title }}</p>
                           <div class="flex items-center gap-2">
-                            <span class="text-xs font-bold text-primary-dark">{{ block.items.length }}</span>
+                            <span class="text-xs font-bold text-info-dark">{{ block.items.length }}</span>
                             <button
                               v-if="block.manageable"
                               @click="startRelationAdd(row[meta.idKey], block.key)"
-                              class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-primary/30 text-primary-dark hover:bg-primary-light/20"
+                              class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-secondary/30 text-info-dark hover:bg-info-light"
                               type="button"
                               :title="`Agregar ${block.title}`"
                             >
@@ -424,10 +424,10 @@
     </SectionCard>
 
     <div v-if="showForm" class="fixed inset-0 bg-black/35 z-50 flex items-center justify-center p-4" @click.self="closeForm">
-      <div class="w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white rounded-xl border border-neutral-200 shadow-xl flex flex-col">
-        <div class="px-5 py-4 border-b border-neutral-200 flex items-center justify-between gap-4">
+      <div class="flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-xl">
+        <div class="shrink-0 px-5 py-4 border-b border-neutral-200 flex items-center justify-between gap-4">
           <div>
-            <h3 class="text-lg font-extrabold text-primary-dark">
+            <h3 class="text-lg font-extrabold text-neutral-950">
               {{ editingId ? 'Editar' : 'Nuevo' }} {{ meta.singular }}
             </h3>
             <p class="text-xs text-neutral-400 mt-0.5">{{ meta.formHint }}</p>
@@ -435,7 +435,7 @@
           <button @click="closeForm" class="text-neutral-500 hover:text-neutral-700" type="button">Cerrar</button>
         </div>
 
-        <div v-if="formSections.length > 1" class="px-5 pt-4 flex flex-wrap gap-2">
+        <div v-if="formSections.length > 1" class="shrink-0 px-5 pt-4 flex flex-wrap gap-2">
           <button
             v-for="section in formSections"
             :key="section.key"
@@ -452,7 +452,7 @@
           </button>
         </div>
 
-        <div class="p-5 overflow-y-auto">
+        <div class="min-h-0 flex-1 overflow-y-auto p-5">
           <div v-if="formError" class="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
             {{ formError }}
           </div>
@@ -476,6 +476,7 @@
                   labelKey="_adminLabel"
                   :valueKey="field.optionValue"
                   :placeholder="field.placeholder || 'Escribi para buscar'"
+                  dropdownMode="inline"
                 />
               </div>
 
@@ -487,6 +488,7 @@
                   labelKey="_adminLabel"
                   :valueKey="field.optionValue"
                   :placeholder="field.nullable ? 'Sin valor' : 'Escribi para buscar'"
+                  dropdownMode="inline"
                 />
                 <button
                   v-if="field.nullable && form[field.key]"
@@ -533,7 +535,7 @@
           </div>
         </div>
 
-        <div class="px-5 py-4 border-t border-neutral-200 flex items-center justify-end gap-2">
+        <div class="shrink-0 px-5 py-4 border-t border-neutral-200 flex items-center justify-end gap-2">
           <button
             @click="closeForm"
             class="px-4 py-2 rounded-lg border border-neutral-300 text-sm font-semibold text-neutral-700"
@@ -1453,11 +1455,11 @@ function badgeClass(value, column) {
   const base = 'inline-flex items-center px-2 py-1 rounded-md text-xs font-bold border'
   if (column.key === 'activo') {
     return active
-      ? `${base} bg-emerald-50 text-emerald-700 border-emerald-200`
-      : `${base} bg-neutral-100 text-neutral-500 border-neutral-200`
+      ? `${base} app-state-active`
+      : `${base} app-state-inactive`
   }
   return active
-    ? `${base} bg-primary/10 text-primary-dark border-primary/20`
-    : `${base} bg-neutral-100 text-neutral-500 border-neutral-200`
+    ? `${base} app-chip-info`
+    : `${base} app-state-inactive`
 }
 </script>

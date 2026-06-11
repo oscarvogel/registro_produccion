@@ -1,5 +1,5 @@
 <template>
-  <div class="overflow-x-auto rounded-xl border border-neutral-200 bg-white shadow-sm">
+  <div class="app-card overflow-x-auto rounded-xl">
     <table class="min-w-full text-sm">
       <thead class="sticky top-0 z-10 bg-neutral-50 text-neutral-600 shadow-[0_1px_0_var(--color-neutral-200)]">
         <tr>
@@ -10,7 +10,7 @@
           >
             <button
               v-if="column.sortable"
-              class="inline-flex items-center gap-1 hover:text-primary-dark"
+              class="inline-flex items-center gap-1 hover:text-info-dark"
               type="button"
               @click="toggleSort(column.key)"
             >

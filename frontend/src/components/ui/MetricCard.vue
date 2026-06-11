@@ -2,14 +2,14 @@
   <article
     v-motion-panel
     :class="[
-      'rounded-xl border bg-white p-4 shadow-sm transition-all duration-150 ease-out',
-      interactive ? 'hover:-translate-y-px hover:shadow-md' : '',
+      'app-card rounded-xl p-4 transition-all duration-150 ease-out',
+      interactive ? 'app-hover-glow hover:-translate-y-px' : '',
       toneClass,
     ]"
   >
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
-        <p class="truncate text-xs font-extrabold uppercase tracking-wide text-neutral-500">
+        <p class="truncate text-xs font-bold uppercase tracking-wide text-neutral-500">
           {{ label }}
         </p>
         <div class="mt-2 flex items-baseline gap-1.5">
@@ -46,10 +46,11 @@ const props = defineProps({
 const toneClass = computed(() => {
   const tones = {
     neutral: 'border-neutral-200',
-    primary: 'border-primary/20 bg-primary-light/10',
-    success: 'border-success/20 bg-success-light/20',
-    warning: 'border-warning/30 bg-warning-light/30',
-    error: 'border-error/20 bg-error-light/30',
+    primary: 'border-primary/20',
+    success: 'border-success/25 bg-success-light/20',
+    info: 'border-info/25 bg-info-light/20',
+    warning: 'border-warning/30 bg-warning-light/25',
+    error: 'border-error/25 bg-error-light/25',
   }
   return tones[props.tone] || tones.neutral
 })
@@ -57,8 +58,9 @@ const toneClass = computed(() => {
 const iconClass = computed(() => {
   const tones = {
     neutral: 'bg-neutral-100 text-neutral-600',
-    primary: 'bg-primary-light/35 text-primary-dark',
-    success: 'bg-success-light/40 text-success-dark',
+    primary: 'bg-primary-light text-primary-dark',
+    success: 'bg-success-light/45 text-success-dark',
+    info: 'bg-info-light text-info-dark',
     warning: 'bg-warning-light text-warning-dark',
     error: 'bg-error-light text-error-dark',
   }

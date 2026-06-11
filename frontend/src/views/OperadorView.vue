@@ -19,7 +19,7 @@
 
       <FilterBar title="Periodo" eyebrow="Filtros rapidos">
         <template #summary>
-          <span class="rounded-full bg-primary-light/30 px-3 py-1 text-xs font-extrabold text-primary-dark">
+          <span class="rounded-full border px-3 py-1 text-xs font-bold app-chip-info">
             {{ store.registros.length }} registro{{ store.registros.length !== 1 ? 's' : '' }}
           </span>
         </template>
@@ -63,7 +63,7 @@
 
       <template v-else>
         <div class="grid grid-cols-2 gap-3">
-          <MetricCard label="Registros" :value="store.totales.total" icon="records" tone="primary" />
+          <MetricCard label="Registros" :value="store.totales.total" icon="records" tone="info" />
           <MetricCard label="Horas trabajadas" :value="fmt(store.totales.total_horas)" unit="hs" icon="timer" />
           <MetricCard label="Combustible" :value="fmt(store.totales.total_combustible)" unit="lts" icon="fuel" tone="warning" />
           <MetricCard
@@ -83,7 +83,7 @@
             :unit="metric.unit"
             :description="metric.detail"
             icon="production"
-            tone="primary"
+            tone="info"
           />
         </div>
 
@@ -98,7 +98,7 @@
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <span class="inline-flex max-w-full rounded-lg bg-primary/10 px-2 py-0.5 text-xs font-extrabold uppercase tracking-wide text-primary-dark">
+                <span class="inline-flex max-w-full rounded-lg bg-info-light px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-info-dark">
                   <span class="truncate">{{ record.operacion || 'Produccion' }}</span>
                 </span>
                 <p class="mt-1 text-xs font-semibold text-neutral-400">{{ formatFecha(record.fecha) }}</p>
@@ -215,10 +215,10 @@ function handleManualDate(key, value) {
 
 function quickFilterClass(key) {
   return [
-    'rounded-full border px-3 py-1.5 text-xs font-extrabold transition-colors',
+    'rounded-full border px-3 py-1.5 text-xs font-bold transition-colors',
     activePreset.value === key
-      ? 'border-primary-dark bg-primary-dark text-white'
-      : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-primary/40 hover:text-primary-dark',
+      ? 'border-secondary bg-secondary text-white'
+      : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-secondary/40 hover:text-info-dark',
   ]
 }
 

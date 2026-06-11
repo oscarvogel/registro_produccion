@@ -29,12 +29,12 @@
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Estado de sincronizacion</p>
-            <h2 class="mt-1 text-xl font-extrabold text-primary-dark">{{ syncStatusTitle }}</h2>
+            <h2 class="mt-1 text-xl font-extrabold text-neutral-950">{{ syncStatusTitle }}</h2>
             <p class="mt-1 text-sm text-on-surface-variant">
               {{ navigatorOnline ? 'Sistema en linea' : 'Sistema sin conexion' }} · {{ healthMessage }} · Ultima revision: {{ lastCheckLabel }}
             </p>
           </div>
-          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-fixed text-primary-dark">
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-info-light text-info-dark">
             <AppIcon :name="isHealthy ? 'success' : 'warning'" size="lg" />
           </div>
         </div>
@@ -84,9 +84,9 @@
               :key="filter.value"
               type="button"
               :class="[
-                'rounded-full border px-3 py-1.5 text-xs font-extrabold transition-colors',
+                'rounded-full border px-3 py-1.5 text-xs font-bold transition-colors',
                 activeFilter === filter.value
-                  ? 'border-primary bg-primary text-white'
+                  ? 'border-secondary bg-secondary text-white'
                   : 'border-outline-variant bg-white text-on-surface-variant hover:bg-surface-container-low',
               ]"
               @click="activeFilter = filter.value"
@@ -100,18 +100,14 @@
           Cargando registros...
         </div>
 
-        <div
-          v-else-if="visibleRecords.length === 0"
-          class="mt-4 rounded-xl border border-dashed border-outline-variant bg-surface px-5 py-10 text-center"
-        >
-          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-fixed text-primary-dark">
-            <AppIcon name="sync" size="lg" />
-          </div>
-          <h3 class="mt-4 text-lg font-extrabold text-on-surface">Todo sincronizado</h3>
-          <p class="mx-auto mt-2 max-w-lg text-sm text-on-surface-variant">
-            No hay registros pendientes ni fallidos. Las cargas realizadas se encuentran guardadas correctamente.
-          </p>
-          <p class="mt-3 text-xs font-semibold text-outline">Ultima verificacion: {{ lastCheckFullLabel }}</p>
+        <div v-else-if="visibleRecords.length === 0" class="mt-4">
+          <EmptyState
+            title="Todo sincronizado"
+            description="No hay registros pendientes ni fallidos. Las cargas realizadas se encuentran guardadas correctamente."
+            icon="sync"
+          >
+            <p class="mt-3 text-xs font-semibold text-outline">Ultima verificacion: {{ lastCheckFullLabel }}</p>
+          </EmptyState>
         </div>
 
         <div v-else class="mt-4 space-y-3">
@@ -172,7 +168,7 @@
 
       <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
         <div class="flex items-start gap-3">
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container text-primary-dark">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container text-info-dark">
             <AppIcon name="refresh" />
           </div>
           <div>
@@ -201,6 +197,7 @@ import AppBadge from '@/components/ui/AppBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 

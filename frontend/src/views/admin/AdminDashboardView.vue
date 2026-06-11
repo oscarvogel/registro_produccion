@@ -43,8 +43,8 @@
               :class="[
                 'rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
                 activePreset === preset.key
-                  ? 'border-primary-dark bg-primary-dark text-white'
-                  : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-primary/40',
+                  ? 'border-secondary bg-secondary text-white'
+                  : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-secondary/40',
               ]"
               type="button"
             >
@@ -90,7 +90,7 @@
             <div>
               <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Produccion total</p>
               <div class="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
-                <span class="text-4xl font-extrabold text-primary-dark md:text-5xl">
+                <span class="text-4xl font-extrabold text-neutral-950 md:text-5xl">
                   {{ formatNumber(totals.produccion_total) }}
                 </span>
                 <span class="pb-1 text-sm font-bold uppercase tracking-wide text-neutral-400">prod.</span>
@@ -204,7 +204,7 @@
             <div v-for="(item, index) in overview.unidad_ranking" :key="item.id || item.nombre">
               <div class="flex items-center justify-between gap-3">
                 <div class="flex min-w-0 items-center gap-2">
-                  <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-xs font-extrabold text-primary-dark">
+                  <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-info-light text-xs font-extrabold text-info-dark">
                     {{ index + 1 }}
                   </span>
                   <div class="min-w-0">
@@ -249,7 +249,7 @@
               <tbody class="divide-y divide-neutral-100">
                 <tr v-for="item in overview.proceso_ranking" :key="item.id || item.nombre">
                   <td class="px-3 py-3 font-bold text-neutral-800">{{ item.nombre }}</td>
-                  <td class="px-3 py-3 text-right font-extrabold text-primary-dark">{{ formatNumber(item.produccion) }}</td>
+                  <td class="px-3 py-3 text-right font-extrabold text-info-dark">{{ formatNumber(item.produccion) }}</td>
                   <td class="px-3 py-3 text-right text-neutral-600">{{ formatNumber(item.tn_despachadas) }}</td>
                   <td class="px-3 py-3 text-right text-neutral-500">{{ formatNumber(item.registros) }}</td>
                 </tr>
@@ -286,7 +286,7 @@
                 </p>
               </div>
               <div class="text-sm md:text-right">
-                <p class="font-extrabold text-primary-dark">{{ formatNumber(record.produccion) }}</p>
+                <p class="font-extrabold text-info-dark">{{ formatNumber(record.produccion) }}</p>
                 <p class="text-xs text-neutral-400">{{ formatNumber(record.combustible) }} L</p>
               </div>
             </article>

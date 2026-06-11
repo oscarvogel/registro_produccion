@@ -42,6 +42,7 @@ import {
   MapPin,
   Menu,
   MoreVertical,
+  Moon,
   Pencil,
   Play,
   Plus,
@@ -52,6 +53,7 @@ import {
   Settings,
   ShieldCheck,
   Sprout,
+  Sun,
   Timer,
   Trash2,
   TreePine,
@@ -117,12 +119,14 @@ const icons = {
   search: Search,
   menu: Menu,
   more: MoreVertical,
+  moon: Moon,
   chevronDown: ChevronDown,
   arrowUp: ArrowUp,
   arrowDown: ArrowDown,
   loading: LoaderCircle,
   login: LogIn,
   manual: BookOpen,
+  sun: Sun,
 }
 
 const sizes = {

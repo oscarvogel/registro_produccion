@@ -1,5 +1,5 @@
 <template>
-  <div id="app" class="min-h-screen bg-neutral-100">
+  <div id="app" class="app-shell min-h-screen">
     <Transition name="status-slide">
       <div
         v-if="!isOnline"
@@ -15,23 +15,23 @@
 
     <template v-if="authStore.isAuthenticated">
       <div :class="['min-h-screen', !isOnline ? 'pt-8' : '']">
-        <header class="sticky top-0 z-30 border-b border-neutral-200 bg-white md:hidden">
+        <header class="sticky top-0 z-30 border-b border-[#222D26] bg-[#090E0B] text-white md:hidden">
           <div class="flex h-14 items-center justify-between px-4">
             <button
               type="button"
-              class="flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-200 text-neutral-700"
+              class="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white"
               aria-label="Abrir navegacion"
               @click="mobileMenuOpen = true"
             >
               <AppIcon name="menu" />
             </button>
             <div class="min-w-0 px-3 text-center">
-              <p class="truncate text-sm font-extrabold text-primary-dark">Registro Produccion</p>
-              <p class="truncate text-xs font-semibold text-neutral-400">{{ userRoleLabel }} - {{ isOnline ? 'En linea' : 'Sin conexion' }}</p>
+              <p class="truncate text-sm font-extrabold text-white">Registro Produccion</p>
+              <p class="truncate text-xs font-semibold text-[#9FE1CB]">{{ userRoleLabel }} - {{ isOnline ? 'En linea' : 'Sin conexion' }}</p>
             </div>
             <button
               type="button"
-              class="flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600"
+              class="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/80"
               aria-label="Cerrar sesion"
               @click="handleLogout"
             >
@@ -50,27 +50,32 @@
 
         <aside
           :class="[
-            'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[86vw] flex-col border-r border-neutral-200/80 bg-white/95 shadow-xl backdrop-blur transition-[transform,width] duration-200 md:z-20 md:max-w-none md:translate-x-0 md:shadow-none',
+            'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[86vw] flex-col border-r border-[#222D26] bg-[#07100C] text-white shadow-xl transition-[transform,width] duration-200 md:z-20 md:max-w-none md:translate-x-0 md:shadow-none',
             sidebarCollapsed ? 'md:w-20' : 'md:w-64',
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full',
           ]"
         >
-          <div :class="['flex h-16 shrink-0 items-center border-b border-neutral-100 px-4', sidebarCollapsed ? 'md:justify-center md:px-3' : 'justify-between']">
-            <div :class="['min-w-0', sidebarCollapsed ? 'md:hidden' : '']">
-              <p class="truncate text-lg font-extrabold text-primary-dark">Registro Produccion</p>
-              <p class="truncate text-xs font-semibold text-neutral-400">{{ authStore.userName }}</p>
+          <div :class="['flex h-[58px] shrink-0 items-center border-b border-[#222D26] bg-[#090E0B] px-3', sidebarCollapsed ? 'md:justify-center md:px-3' : 'justify-between']">
+            <div :class="['flex min-w-0 items-center gap-3', sidebarCollapsed ? 'md:hidden' : '']">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#10B981] p-1 shadow-[0_0_18px_rgba(16,185,129,0.28)] ring-1 ring-[#6FFBBE]/25">
+                <img src="/logo-forestal.png" alt="" class="h-full w-full object-contain" />
+              </span>
+              <span class="min-w-0">
+                <p class="truncate text-sm font-extrabold leading-tight text-white">Registro</p>
+                <p class="truncate text-xs font-bold leading-tight text-[#6FFBBE]">Produccion</p>
+              </span>
             </div>
             <button
               type="button"
-              class="hidden h-10 w-10 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 hover:border-primary/30 hover:text-primary-dark md:flex"
+              class="hidden h-9 w-9 items-center justify-center rounded-lg text-white/75 hover:bg-white/10 hover:text-white md:flex"
               :aria-label="sidebarCollapsed ? 'Expandir navegacion' : 'Contraer navegacion'"
               @click="toggleSidebar"
             >
-              <AppIcon :name="sidebarCollapsed ? 'forward' : 'back'" size="sm" />
+              <AppIcon name="menu" size="sm" />
             </button>
             <button
               type="button"
-              class="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 md:hidden"
+              class="flex h-9 w-9 items-center justify-center rounded-lg text-white/75 hover:bg-white/10 md:hidden"
               aria-label="Cerrar menu"
               @click="mobileMenuOpen = false"
             >
@@ -78,7 +83,22 @@
             </button>
           </div>
 
-          <nav :class="['min-h-0 flex-1 overflow-y-auto py-4', sidebarCollapsed ? 'md:px-2 px-3' : 'px-3']">
+          <div :class="['border-b border-[#222D26] px-3 py-3', sidebarCollapsed ? 'md:hidden' : '']">
+            <div class="flex items-center gap-3">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#115340] text-sm font-extrabold text-[#B1F0D6] ring-1 ring-[#10B981]/35">
+                {{ userInitials }}
+              </span>
+              <div class="min-w-0">
+                <p class="truncate text-sm font-extrabold uppercase text-white">{{ authStore.userName }}</p>
+                <p class="flex items-center gap-1.5 text-xs font-medium text-white">
+                  <span class="app-led h-1.5 w-1.5 rounded-full bg-[#10B981] text-[#10B981]"></span>
+                  {{ userRoleLabel }} - {{ isOnline ? 'En linea' : 'Sin conexion' }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <nav :class="['min-h-0 flex-1 overflow-y-auto py-3', sidebarCollapsed ? 'md:px-2 px-2' : 'px-2']">
             <div :class="sidebarCollapsed ? 'space-y-1.5' : 'space-y-2'">
               <router-link
                 v-for="item in primaryItems"
@@ -86,7 +106,7 @@
                 :to="item.to"
                 :class="navItemClass(isItemActive(item))"
                 :title="sidebarCollapsed ? item.label : undefined"
-                exact-active-class="!border-primary-dark !bg-primary-dark !text-white"
+                exact-active-class="!border-[#10B981]/45 !bg-[#0F2A1E] !text-white"
                 @click="mobileMenuOpen = false"
               >
                 <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
@@ -107,7 +127,7 @@
                       :class="[
                         'rounded-full transition-colors',
                         sidebarCollapsed ? 'md:h-2 md:w-2 h-1.5 w-1.5' : 'h-1.5 w-1.5',
-                        isSectionActive(section) ? 'bg-primary-dark' : 'bg-neutral-400',
+                        isSectionActive(section) ? 'bg-[#10B981]' : 'bg-[#86948A]',
                       ]"
                     ></span>
                     <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ section.label }}</span>
@@ -149,7 +169,36 @@
             </div>
           </nav>
 
-          <div :class="['shrink-0 border-t border-neutral-100 p-3', sidebarCollapsed ? 'md:px-2' : '']">
+          <div :class="['shrink-0 border-t border-[#222D26] p-2', sidebarCollapsed ? 'md:px-2' : '']">
+            <button
+              type="button"
+              :class="navItemClass(false)"
+              :title="sidebarCollapsed ? themeStatusLabel : undefined"
+              :aria-label="themeToggleLabel"
+              @click="toggleTheme"
+            >
+              <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
+                <span class="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                  <AppIcon :name="isDark ? 'moon' : 'sun'" size="sm" class="transition-transform duration-200 group-active:scale-90" />
+                </span>
+                <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ themeStatusLabel }}</span>
+              </span>
+              <span
+                :class="[
+                  'ml-2 h-5 w-9 rounded-full border border-white/10 p-0.5 transition-colors',
+                  isDark ? 'bg-white/[0.06]' : 'bg-secondary-light/80',
+                  sidebarCollapsed ? 'md:hidden' : '',
+                ]"
+              >
+                <span
+                  :class="[
+                    'block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200',
+                    isDark ? 'translate-x-0' : 'translate-x-4',
+                  ]"
+                ></span>
+              </span>
+            </button>
+
             <router-link
               :to="{ name: 'configuracion' }"
               :class="navItemClass(route.name === 'configuracion')"
@@ -162,12 +211,12 @@
               </span>
             </router-link>
 
-            <div :class="['mt-3 rounded-lg bg-neutral-50 p-3', sidebarCollapsed ? 'md:hidden' : '']">
-              <p class="truncate text-sm font-bold text-neutral-800">{{ authStore.userName }}</p>
-              <p class="mt-0.5 text-xs font-semibold text-neutral-400">{{ userRoleLabel }} - {{ isOnline ? 'En linea' : 'Sin conexion' }}</p>
+            <div :class="['mt-3 rounded-lg border border-white/10 bg-white/[0.03] p-3', sidebarCollapsed ? 'md:hidden' : '']">
+              <p class="truncate text-sm font-bold text-white">{{ authStore.userName }}</p>
+              <p class="mt-0.5 text-xs font-semibold text-[#95D3BA]/85">{{ userRoleLabel }} - {{ isOnline ? 'En linea' : 'Sin conexion' }}</p>
               <button
                 type="button"
-                class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-600 hover:border-error hover:text-error"
+                class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white/80 hover:border-error/40 hover:text-error-light"
                 @click="handleLogout"
               >
                 <AppIcon name="logout" size="sm" />
@@ -205,6 +254,7 @@ import { computed, onMounted, onUnmounted, provide, reactive, ref, watch } from 
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
+import { useTheme } from '@/composables/useTheme'
 import ToastHost from '@/components/ToastHost.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
@@ -212,6 +262,7 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const produccionStore = useProduccionStore()
+const { isDark, toggleTheme } = useTheme()
 const mobileMenuOpen = ref(false)
 const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === '1')
 const openSections = reactive({
@@ -231,6 +282,15 @@ const userRoleLabel = computed(() => {
   return 'Operador'
 })
 
+const userInitials = computed(() => {
+  const name = authStore.userName || ''
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  return (parts[0]?.[0] || 'U') + (parts[1]?.[0] || '')
+})
+
+const themeToggleLabel = computed(() => (isDark.value ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'))
+const themeStatusLabel = computed(() => (isDark.value ? 'Modo oscuro' : 'Modo claro'))
+
 const primaryItems = computed(() => [
   { key: 'home', label: 'Inicio', icon: 'home', to: { name: 'home' } },
   { key: 'manuales', label: 'Manuales', icon: 'manual', to: { name: 'manuales' } },
@@ -246,6 +306,7 @@ const navSections = computed(() => {
     }
     if (isAdmin.value) {
       operacionItems.push(
+        { key: 'admin-dashboard', label: 'Dashboard Produccion', icon: 'dashboard', to: { name: 'admin-dashboard' } },
         { key: 'personal', label: 'Personal', icon: 'personnel', to: { name: 'admin-crud', params: { entity: 'personal' } } },
         { key: 'moviles', label: 'Moviles', icon: 'machine', to: { name: 'admin-crud', params: { entity: 'moviles' } } },
         { key: 'asignaciones', label: 'Asignaciones Operativas', icon: 'assignment', to: { name: 'admin-crud', params: { entity: 'asignaciones' } } },
@@ -300,11 +361,11 @@ function toggleSidebar() {
 
 function navItemClass(active) {
   return [
-    'relative flex min-h-11 items-center gap-2 rounded-lg border py-2 text-sm font-bold transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
+    'relative flex min-h-11 items-center gap-2 rounded-lg border py-2 text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
     sidebarCollapsed.value ? 'md:justify-center md:px-2 justify-between px-3' : 'justify-between px-3',
     active
-      ? 'border-primary-dark bg-primary-dark text-white'
-      : 'border-transparent bg-transparent text-neutral-700 hover:border-primary/20 hover:bg-primary-light/25 hover:text-primary-dark',
+      ? 'border-[#10B981]/45 bg-[#0F2A1E] text-white shadow-[inset_4px_0_0_#10B981,0_0_18px_rgba(16,185,129,0.08)]'
+      : 'border-transparent bg-transparent text-white/82 hover:border-[#222D26] hover:bg-[#141C17] hover:text-white',
   ]
 }
 
@@ -313,13 +374,13 @@ function navSectionClass(section) {
   const open = openSections[section.key]
 
   return [
-    'flex w-full items-center rounded-lg border py-2 text-left text-xs font-extrabold uppercase tracking-wide transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
+    'flex w-full items-center rounded-lg border py-2 text-left text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
     sidebarCollapsed.value ? 'md:justify-center md:px-2 justify-between px-3' : 'justify-between px-3',
     active
-      ? 'border-primary/20 bg-primary-light/30 text-primary-dark'
+      ? 'border-[#10B981]/30 bg-[#141C17] text-[#B1F0D6]'
       : open
-        ? 'border-transparent bg-neutral-50 text-neutral-600'
-        : 'border-transparent bg-transparent text-neutral-500 hover:bg-neutral-50 hover:text-primary-dark',
+        ? 'border-transparent bg-[#141C17]/75 text-white'
+        : 'border-transparent bg-transparent text-white/78 hover:bg-[#141C17] hover:text-white',
   ]
 }
 

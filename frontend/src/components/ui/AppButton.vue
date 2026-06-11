@@ -37,10 +37,10 @@ const sizeClass = computed(() => {
 
 const variantClass = computed(() => {
   const variants = {
-    primary: 'bg-primary-dark text-white hover:bg-primary focus:ring-primary/30',
-    secondary: 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50 focus:ring-primary/20',
-    danger: 'bg-white text-error border border-error/30 hover:bg-error-light/40 focus:ring-error/20',
-    ghost: 'bg-transparent text-neutral-600 hover:bg-neutral-100 focus:ring-primary/20',
+    primary: 'bg-primary text-on-primary shadow-[0_0_18px_rgba(16,185,129,0.18)] hover:bg-primary-dark focus:ring-primary/30',
+    secondary: 'border border-neutral-200 bg-neutral-50 text-neutral-700 hover:border-primary/40 hover:text-primary-dark focus:ring-primary/20',
+    danger: 'border border-error/35 bg-error-light text-error-dark hover:border-error/60 focus:ring-error/20',
+    ghost: 'bg-transparent text-neutral-600 hover:bg-neutral-100 hover:text-primary-dark focus:ring-primary/20',
   }
   return variants[props.variant] || variants.primary
 })

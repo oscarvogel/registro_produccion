@@ -30,18 +30,8 @@
             <span class="text-xs font-medium text-neutral-400">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
             <span class="text-xs font-semibold text-neutral-700">{{ pasos[pasoActual] }}</span>
           </div>
-          <div class="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+          <div class="h-2 bg-neutral-200 rounded-full overflow-hidden">
             <div class="h-full bg-primary rounded-full transition-all duration-500 ease-out" :style="{ width: `${((pasoActual + 1) / totalPasos) * 100}%` }"></div>
-          </div>
-          <div class="flex justify-between mt-2.5 px-0.5">
-            <button
-              v-for="(paso, i) in pasos"
-              :key="i"
-              type="button"
-              @click="irAPaso(i)"
-              :class="['w-2.5 h-2.5 rounded-full transition-all duration-300 focus:outline-none',
-                i === pasoActual ? 'bg-primary scale-125' : i < pasoActual ? 'bg-success hover:bg-success/80 cursor-pointer' : 'bg-neutral-300 cursor-default']"
-            />
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 <template>
-  <div class="relative overflow-visible rounded-2xl border border-neutral-200 bg-neutral-100 p-5 shadow-sm">
-    <span class="absolute left-0 top-5 bottom-5 w-1 bg-primary rounded-r-full"></span>
-    <h3 class="text-base font-bold text-primary-dark uppercase tracking-wide mb-3 pl-4">
+  <div class="app-card relative overflow-visible rounded-xl p-5">
+    <span class="absolute left-0 top-5 bottom-5 w-1 bg-secondary rounded-r-full"></span>
+    <h3 class="text-base font-bold text-neutral-900 uppercase tracking-wide mb-3 pl-4">
       {{ title }}
     </h3>
     <div class="pl-4">

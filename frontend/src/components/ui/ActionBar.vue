@@ -1,7 +1,7 @@
 <template>
   <div
     :class="[
-      'border-neutral-200 bg-white/95 px-3 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm',
+      'app-card-glass px-3 py-3',
       sticky ? 'fixed bottom-0 left-0 right-0 z-30 md:static md:border md:shadow-none' : 'rounded-xl border shadow-sm',
     ]"
   >

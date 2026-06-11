@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl border border-neutral-200 bg-white p-4">
+  <div class="app-card rounded-xl p-4">
     <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
       <AutocompleteField
         :model-value="modelValue.unidad_id"

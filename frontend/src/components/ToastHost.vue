@@ -9,7 +9,7 @@
       :key="toast.id"
       v-motion-pop
       :class="[
-        'rounded-xl border bg-white px-4 py-3 shadow-lg will-change-transform',
+        'app-card-glass rounded-xl px-4 py-3 will-change-transform',
         toneClass(toast.tone),
       ]"
     >
@@ -37,11 +37,11 @@ const toastStore = useToastStore()
 
 function toneClass(tone) {
   const tones = {
-    success: 'border-emerald-200 text-emerald-800',
-    error: 'border-red-200 text-red-800',
-    info: 'border-blue-200 text-blue-800',
-    warning: 'border-amber-200 text-amber-800',
-    neutral: 'border-neutral-200 text-neutral-800',
+    success: 'app-state-active',
+    error: 'app-state-incident',
+    info: 'app-chip-info',
+    warning: 'app-state-idle',
+    neutral: 'app-state-inactive',
   }
   return tones[tone] || tones.neutral
 }
