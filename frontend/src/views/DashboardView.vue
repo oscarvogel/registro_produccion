@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 pb-24 md:pb-8">
+  <div class="min-h-screen bg-neutral-100 pb-20 md:pb-6">
     <div class="border-b border-neutral-200 bg-white">
-      <div class="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+      <div class="mx-auto flex max-w-[112rem] flex-col gap-3 px-3 py-3 md:px-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <span class="rounded-full border px-3 py-1 text-xs font-bold app-chip-info">
@@ -37,7 +37,7 @@
     </div>
 
     <div class="sticky top-0 z-30 border-b border-neutral-200 bg-white/95 shadow-sm backdrop-blur-sm">
-      <div class="mx-auto max-w-7xl px-4 py-3">
+      <div class="mx-auto max-w-[112rem] px-3 py-2.5 md:px-4">
         <button
           type="button"
           @click="showFilters = !showFilters"
@@ -65,7 +65,7 @@
             <span class="ml-auto hidden text-xs font-bold uppercase tracking-wide text-neutral-400 md:inline">Filtros principales</span>
           </div>
 
-          <div class="app-card grid gap-3 rounded-lg p-3 md:grid-cols-[1.25fr_1fr_1fr_.75fr_.75fr_auto] md:items-end">
+          <div class="app-card grid gap-2.5 rounded-lg p-3 md:grid-cols-[1.25fr_1fr_1fr_.75fr_.75fr_auto] md:items-end">
             <AutocompleteField
               v-model="unidadNegocioFilter"
               label="Unidad de Negocio"
@@ -134,19 +134,19 @@
       </div>
     </div>
 
-    <main class="mx-auto max-w-7xl space-y-5 px-4 py-5">
-      <section v-if="missingUn" class="rounded-lg border border-warning bg-warning-light p-6 text-center">
+    <main class="mx-auto max-w-[112rem] space-y-3 px-3 py-3 md:px-4">
+      <section v-if="missingUn" class="rounded-lg border border-warning bg-warning-light p-4 text-center">
         <AppIcon name="warning" size="xl" :stroke-width="1.8" class="mx-auto mb-3 text-warning-dark" />
         <p class="mb-1 text-base font-bold text-warning-dark">Sin unidades disponibles</p>
         <p class="text-sm text-neutral-600">No se encontraron unidades de negocio habilitadas para consultar el dashboard.</p>
-        <button type="button" @click="handleRelogin" class="mt-4 rounded-lg bg-warning-dark px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-warning">
+        <button type="button" @click="handleRelogin" class="mt-3 rounded-lg bg-warning-dark px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-warning">
           Cerrar sesion
         </button>
       </section>
 
       <section v-else class="grid gap-4 lg:grid-cols-[1.6fr_.9fr]">
-        <div class="app-card app-hover-glow rounded-lg p-5">
-          <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div class="app-card app-hover-glow rounded-lg p-4">
+          <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <div class="mb-2 flex items-center gap-2 text-sm font-bold text-primary-dark">
                 <AppIcon :name="getIconName(store.kpiPrincipal?.icono)" size="sm" />
@@ -158,7 +158,7 @@
                 <span class="text-lg font-bold text-neutral-500">{{ store.kpiPrincipal?.unidad || '' }}</span>
               </div>
             </div>
-            <div class="max-w-md rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+            <div class="max-w-md rounded-lg border border-neutral-200 bg-neutral-50 p-3">
               <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Resumen ejecutivo</p>
               <p class="mt-2 text-sm font-semibold leading-6 text-neutral-800">{{ executiveSummary }}</p>
             </div>
@@ -171,7 +171,7 @@
           </div>
         </div>
 
-        <div class="app-card rounded-lg p-5">
+        <div class="app-card rounded-lg p-4">
           <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Lectura rapida</p>
           <div class="mt-4 space-y-3 text-sm">
             <div class="flex items-center justify-between gap-3">
@@ -236,9 +236,9 @@
         </EmptyState>
       </section>
 
-      <section class="grid grid-cols-1 gap-5 lg:grid-cols-5">
-        <div class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm lg:col-span-3">
-          <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <section class="grid grid-cols-1 gap-3 lg:grid-cols-5">
+        <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm lg:col-span-3">
+          <div class="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Evolucion diaria</p>
               <h2 class="text-lg font-extrabold text-neutral-950">{{ chartTitle }}</h2>
@@ -253,7 +253,7 @@
             </div>
           </div>
 
-          <div class="mb-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+          <div class="mb-3 grid gap-2.5 md:grid-cols-[1fr_auto] md:items-end">
             <AutocompleteField
               v-model="evolucionTipoProcesoFilter"
               label="Tipo de Proceso"
@@ -320,8 +320,8 @@
           </div>
         </div>
 
-        <div class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm lg:col-span-2">
-          <div class="mb-4 flex items-start justify-between gap-3">
+        <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm lg:col-span-2">
+          <div class="mb-3 flex items-start justify-between gap-3">
             <div>
               <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Ranking</p>
               <h2 class="text-lg font-extrabold text-neutral-950">Maquinas</h2>
@@ -331,7 +331,7 @@
             </button>
           </div>
 
-          <div class="mb-4 space-y-3">
+          <div class="mb-3 space-y-2.5">
             <AutocompleteField
               v-model="rankingTipoProcesoFilter"
               label="Tipo de Proceso"

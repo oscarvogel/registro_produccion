@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-[calc(100vh-8.5rem)] bg-neutral-100 px-4 py-5 pb-24 md:min-h-[calc(100vh-3.5rem)] md:px-6 md:py-6">
-    <div class="mx-auto max-w-7xl space-y-4">
+  <div class="min-h-[calc(100vh-8.5rem)] bg-neutral-100 px-3 py-3 pb-20 md:min-h-[calc(100vh-3.5rem)] md:px-4 md:py-4">
+    <div class="mx-auto max-w-[112rem] space-y-3">
       <PageHeader
         title="Manuales de Usuario"
         description="Guía de uso del sistema por tipo de usuario."
@@ -46,7 +46,7 @@
       </section>
 
       <section class="app-card overflow-hidden rounded-xl">
-        <div class="flex flex-col gap-3 border-b border-neutral-100 px-4 py-4 md:flex-row md:items-center md:justify-between">
+        <div class="flex flex-col gap-3 border-b border-neutral-100 px-4 py-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Lectura en linea</p>
             <h2 class="mt-1 text-xl font-extrabold text-neutral-950">{{ activeManual.title }}</h2>
@@ -76,7 +76,7 @@
           <AppIcon name="loading" size="xl" class="animate-spin" />
         </div>
 
-        <div v-else-if="error" class="p-6">
+        <div v-else-if="error" class="p-4">
           <div class="rounded-xl border border-error-light bg-error-light/30 p-4 text-sm font-semibold text-error-dark">
             {{ error }}
           </div>
@@ -84,7 +84,7 @@
 
         <article
           v-else
-          class="manual-content prose-safe max-w-none px-4 py-5 md:px-8 md:py-7"
+          class="manual-content prose-safe max-w-none px-4 py-4 md:px-5"
           v-html="renderedManual"
         ></article>
       </section>

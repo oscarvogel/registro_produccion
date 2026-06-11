@@ -2,30 +2,28 @@
   <article
     v-motion-panel
     :class="[
-      'app-card rounded-xl p-4 transition-all duration-150 ease-out',
+      'app-card grid min-h-[5.75rem] grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-xl p-3.5 transition-all duration-150 ease-out',
       interactive ? 'app-hover-glow hover:-translate-y-px' : '',
       toneClass,
     ]"
   >
-    <div class="flex items-start justify-between gap-3">
-      <div class="min-w-0">
-        <p class="truncate text-xs font-bold uppercase tracking-wide text-neutral-500">
-          {{ label }}
-        </p>
-        <div class="mt-2 flex items-baseline gap-1.5">
-          <span class="text-2xl font-extrabold leading-none text-neutral-900 md:text-3xl">
-            {{ value }}
-          </span>
-          <span v-if="unit" class="text-sm font-bold text-neutral-400">{{ unit }}</span>
-        </div>
+    <span v-if="icon" :class="['flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', iconClass]">
+      <AppIcon :name="icon" size="sm" />
+    </span>
+    <div class="min-w-0">
+      <p class="truncate text-xs font-bold uppercase tracking-wide text-neutral-500">
+        {{ label }}
+      </p>
+      <div class="mt-1 flex items-baseline gap-1.5">
+        <span class="text-2xl font-extrabold leading-none text-neutral-900 md:text-[1.75rem]">
+          {{ value }}
+        </span>
+        <span v-if="unit" class="text-xs font-bold text-neutral-400">{{ unit }}</span>
       </div>
-      <span v-if="icon" :class="['flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', iconClass]">
-        <AppIcon :name="icon" size="sm" />
-      </span>
+      <p v-if="description" class="mt-1 truncate text-xs text-neutral-500">
+        {{ description }}
+      </p>
     </div>
-    <p v-if="description" class="mt-2 text-sm text-neutral-500">
-      {{ description }}
-    </p>
   </article>
 </template>
 

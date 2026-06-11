@@ -17,7 +17,7 @@
           :aria-describedby="description ? descriptionId : undefined"
           tabindex="-1"
         >
-          <div class="flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4">
+          <div class="flex items-center justify-between gap-4 border-b border-neutral-200 px-4 py-3">
             <div>
               <h3 :id="titleId" class="text-lg font-extrabold text-neutral-950">{{ title }}</h3>
               <p v-if="description" :id="descriptionId" class="mt-0.5 text-xs text-neutral-500">{{ description }}</p>
@@ -26,7 +26,7 @@
               Cerrar
             </button>
           </div>
-          <div class="max-h-[70vh] overflow-y-auto p-5">
+          <div class="max-h-[72vh] overflow-y-auto p-4">
             <slot />
           </div>
         </div>

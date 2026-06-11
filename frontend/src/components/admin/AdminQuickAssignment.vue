@@ -1,5 +1,5 @@
 <template>
-  <div class="app-card rounded-xl p-4">
+  <div class="app-card rounded-xl p-3.5">
     <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
       <AutocompleteField
         :model-value="modelValue.unidad_id"
@@ -12,7 +12,7 @@
         @update:model-value="updateField('unidad_id', $event)"
       />
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
+      <div class="grid flex-1 grid-cols-1 gap-3 md:grid-cols-3">
         <AutocompleteField
           :model-value="modelValue.idChofer"
           label="Chofer"
@@ -48,7 +48,7 @@
       <button
         @click="$emit('submit')"
         :disabled="submitting || !ready"
-        class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary-dark text-white text-sm font-semibold disabled:opacity-50"
+        class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-dark px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
         type="button"
       >
         <AppIcon name="assignment" size="sm" />

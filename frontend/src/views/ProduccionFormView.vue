@@ -1,7 +1,7 @@
 <template>
-  <div class="mx-auto max-w-6xl px-3 py-4 pb-[7.5rem] md:px-6 md:pt-6">
+  <div class="mx-auto max-w-7xl px-3 py-3 pb-[7rem] md:px-4 md:pt-4">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-5 px-1">
+    <div class="mb-3 flex items-center justify-between px-1">
       <div class="flex items-center gap-2.5">
       <button
         @click="$router.push({ name: 'home' })"
@@ -21,10 +21,10 @@
       <AppIcon name="loading" size="xl" class="animate-spin text-primary" />
     </div>
 
-    <form v-else class="md:grid md:grid-cols-[17rem_minmax(0,1fr)] md:items-start md:gap-6" @submit.prevent="handleSubmit">
+    <form v-else class="md:grid md:grid-cols-[16rem_minmax(0,1fr)] md:items-start md:gap-4" @submit.prevent="handleSubmit">
 
       <!-- Step indicator -->
-      <aside class="mb-5 md:sticky md:top-20 md:mb-0 md:rounded-2xl md:border md:border-neutral-200 md:bg-white md:p-4 md:shadow-sm">
+      <aside class="mb-4 md:sticky md:top-20 md:mb-0 md:rounded-xl md:border md:border-neutral-200 md:bg-white md:p-3 md:shadow-sm">
         <div class="md:hidden">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-medium text-neutral-400">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
@@ -38,7 +38,7 @@
         <div class="hidden md:block">
           <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Carga guiada</p>
           <h2 class="mt-1 text-lg font-extrabold text-primary-dark">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</h2>
-          <div class="mt-4 space-y-1.5">
+          <div class="mt-3 space-y-1.5">
             <button
               v-for="(paso, i) in pasos"
               :key="paso"
@@ -46,7 +46,7 @@
               :disabled="i > pasoActual"
               @click="irAPaso(i)"
               :class="[
-                'flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-colors',
+                'flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors',
                 i === pasoActual
                   ? 'border-primary bg-primary/10 text-primary-dark'
                   : i < pasoActual
@@ -69,10 +69,10 @@
         </div>
       </aside>
 
-      <div class="min-w-0 space-y-5">
+      <div class="min-w-0 space-y-3">
 
-      <div class="mb-5 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-        <div class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      <div class="mb-3 rounded-xl border border-neutral-200 bg-white p-3.5 shadow-sm">
+        <div class="mb-2.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Carga en curso</p>
             <p class="text-lg font-extrabold text-primary-dark">Estado: Sin guardar</p>
@@ -90,7 +90,7 @@
 
       <!-- ═══ 1. FECHA ═══ -->
       <SectionCard v-show="pasoActual === 0" title="Contexto de Carga">
-        <p class="mb-4 text-sm text-neutral-500">
+        <p class="mb-3 text-sm text-neutral-500">
           Selecciona el dia correspondiente y la unidad de negocio para la que se cargara la produccion.
         </p>
         <InputField
@@ -101,7 +101,7 @@
         />
         <p class="mt-2 text-xs text-neutral-400">Si estas cargando una produccion atrasada, modifica esta fecha.</p>
 
-        <div class="mt-4">
+        <div class="mt-3">
           <AutocompleteField
             label="Unidad de Negocio"
             v-model="form.un_id"
@@ -116,7 +116,7 @@
 
       <!-- ═══ 2. UNIDAD DE NEGOCIO ═══ -->
       <SectionCard v-show="pasoActual === 3" title="Proceso / Actividad">
-        <p class="mb-4 text-sm text-neutral-500">
+        <p class="mb-3 text-sm text-neutral-500">
           Selecciona el tipo de proceso que corresponde a esta carga. Los campos de produccion se ajustan segun esta seleccion.
         </p>
         <AutocompleteField v-if="false"
@@ -148,7 +148,7 @@
         <!-- Si es operador: bloqueado -->
         <div v-if="!canSelectOperador">
           <label class="block text-sm font-medium text-neutral-700 mb-1">Operador</label>
-          <div class="w-full px-4 py-3 bg-neutral-100 border border-neutral-300 rounded-xl text-neutral-700">
+          <div class="w-full rounded-xl border border-neutral-300 bg-neutral-100 px-4 py-2.5 text-neutral-700">
             {{ authStore.userName }}
           </div>
         </div>
@@ -701,14 +701,14 @@
       </SectionCard>
 
       <SectionCard v-show="pasoActual === 8" title="Revision y Confirmacion">
-        <p class="mb-4 text-sm text-neutral-500">
+        <p class="mb-3 text-sm text-neutral-500">
           Revisa los datos principales antes de guardar el registro de produccion.
         </p>
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div
             v-for="item in revisionItems"
             :key="item.label"
-            class="rounded-xl border border-neutral-200 bg-white px-4 py-3"
+            class="rounded-lg border border-neutral-200 bg-white px-3 py-2.5"
           >
             <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">{{ item.label }}</p>
             <p class="mt-1 text-sm font-extrabold text-neutral-900">{{ item.value }}</p>
@@ -724,7 +724,7 @@
         <AppIcon name="error" class="text-error shrink-0" />
         <span>{{ store.error }}</span>
       </div>
-      <div class="hidden items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm md:flex">
+      <div class="hidden items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 shadow-sm md:flex">
         <p class="max-w-md text-sm font-semibold text-error-dark">
           {{ mensajePasoIncompleto }}
         </p>
@@ -772,7 +772,7 @@
             v-if="pasoActual > 0"
             type="button"
             @click="retroceder"
-            class="flex-1 py-3.5 px-4 bg-neutral-100 text-neutral-700 font-semibold rounded-2xl border border-neutral-200 flex items-center justify-center gap-2 active:bg-neutral-200 transition-colors"
+            class="flex-1 rounded-xl border border-neutral-200 bg-neutral-100 px-4 py-3.5 font-semibold text-neutral-700 transition-colors active:bg-neutral-200 flex items-center justify-center gap-2"
           >
             <AppIcon name="back" size="sm" :stroke-width="2.5" />
             Anterior
@@ -784,7 +784,7 @@
             type="button"
             @click="avanzar"
             :disabled="!puedeAvanzar"
-            class="flex-1 py-3.5 px-4 bg-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(20,61,35,0.25)] disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed active:bg-primary-dark transition-colors"
+            class="flex-1 rounded-xl bg-primary px-4 py-3.5 font-bold text-white shadow-[0_4px_14px_rgba(20,61,35,0.25)] transition-colors active:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none flex items-center justify-center gap-2"
           >
             Siguiente
             <AppIcon name="forward" size="sm" :stroke-width="2.5" />
@@ -793,7 +793,7 @@
             v-else
             type="submit"
             :disabled="store.submitting"
-            class="flex-1 py-3.5 px-4 bg-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2.5 shadow-[0_8px_18px_rgba(20,61,35,0.25)] disabled:opacity-60 disabled:cursor-not-allowed active:bg-primary-dark transition-colors"
+            class="flex-1 rounded-xl bg-primary px-4 py-3.5 font-bold text-white shadow-[0_8px_18px_rgba(20,61,35,0.25)] transition-colors active:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2.5"
           >
             <AppIcon v-if="store.submitting" name="loading" class="animate-spin" />
             <AppIcon v-else name="save" />
@@ -833,7 +833,7 @@ const busquedaMovil = ref('')
 const mostrandoBuscador = ref(false)
 const inputBuscadorMovil = ref(null)
 const ultimaHoraFinRef = ref(0)
-const fieldClass = 'w-full px-4 py-3 bg-neutral-100 border border-neutral-300 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 disabled:bg-neutral-200 disabled:cursor-not-allowed transition-colors'
+const fieldClass = 'w-full rounded-xl border border-neutral-300 bg-neutral-100 px-4 py-2.5 text-neutral-900 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:bg-neutral-200 transition-colors'
 const preferenciasKey = computed(() => `produccion_preferencias_${authStore.user?.idPersonal || 'anon'}`)
 
 // ─── Wizard steps ───

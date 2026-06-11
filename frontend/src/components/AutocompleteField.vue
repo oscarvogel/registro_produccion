@@ -10,7 +10,7 @@
       type="button"
       :disabled="disabled"
       @click="startSearch"
-      class="app-input flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-px hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-neutral-200"
+      class="app-input flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-left text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-px hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-neutral-200"
     >
       <span class="min-w-0 truncate">{{ selectedLabel }}</span>
       <AppIcon name="chevronDown" size="sm" class="shrink-0 text-neutral-500" />
@@ -19,7 +19,7 @@
     <div
       v-else-if="selectedLabel && !searching"
       v-motion-pop
-      class="flex items-center gap-3 p-3 bg-success-light/40 border border-success/30 rounded-xl"
+      class="flex items-center gap-3 rounded-xl border border-success/30 bg-success-light/40 p-2.5"
     >
       <AppIcon name="success" class="text-success-dark shrink-0" />
       <span class="text-sm font-semibold text-neutral-900 min-w-0 flex-1 truncate">{{ selectedLabel }}</span>
@@ -57,7 +57,7 @@
           :aria-activedescendant="activeDescendantId"
           :aria-invalid="invalid || undefined"
           :class="[
-            'app-input w-full px-4 py-3 border rounded-xl placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-primary/40 disabled:bg-neutral-200 disabled:cursor-not-allowed transition-colors',
+            'app-input w-full rounded-xl border px-4 py-2.5 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-neutral-200 transition-colors',
             invalid
               ? 'border-error focus:ring-error/30 focus:border-error'
               : 'border-neutral-300 focus:ring-primary/30 focus:border-primary/40',
@@ -91,7 +91,7 @@
             :aria-selected="i === highlightedIndex"
             @mousedown.prevent="selectItem(item)"
             :class="[
-              'w-full text-left px-4 py-2.5 border-b last:border-b-0 border-neutral-100 transition-colors text-sm',
+              'w-full border-b border-neutral-100 px-4 py-2 text-left text-sm transition-colors last:border-b-0',
               i === highlightedIndex
                 ? 'bg-info-light text-info-dark font-medium'
                 : 'hover:bg-neutral-50 text-neutral-900',

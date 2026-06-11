@@ -17,7 +17,7 @@
         :min="min"
         :max="max"
         :class="[
-          'app-input w-full rounded-xl border px-4 py-3 placeholder:text-neutral-400 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-500 disabled:opacity-100 transition-colors',
+          'app-input w-full rounded-xl border px-4 py-2.5 placeholder:text-neutral-400 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-500 disabled:opacity-100 transition-colors',
           invalid
             ? 'border-error/60 bg-error-light/10 text-error-dark focus:border-error focus:ring-error/30'
             : 'border-neutral-300 focus:border-primary/40 focus:ring-primary/30',

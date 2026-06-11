@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 px-4 py-5 pb-24 md:px-6 md:py-6 md:pb-8">
-    <div class="mx-auto max-w-4xl space-y-4">
+  <div class="min-h-screen bg-neutral-100 px-3 py-3 pb-20 md:px-4 md:py-4 md:pb-6">
+    <div class="mx-auto max-w-6xl space-y-3">
       <PageHeader
         title="Mis Registros"
         :description="`${authStore.userName} · historial personal y totales del periodo`"
@@ -62,7 +62,7 @@
       </div>
 
       <template v-else>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Registros" :value="store.totales.total" icon="records" tone="info" />
           <MetricCard label="Horas trabajadas" :value="fmt(store.totales.total_horas)" unit="hs" icon="timer" />
           <MetricCard label="Combustible" :value="fmt(store.totales.total_combustible)" unit="lts" icon="fuel" tone="warning" />
@@ -94,7 +94,7 @@
             v-for="record in store.registros"
             :key="record.id"
             v-motion-panel
-            class="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm"
+            class="rounded-xl border border-neutral-200 bg-white p-3.5 shadow-sm"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
@@ -108,7 +108,7 @@
               </p>
             </div>
 
-            <div class="mt-3 flex flex-wrap gap-2">
+            <div class="mt-2.5 flex flex-wrap gap-2">
               <span
                 v-for="metric in recordMetrics(record)"
                 :key="metric.label"

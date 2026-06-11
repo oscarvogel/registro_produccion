@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-[calc(100vh-8.5rem)] bg-neutral-100 px-4 py-5 pb-24 md:min-h-screen md:px-6 md:py-6">
-    <div class="mx-auto w-full max-w-7xl space-y-5">
-      <section class="app-card-glass rounded-xl px-5 py-4">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+  <div class="min-h-[calc(100vh-8.5rem)] bg-neutral-100 px-3 py-3 pb-20 md:min-h-screen md:px-4 md:py-4">
+    <div class="mx-auto w-full max-w-[112rem] space-y-3">
+      <section class="app-card-glass rounded-xl px-4 py-3 md:px-5">
+        <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div class="min-w-0">
             <div class="mb-2 flex flex-wrap items-center gap-2">
               <span :class="['inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-extrabold uppercase', isOnline ? 'app-chip-success' : 'app-chip-warning']">
@@ -12,7 +12,7 @@
               <span class="rounded-full border px-3 py-1 text-xs font-bold app-chip-info">{{ isAdmin ? 'Administrador' : roleLabel }}</span>
               <span class="rounded-full border px-3 py-1 text-xs font-bold app-state-inactive">{{ todayLabel }}</span>
             </div>
-            <h1 class="truncate text-2xl font-extrabold text-neutral-950 md:text-3xl">
+            <h1 class="truncate text-3xl font-extrabold leading-none text-neutral-950 md:text-[2.5rem]">
               {{ isAdmin ? 'Panel operativo' : authStore.userName }}
             </h1>
             <p class="mt-1 text-sm font-medium text-neutral-500">
@@ -20,7 +20,7 @@
             </p>
           </div>
 
-          <div class="flex flex-col gap-2 lg:items-end">
+          <div class="flex flex-col gap-2 xl:items-end">
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="preset in datePresets"
@@ -46,12 +46,12 @@
                 />
               </label>
             </div>
-            <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:min-w-[45rem]">
             <button
               v-for="action in topActions"
               :key="action.name"
               type="button"
-              class="app-hover-glow inline-flex min-h-12 items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-left text-sm font-bold text-neutral-800 transition active:scale-[0.98]"
+              class="app-hover-glow inline-flex min-h-11 items-center justify-center gap-3 rounded-lg border border-primary/35 bg-primary-light/20 px-3 py-2 text-left text-sm font-extrabold text-neutral-800 transition active:scale-[0.98]"
               @click="router.push(action.to)"
             >
               <span class="truncate">{{ action.label }}</span>
@@ -67,44 +67,46 @@
           <MetricTile v-for="card in adminSummaryCards" :key="card.label" :card="card" :loading="adminStore.loading" />
         </section>
 
-        <section class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <section class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_30rem]">
           <article class="app-card overflow-hidden rounded-xl p-0">
-            <div class="flex items-center justify-between gap-3 border-b border-neutral-200 px-5 py-4">
+            <div class="flex items-center justify-between gap-3 px-4 pb-2 pt-4 md:px-5">
               <div>
                 <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Unidades de negocio</p>
-                <h2 class="mt-1 text-lg font-extrabold text-neutral-900">Última actividad registrada</h2>
+                <h2 class="mt-1 text-2xl font-extrabold leading-tight text-neutral-900">Ultima actividad registrada</h2>
               </div>
-              <AppIcon name="unit" size="lg" class="text-info" />
+              <span class="hidden h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-neutral-500 sm:flex">
+                <AppIcon name="unit" size="sm" />
+              </span>
             </div>
 
-            <div class="grid gap-3 border-b border-neutral-100 px-5 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+            <div class="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:px-5">
               <label class="relative block">
                 <span class="sr-only">Buscar unidad de negocio</span>
                 <AppIcon name="search" size="sm" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
                   v-model="unitSearch"
                   type="search"
-                  class="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2.5 pl-10 pr-3 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  class="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2.5 pl-10 pr-3 text-sm font-semibold text-neutral-900 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="Buscar por nombre o prefijo"
                 />
               </label>
-              <div class="flex flex-wrap gap-2 text-xs font-semibold">
-                <span class="rounded-full border px-2.5 py-1 app-state-active">{{ adminTotals.unidadesActivas }} con actividad</span>
-                <span class="rounded-full border px-2.5 py-1 app-state-idle">{{ inactiveUnits.length }} sin actividad registrada</span>
+              <div class="flex flex-wrap gap-2 text-xs font-extrabold">
+                <span class="rounded-lg border px-3 py-2 app-state-active">{{ adminTotals.unidadesActivas }} con actividad</span>
+                <span class="rounded-lg border px-3 py-2 app-state-idle">{{ inactiveUnits.length }} sin actividad registrada</span>
               </div>
             </div>
 
-            <div v-if="adminStore.loading" class="grid gap-2 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div v-if="adminStore.loading" class="grid gap-3 px-4 py-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:px-5">
               <div v-for="i in 12" :key="i" class="h-16 animate-pulse rounded-lg bg-neutral-100"></div>
             </div>
 
-            <div v-else-if="pagedAdminUnits.length > 0" class="grid gap-2 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div v-else-if="pagedAdminUnits.length > 0" class="grid gap-3 px-4 py-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:px-5">
               <button
                 v-for="unidad in pagedAdminUnits"
                 :key="unidad.id"
                 type="button"
                 :class="[
-                  'group grid min-h-20 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 overflow-hidden rounded-lg border p-3 text-left transition duration-150 ease-out hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 active:translate-y-0 active:scale-[0.99]',
+                  'group grid min-h-[5.35rem] grid-cols-[auto_minmax(0,1fr)] items-start gap-3 overflow-hidden rounded-lg border p-3 text-left transition duration-150 ease-out hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 active:translate-y-0 active:scale-[0.99]',
                   unitCardClass(unidad),
                 ]"
                 @click="router.push({ name: 'admin-dashboard' })"
@@ -120,8 +122,8 @@
                   </p>
                   <template v-if="unidad.resumen?.ultima_actividad_fecha">
                     <p class="mt-1.5 flex min-w-0 max-w-full items-center overflow-hidden text-[11px] text-neutral-400">
-                      Última: {{ formatFecha(unidad.resumen.ultima_actividad_fecha) }}
-                      <span v-if="unidad.resumen.ultima_actividad_resumen" class="ml-1">·</span>
+                      Ultima: {{ formatFecha(unidad.resumen.ultima_actividad_fecha) }}
+                      <span v-if="unidad.resumen.ultima_actividad_resumen" class="ml-1">-</span>
                       <span v-if="unidad.resumen.ultima_actividad_resumen" class="min-w-0 flex-1 truncate">{{ unidad.resumen.ultima_actividad_resumen }}</span>
                     </p>
                   </template>
@@ -138,7 +140,7 @@
               </button>
             </div>
 
-            <div v-if="adminUnits.length > 0" class="flex flex-col gap-3 border-t border-neutral-100 px-5 py-4 md:flex-row md:items-center md:justify-between">
+            <div v-if="adminUnits.length > 0" class="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between md:px-5">
               <p class="text-xs font-semibold text-neutral-400">
                 Mostrando {{ adminUnitDisplayStart }}-{{ adminUnitPageEnd }} de {{ filteredAdminUnits.length }} unidades
               </p>
@@ -166,7 +168,7 @@
             </div>
           </article>
 
-          <aside class="space-y-5">
+          <aside class="space-y-3">
             <AlertPanel
               :alerts="adminAlerts"
               :unit-labels="inactiveUnitLabels"
@@ -203,7 +205,7 @@
           </button>
         </section>
 
-        <section v-if="!recordsStore.loading && !lastRecord" class="rounded-xl border border-dashed border-warning/40 bg-warning-light/20 p-5">
+        <section v-if="!recordsStore.loading && !lastRecord" class="rounded-xl border border-dashed border-warning/40 bg-warning-light/20 p-4">
           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p class="text-xs font-extrabold uppercase tracking-wide text-neutral-400">Sin actividad hoy</p>
@@ -217,15 +219,15 @@
           </div>
         </section>
 
-        <section class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-          <div class="space-y-5">
+        <section class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div class="space-y-3">
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <MetricTile v-for="card in operatorSummaryCards" :key="card.label" :card="card" :loading="recordsStore.loading" />
             </div>
             <LastPersonalRecord />
           </div>
 
-          <aside class="space-y-5">
+          <aside class="space-y-3">
             <SyncCard />
             <QuickActions
               :actions="operatorSecondaryActions"
@@ -260,6 +262,7 @@ const selectedDate = ref(formatDateInput(new Date()))
 const unitSearch = ref('')
 const adminUnitPage = ref(1)
 const adminUnitsPerPage = 12
+const MAX_ALERT_UNIT_LABELS = 12
 
 const datePresets = [
   { key: 'today', label: 'Hoy' },
@@ -376,7 +379,11 @@ const adminAlerts = computed(() => {
   return alerts
 })
 
-const inactiveUnitLabels = computed(() => inactiveUnits.value.map((unidad) => unidad.prefijo || unidad.nombre || 'SIN'))
+const inactiveUnitLabels = computed(() => {
+  const labels = inactiveUnits.value.map((unidad) => unidad.prefijo || unidad.nombre || 'SIN')
+  if (labels.length <= MAX_ALERT_UNIT_LABELS) return labels
+  return [...labels.slice(0, MAX_ALERT_UNIT_LABELS), `+${labels.length - MAX_ALERT_UNIT_LABELS}`]
+})
 
 watch([normalizedUnitSearch, adminUnits], () => {
   adminUnitPage.value = 1
@@ -441,16 +448,18 @@ const MetricTile = defineComponent({
     loading: { type: Boolean, default: false },
   },
   setup(props) {
-    return () => h('article', { class: 'app-card app-hover-glow rounded-xl p-4' }, [
-      h('div', { class: 'mb-3 flex items-center justify-between gap-3' }, [
-        h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, props.card.label),
-        h(AppIcon, { name: props.card.icon || 'dashboard', size: 'sm', class: props.card.icon === 'fuel' ? 'text-warning-dark' : 'text-info' }),
+    return () => h('article', { class: 'app-card app-hover-glow grid min-h-[6.7rem] grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-xl p-4' }, [
+      h('span', { class: 'flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary-light/30 text-info shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]' }, [
+        h(AppIcon, { name: props.card.icon || 'dashboard', size: 'lg', class: props.card.icon === 'fuel' ? 'text-warning-dark' : 'text-info' }),
       ]),
-      h('div', { class: 'flex items-baseline gap-1.5' }, [
-        h('span', { class: 'text-2xl font-extrabold text-neutral-950' }, props.loading ? '-' : props.card.value),
-        props.card.unit ? h('span', { class: 'text-xs font-bold text-neutral-400' }, props.card.unit) : null,
+      h('div', { class: 'min-w-0' }, [
+        h('p', { class: 'truncate text-xs font-bold uppercase tracking-wide text-neutral-400' }, props.card.label),
+        h('div', { class: 'mt-1 flex items-baseline gap-1.5' }, [
+          h('span', { class: 'text-3xl font-extrabold leading-none text-neutral-950' }, props.loading ? '-' : props.card.value),
+          props.card.unit ? h('span', { class: 'text-xs font-bold text-neutral-400' }, props.card.unit) : null,
+        ]),
+        h('p', { class: 'mt-1 truncate text-xs font-medium text-neutral-400' }, props.card.detail || ''),
       ]),
-      h('p', { class: 'mt-1 truncate text-xs font-medium text-neutral-400' }, props.card.detail || ''),
     ])
   },
 })
@@ -462,27 +471,26 @@ const QuickActions = defineComponent({
   },
   emits: ['install'],
   setup(props, { emit }) {
-    return () => h('article', { class: 'app-card rounded-xl p-5' }, [
-      h('div', { class: 'mb-4' }, [
+    return () => h('article', { class: 'app-card rounded-xl p-4' }, [
+      h('div', { class: 'mb-3' }, [
         h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, 'Accesos rapidos'),
-        h('h2', { class: 'mt-1 text-lg font-extrabold text-neutral-900' }, 'Operaciones'),
+        h('h2', { class: 'mt-0.5 text-xl font-extrabold text-neutral-900' }, 'Operaciones'),
       ]),
-      h('div', { class: 'grid gap-2' }, [
+      h('div', { class: 'grid gap-1.5' }, [
         ...props.actions.map((action) => h('button', {
           key: action.name,
           type: 'button',
-          class: 'app-hover-glow flex w-full items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-left transition active:scale-[0.98]',
+          class: 'app-hover-glow flex w-full items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-left transition active:scale-[0.98]',
           onClick: () => router.push(action.to),
         }, [
           h('span', { class: 'min-w-0' }, [
             h('span', { class: 'block truncate text-sm font-bold text-neutral-800' }, action.label),
-            h('span', { class: 'block truncate text-xs text-neutral-400' }, action.description),
           ]),
-          action.badge !== null ? h('span', { class: 'rounded-md bg-warning-light px-2.5 py-1 text-xs font-extrabold text-warning-dark' }, String(action.badge)) : null,
+          action.badge !== null ? h('span', { class: 'rounded-md bg-warning-light px-2 py-0.5 text-xs font-extrabold text-warning-dark' }, String(action.badge)) : h(AppIcon, { name: 'forward', size: 'xs', class: 'text-neutral-400' }),
         ])),
         props.showInstall ? h('button', {
           type: 'button',
-          class: 'app-hover-glow flex w-full items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-left transition active:scale-[0.98]',
+          class: 'app-hover-glow flex w-full items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-left transition active:scale-[0.98]',
           onClick: () => emit('install'),
         }, h('span', [
           h('span', { class: 'block text-sm font-bold text-neutral-800' }, 'Instalar app'),
@@ -495,8 +503,8 @@ const QuickActions = defineComponent({
 
 const LastPersonalRecord = defineComponent({
   setup() {
-    return () => h('article', { class: 'app-card rounded-xl p-5' }, [
-      h('div', { class: 'mb-4 flex items-center justify-between gap-3' }, [
+    return () => h('article', { class: 'app-card rounded-xl p-4' }, [
+      h('div', { class: 'mb-3 flex items-center justify-between gap-3' }, [
         h('div', [
           h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, 'Ultimo registro'),
           h('h2', { class: 'mt-1 text-lg font-extrabold text-neutral-900' }, lastRecordTitle.value),
@@ -518,8 +526,8 @@ const LastPersonalRecord = defineComponent({
 
 const SyncCard = defineComponent({
   setup() {
-    return () => h('article', { class: 'app-card rounded-xl p-5' }, [
-      h('div', { class: 'mb-4 flex items-center justify-between gap-3' }, [
+    return () => h('article', { class: 'app-card rounded-xl p-4' }, [
+      h('div', { class: 'mb-3 flex items-center justify-between gap-3' }, [
         h('div', [
           h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, 'Sincronizacion'),
           h('h2', { class: 'mt-1 text-lg font-extrabold text-neutral-900' }, `${produccionStore.pendingCount} pendiente${produccionStore.pendingCount !== 1 ? 's' : ''}`),
@@ -539,24 +547,24 @@ const AlertPanel = defineComponent({
   },
   emits: ['action'],
   setup(props, { emit }) {
-    return () => h('article', { class: 'rounded-xl border border-error/35 bg-error-light p-5 shadow-sm' }, [
-      h('div', { class: 'mb-4 flex items-center justify-between gap-3' }, [
+    return () => h('article', { class: 'rounded-xl border border-error/45 bg-error-light p-4 shadow-sm' }, [
+      h('div', { class: 'mb-3 flex items-center justify-between gap-3' }, [
         h('div', [
           h('p', { class: 'text-xs font-bold uppercase tracking-wide text-error-dark/80' }, 'Alertas operativas'),
-          h('h2', { class: 'mt-1 text-lg font-extrabold text-error-dark' }, `${props.alerts.length} alerta${props.alerts.length !== 1 ? 's' : ''}`),
+          h('h2', { class: 'mt-1 text-2xl font-extrabold leading-none text-error-dark' }, `${props.alerts.length} alerta${props.alerts.length !== 1 ? 's' : ''}`),
         ]),
         h(AppIcon, { name: 'warning', size: 'lg', class: 'text-error-dark opacity-80' }),
       ]),
-      h('div', { class: 'space-y-2' }, props.alerts.map((alert) => h('p', { key: alert, class: 'rounded-lg border border-error/20 bg-white/65 px-3 py-2 text-sm font-semibold text-error-dark' }, alert))),
+      h('div', { class: 'space-y-2' }, props.alerts.map((alert) => h('p', { key: alert, class: 'rounded-lg border border-error/25 bg-white/65 px-3 py-2 text-sm font-semibold text-error-dark' }, alert))),
       props.unitLabels.length > 0
-        ? h('div', { class: 'mt-3 max-h-36 overflow-y-auto rounded-lg border border-error/20 bg-white/45 p-2' }, [
+        ? h('div', { class: 'mt-3 rounded-lg p-0' }, [
           h('p', { class: 'mb-2 text-[11px] font-bold uppercase tracking-wide text-error-dark/70' }, 'Unidades afectadas'),
-          h('div', { class: 'flex flex-wrap gap-1.5' }, props.unitLabels.map((label) => h('span', { key: label, class: 'rounded-md border border-error/25 bg-error-light px-2 py-1 text-xs font-bold text-error-dark' }, label))),
+          h('div', { class: 'flex flex-wrap gap-1.5' }, props.unitLabels.map((label) => h('span', { key: label, class: 'rounded-md border border-error/40 bg-error-light px-2.5 py-1 text-xs font-bold text-error-dark' }, label))),
         ])
         : null,
       h('button', {
         type: 'button',
-        class: 'mt-4 inline-flex w-full items-center justify-center rounded-lg bg-error px-3 py-2 text-sm font-bold text-white transition hover:bg-error-dark active:scale-[0.98]',
+        class: 'mt-4 inline-flex w-full items-center justify-center rounded-lg bg-error px-3 py-2.5 text-sm font-extrabold text-white transition hover:bg-error-dark active:scale-[0.98]',
         onClick: () => emit('action'),
       }, props.actionLabel),
     ])
@@ -565,10 +573,10 @@ const AlertPanel = defineComponent({
 
 const RecentRecordsPanel = defineComponent({
   setup() {
-    return () => h('article', { class: 'app-card rounded-xl p-5' }, [
-      h('div', { class: 'mb-4' }, [
+    return () => h('article', { class: 'app-card rounded-xl p-4' }, [
+      h('div', { class: 'mb-3' }, [
         h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, 'Ultimos registros'),
-        h('h2', { class: 'mt-1 text-lg font-extrabold text-neutral-900' }, 'Cargas de hoy'),
+        h('h2', { class: 'mt-0.5 text-xl font-extrabold text-neutral-900' }, 'Cargas de hoy'),
       ]),
       adminStore.loadingRecentRecords
         ? h('div', { class: 'space-y-2' }, [1, 2, 3].map((i) => h('div', { key: i, class: 'h-12 animate-pulse rounded-lg bg-neutral-100' })))
@@ -630,7 +638,7 @@ function unitStatusText(unidad) {
   const tieneActividad = (unidad.resumen?.total_registros || 0) > 0 || unidad.resumen?.ultima_actividad_fecha
   if (!tieneActividad) return 'Sin actividad registrada'
   if (unidad.resumen?.ultima_actividad_fecha) {
-    return `Última: ${formatFecha(unidad.resumen.ultima_actividad_fecha)}`
+    return `Ultima: ${formatFecha(unidad.resumen.ultima_actividad_fecha)}`
   }
   return `${fmt(unidad.resumen.total_registros)} registro${unidad.resumen.total_registros !== 1 ? 's' : ''} en el periodo`
 }

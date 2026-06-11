@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-[calc(100vh-8.5rem)] bg-surface px-4 py-5 md:min-h-[calc(100vh-3.5rem)] md:py-6">
-    <div class="mx-auto max-w-6xl space-y-4">
+  <div class="min-h-[calc(100vh-8.5rem)] bg-surface px-3 py-3 md:min-h-[calc(100vh-3.5rem)] md:px-4 md:py-4">
+    <div class="mx-auto max-w-7xl space-y-3">
       <PageHeader
         title="Registros Pendientes"
         :description="scopeDescription"
@@ -25,8 +25,8 @@
         </template>
       </PageHeader>
 
-      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
-        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-3.5 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Estado de sincronizacion</p>
             <h2 class="mt-1 text-xl font-extrabold text-neutral-950">{{ syncStatusTitle }}</h2>
@@ -71,7 +71,7 @@
         />
       </div>
 
-      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
+      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-3.5 shadow-sm">
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Cola de sincronizacion</p>
@@ -96,11 +96,11 @@
           </div>
         </div>
 
-        <div v-if="loading" class="mt-4 rounded-lg border border-outline-variant bg-surface-container-low p-6 text-center text-sm text-on-surface-variant">
+        <div v-if="loading" class="mt-3 rounded-lg border border-outline-variant bg-surface-container-low p-4 text-center text-sm text-on-surface-variant">
           Cargando registros...
         </div>
 
-        <div v-else-if="visibleRecords.length === 0" class="mt-4">
+        <div v-else-if="visibleRecords.length === 0" class="mt-3">
           <EmptyState
             title="Todo sincronizado"
             description="No hay registros pendientes ni fallidos. Las cargas realizadas se encuentran guardadas correctamente."
@@ -110,12 +110,12 @@
           </EmptyState>
         </div>
 
-        <div v-else class="mt-4 space-y-3">
+        <div v-else class="mt-3 space-y-2.5">
           <article
             v-for="record in visibleRecords"
             :key="record.id"
             :class="[
-              'rounded-xl border bg-white p-4 shadow-sm',
+              'rounded-xl border bg-white p-3.5 shadow-sm',
               isFailedRecord(record) ? 'border-error/30 bg-error-light/20' : 'border-warning/30 bg-warning-light/20',
             ]"
           >
@@ -130,7 +130,7 @@
                 <p class="mt-2 text-base font-extrabold text-on-surface">
                   Produccion - {{ record.payload?.UN || 'Unidad sin definir' }}
                 </p>
-                <dl class="mt-2 grid gap-1 text-sm text-on-surface-variant sm:grid-cols-2">
+                <dl class="mt-2 grid gap-1 text-sm text-on-surface-variant sm:grid-cols-2 xl:grid-cols-4">
                   <div><dt class="inline font-bold text-on-surface">Fecha:</dt> <dd class="inline">{{ record.payload?.fecha || '-' }}</dd></div>
                   <div><dt class="inline font-bold text-on-surface">Proceso:</dt> <dd class="inline">{{ record.payload?.operacion || '-' }}</dd></div>
                   <div><dt class="inline font-bold text-on-surface">Operador:</dt> <dd class="inline">{{ record.payload?.operador || 'Sin definir' }}</dd></div>
@@ -166,7 +166,7 @@
         </div>
       </section>
 
-      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
+      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-3.5 shadow-sm">
         <div class="flex items-start gap-3">
           <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container text-info-dark">
             <AppIcon name="refresh" />

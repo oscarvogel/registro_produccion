@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-3">
     <PageHeader :title="meta.title" :description="meta.description">
       <template #kicker>
         <span class="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide app-chip-info">
@@ -22,7 +22,7 @@
     </PageHeader>
 
     <SectionCard title="Gestion">
-      <div class="space-y-4">
+      <div class="space-y-3">
         <FilterBar title="Busqueda y filtros" eyebrow="Vista actual">
           <template #summary>
             <span class="rounded-full border px-3 py-1 text-xs font-bold app-state-inactive">
@@ -76,11 +76,11 @@
         />
 
         <div class="space-y-3 md:hidden">
-          <div v-if="loading" class="rounded-xl border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
+          <div v-if="loading" class="rounded-xl border border-neutral-200 bg-white px-4 py-4 text-center text-sm text-neutral-500">
             Cargando...
           </div>
 
-          <div v-else-if="filteredRows.length === 0" class="rounded-xl border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
+          <div v-else-if="filteredRows.length === 0" class="rounded-xl border border-neutral-200 bg-white px-4 py-4 text-center text-sm text-neutral-500">
             Sin registros para estos filtros.
           </div>
 
@@ -425,7 +425,7 @@
 
     <div v-if="showForm" class="fixed inset-0 bg-black/35 z-50 flex items-center justify-center p-4" @click.self="closeForm">
       <div class="flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-xl">
-        <div class="shrink-0 px-5 py-4 border-b border-neutral-200 flex items-center justify-between gap-4">
+        <div class="flex shrink-0 items-center justify-between gap-4 border-b border-neutral-200 px-4 py-3">
           <div>
             <h3 class="text-lg font-extrabold text-neutral-950">
               {{ editingId ? 'Editar' : 'Nuevo' }} {{ meta.singular }}
@@ -435,7 +435,7 @@
           <button @click="closeForm" class="text-neutral-500 hover:text-neutral-700" type="button">Cerrar</button>
         </div>
 
-        <div v-if="formSections.length > 1" class="shrink-0 px-5 pt-4 flex flex-wrap gap-2">
+        <div v-if="formSections.length > 1" class="flex shrink-0 flex-wrap gap-2 px-4 pt-3">
           <button
             v-for="section in formSections"
             :key="section.key"
@@ -452,19 +452,19 @@
           </button>
         </div>
 
-        <div class="min-h-0 flex-1 overflow-y-auto p-5">
-          <div v-if="formError" class="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+        <div class="min-h-0 flex-1 overflow-y-auto p-4">
+          <div v-if="formError" class="mb-3 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
             {{ formError }}
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <template v-for="field in visibleFields" :key="field.key">
               <div v-if="field.type === 'textarea'" :class="fieldClass(field)">
                 <label class="block text-sm font-medium text-neutral-600 mb-1.5">{{ field.label }}</label>
                 <textarea
                   v-model="form[field.key]"
                   rows="3"
-                  class="w-full px-4 py-3 bg-neutral-100 border border-neutral-300 rounded-lg text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-4 py-2.5 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
 
@@ -519,7 +519,7 @@
                 </div>
               </div>
 
-              <div v-else-if="field.type === 'checkbox'" class="flex items-center gap-3 py-3">
+              <div v-else-if="field.type === 'checkbox'" class="flex items-center gap-3 py-2.5">
                 <input :id="field.key" v-model="form[field.key]" type="checkbox" class="w-4 h-4 accent-primary" />
                 <label :for="field.key" class="text-sm font-medium text-neutral-700">{{ field.label }}</label>
               </div>

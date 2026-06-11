@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-3">
     <SectionCard title="Configuracion de Acceso">
       <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 mb-3">
         Desde aqui se puede habilitar o deshabilitar acceso admin a otros usuarios. No podes quitarte tu propio acceso.
@@ -35,32 +35,32 @@
       <p v-if="store.error" class="text-sm text-red-700 mt-2">{{ store.error }}</p>
     </SectionCard>
 
-    <div class="bg-white border border-neutral-200 rounded-2xl overflow-x-auto">
+    <div class="overflow-x-auto rounded-xl border border-neutral-200 bg-white">
       <table class="min-w-full text-sm">
         <thead class="bg-neutral-50 text-neutral-600">
           <tr>
-            <th class="text-left px-3 py-2.5 font-semibold border-b border-neutral-200">ID</th>
-            <th class="text-left px-3 py-2.5 font-semibold border-b border-neutral-200">Nombre</th>
-            <th class="text-left px-3 py-2.5 font-semibold border-b border-neutral-200">DNI</th>
-            <th class="text-left px-3 py-2.5 font-semibold border-b border-neutral-200">Activo</th>
-            <th class="text-left px-3 py-2.5 font-semibold border-b border-neutral-200">Encargado</th>
-            <th class="text-left px-3 py-2.5 font-semibold border-b border-neutral-200">Acceso Admin</th>
+            <th class="border-b border-neutral-200 px-3 py-2 text-left font-semibold">ID</th>
+            <th class="border-b border-neutral-200 px-3 py-2 text-left font-semibold">Nombre</th>
+            <th class="border-b border-neutral-200 px-3 py-2 text-left font-semibold">DNI</th>
+            <th class="border-b border-neutral-200 px-3 py-2 text-left font-semibold">Activo</th>
+            <th class="border-b border-neutral-200 px-3 py-2 text-left font-semibold">Encargado</th>
+            <th class="border-b border-neutral-200 px-3 py-2 text-left font-semibold">Acceso Admin</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="store.loading">
-            <td colspan="6" class="px-3 py-8 text-center text-neutral-500">Cargando usuarios...</td>
+            <td colspan="6" class="px-3 py-4 text-center text-neutral-500">Cargando usuarios...</td>
           </tr>
           <tr v-else-if="usuariosFiltrados.length === 0">
-            <td colspan="6" class="px-3 py-8 text-center text-neutral-500">No se encontraron usuarios.</td>
+            <td colspan="6" class="px-3 py-4 text-center text-neutral-500">No se encontraron usuarios.</td>
           </tr>
           <tr v-for="usuario in pagedUsuarios" :key="usuario.idPersonal" class="hover:bg-neutral-50/70">
-            <td class="px-3 py-2.5 border-b border-neutral-100">{{ usuario.idPersonal }}</td>
-            <td class="px-3 py-2.5 border-b border-neutral-100">{{ usuario.nombre }}</td>
-            <td class="px-3 py-2.5 border-b border-neutral-100">{{ usuario.dni || '-' }}</td>
-            <td class="px-3 py-2.5 border-b border-neutral-100">{{ usuario.activo === 1 ? 'Si' : 'No' }}</td>
-            <td class="px-3 py-2.5 border-b border-neutral-100">{{ usuario.encargado === 1 ? 'Si' : 'No' }}</td>
-            <td class="px-3 py-2.5 border-b border-neutral-100">
+            <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.idPersonal }}</td>
+            <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.nombre }}</td>
+            <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.dni || '-' }}</td>
+            <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.activo === 1 ? 'Si' : 'No' }}</td>
+            <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.encargado === 1 ? 'Si' : 'No' }}</td>
+            <td class="border-b border-neutral-100 px-3 py-2">
               <label class="inline-flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -80,7 +80,7 @@
       </table>
     </div>
 
-    <div v-if="usuariosFiltrados.length > 0" class="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div v-if="usuariosFiltrados.length > 0" class="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
         <p class="text-xs font-semibold text-neutral-400">
           Mostrando {{ pageStart + 1 }}-{{ pageEnd }} de {{ usuariosFiltrados.length }} usuarios
