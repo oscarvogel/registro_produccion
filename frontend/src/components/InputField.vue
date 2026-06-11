@@ -16,6 +16,7 @@
         :disabled="disabled"
         :min="min"
         :max="max"
+        :step="step"
         :class="[
           'app-input w-full rounded-xl border px-4 py-2.5 placeholder:text-neutral-400 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-500 disabled:opacity-100 transition-colors',
           invalid
@@ -43,6 +44,7 @@ defineProps({
   disabled: { type: Boolean, default: false },
   min: { type: [String, Number], default: undefined },
   max: { type: [String, Number], default: undefined },
+  step: { type: [String, Number], default: undefined },
   invalid: { type: Boolean, default: false },
 })
 

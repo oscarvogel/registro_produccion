@@ -21,7 +21,7 @@
       <AppIcon name="loading" size="xl" class="animate-spin text-primary" />
     </div>
 
-    <form v-else class="md:grid md:grid-cols-[16rem_minmax(0,1fr)] md:items-start md:gap-4" @submit.prevent="handleSubmit">
+    <form v-else class="md:grid md:grid-cols-[16rem_minmax(0,1fr)] md:items-start md:gap-4" novalidate @submit.prevent="handleSubmit">
 
       <!-- Step indicator -->
       <aside class="mb-4 md:sticky md:top-20 md:mb-0 md:rounded-xl md:border md:border-neutral-200 md:bg-white md:p-3 md:shadow-sm">
@@ -291,6 +291,7 @@
             v-model.number="form.hr_inicio"
             placeholder="Ej: 1200"
             min="1"
+            step="any"
             :invalid="mostrarErrorHoras"
             required
           />
@@ -300,6 +301,7 @@
             v-model.number="form.hr_fin"
             placeholder="Ej: 1850"
             min="1"
+            step="any"
             :invalid="mostrarErrorHoras"
             required
           />
@@ -447,6 +449,7 @@
               v-model.number="form.hr_inicio"
               placeholder="Ej: 1200"
               min="1"
+              step="any"
               :invalid="mostrarErrorHoras || (mostrarErrorProduccion && form.hr_inicio <= 0)"
             />
             <InputField
@@ -455,6 +458,7 @@
               v-model.number="form.hr_fin"
               placeholder="Ej: 1850"
               min="1"
+              step="any"
               :invalid="mostrarErrorHoras || (mostrarErrorProduccion && form.hr_fin <= form.hr_inicio)"
             />
           </div>
