@@ -590,6 +590,52 @@ async def get_admin_dashboard(
         )
     }
 
+    # Fetch last activity date and summary for each unit
+    last_activity_by_un = {}
+    if unidad_ids:
+        # Subquery to get the latest record per unit
+        from sqlalchemy import func as sqlfunc
+        from sqlalchemy.orm import aliased
+        
+        latest_records = (
+            db.query(
+                TableroProduccion.cod_un,
+                sqlfunc.max(TableroProduccion.fecha).label("ultima_fecha"),
+                sqlfunc.max(TableroProduccion.id).label("ultimo_id"),
+            )
+            .filter(TableroProduccion.cod_un.in_(unidad_ids))
+            .group_by(TableroProduccion.cod_un)
+            .all()
+        )
+        
+        if latest_records:
+            # Get the details of the latest record for each unit
+            for cod_un, ultima_fecha, ultimo_id in latest_records:
+                if ultima_fecha and ultimo_id:
+                    record = db.query(TableroProduccion).filter(TableroProduccion.id == ultimo_id).first()
+                    if record:
+                        # Build a brief summary
+                        partes = []
+                        if record.produccion and float(record.produccion) > 0:
+                            partes.append(f"{record.produccion:.1f} {record.unidad_produccion or 'uds'}")
+                        if record.tn_despachadas and float(record.tn_despachadas) > 0:
+                            partes.append(f"{record.tn_despachadas:.1f} TN")
+                        if record.m3 and int(record.m3) > 0:
+                            partes.append(f"{record.m3} m3")
+                        if record.has and float(record.has) > 0:
+                            partes.append(f"{record.has:.1f} HAS")
+                        if record.carros and int(record.carros) > 0:
+                            partes.append(f"{record.carros} carros")
+                        if record.combustible and int(record.combustible) > 0:
+                            partes.append(f"{record.combustible} L comb.")
+                        
+                        resumen = ", ".join(partes) if partes else f"{record.operacion or 'Actividad'}"
+                        
+                        last_activity_by_un[cod_un] = {
+                            "fecha": ultima_fecha,
+                            "resumen": resumen,
+                        }
+
     tipos_by_un: dict[int, list[TipoDeProceso]] = {un_id: [] for un_id in unidad_ids}
     for un_id, tipo in (
         db.query(UnidadNegocioTipoProceso.un_id, TipoDeProceso)
@@ -635,6 +681,8 @@ async def get_admin_dashboard(
                 )
             )
 
+        last_activity = last_activity_by_un.get(un.idUnidadNegocio)
+        
         result.append(
             DashboardUnidadNegocioItem(
                 id=un.idUnidadNegocio,
@@ -648,10 +696,21 @@ async def get_admin_dashboard(
                     operadores_activos=int(totals.operadores_activos or 0) if totals else 0,
                     equipos_activos=int(totals.equipos_activos or 0) if totals else 0,
                     registros_hoy=today_counts_by_un.get(un.idUnidadNegocio, 0),
+                    ultima_actividad_fecha=last_activity["fecha"] if last_activity else None,
+                    ultima_actividad_resumen=last_activity["resumen"] if last_activity else None,
                 ),
                 tipos_proceso=tipos_proceso,
             )
         )
+
+    # Sort by last activity date (most recent first), units with no activity go to the end
+    result.sort(
+        key=lambda x: (
+            x.resumen.ultima_actividad_fecha is None,
+            x.resumen.ultima_actividad_fecha or date.min
+        ),
+        reverse=True
+    )
 
     return result
 

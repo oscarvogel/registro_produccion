@@ -1,7 +1,7 @@
 <template>
-  <div class="space-y-4">
-    <section class="rounded-lg border border-neutral-200 bg-primary-dark p-5 text-white shadow-sm">
-      <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_34rem] xl:items-end">
+  <div class="space-y-3">
+    <section class="rounded-lg border border-neutral-200 bg-primary-dark p-4 text-white shadow-sm">
+      <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_34rem] xl:items-end">
         <div>
           <p class="text-xs font-bold uppercase tracking-wide text-primary-fixed-dim">Resumen ejecutivo</p>
           <h2 class="mt-1 text-2xl font-extrabold md:text-3xl">Dashboard de produccion</h2>
@@ -17,7 +17,7 @@
           <div
             v-for="item in executiveStats"
             :key="item.label"
-            class="rounded-lg border border-white/15 bg-white/10 px-3 py-3"
+            class="rounded-lg border border-white/15 bg-white/10 px-3 py-2.5"
           >
             <p class="text-[11px] font-bold uppercase tracking-wide text-primary-fixed-dim">{{ item.label }}</p>
             <p class="mt-1 text-xl font-extrabold text-white">{{ item.value }}</p>
@@ -27,14 +27,14 @@
       </div>
     </section>
 
-    <section class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-      <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+    <section class="rounded-lg border border-neutral-200 bg-white p-3.5 shadow-sm">
+      <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div>
           <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Filtros</p>
           <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Periodo de analisis</h3>
         </div>
 
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
+        <div class="flex flex-col gap-2.5 lg:flex-row lg:items-end">
           <div class="flex flex-wrap gap-2">
             <button
               v-for="preset in rangePresets"
@@ -43,8 +43,8 @@
               :class="[
                 'rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
                 activePreset === preset.key
-                  ? 'border-primary-dark bg-primary-dark text-white'
-                  : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-primary/40',
+                  ? 'border-secondary bg-secondary text-white'
+                  : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-secondary/40',
               ]"
               type="button"
             >
@@ -70,7 +70,7 @@
       </div>
     </section>
 
-    <div v-if="store.loadingDashboardOverview" class="rounded-lg border border-neutral-200 bg-white p-8 text-center text-neutral-500">
+    <div v-if="store.loadingDashboardOverview" class="rounded-lg border border-neutral-200 bg-white p-4 text-center text-neutral-500">
       Cargando resumen ejecutivo...
     </div>
 
@@ -78,19 +78,19 @@
       {{ store.dashboardOverviewError }}
     </div>
 
-    <div v-else-if="!overview" class="rounded-lg border border-neutral-200 bg-white p-10 text-center">
+    <div v-else-if="!overview" class="rounded-lg border border-neutral-200 bg-white p-7 text-center">
       <p class="font-bold text-neutral-700">No se pudo preparar el dashboard</p>
       <p class="mt-1 text-sm text-neutral-500">Actualiza el rango para volver a consultar la informacion.</p>
     </div>
 
     <template v-else>
-      <section class="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.65fr)]">
-        <div class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <section class="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.65fr)]">
+        <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+          <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Produccion total</p>
               <div class="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
-                <span class="text-4xl font-extrabold text-primary-dark md:text-5xl">
+                <span class="text-4xl font-extrabold text-neutral-950 md:text-5xl">
                   {{ formatNumber(totals.produccion_total) }}
                 </span>
                 <span class="pb-1 text-sm font-bold uppercase tracking-wide text-neutral-400">prod.</span>
@@ -107,11 +107,11 @@
             </div>
           </div>
 
-          <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div
               v-for="metric in metricCards"
               :key="metric.label"
-              class="rounded-lg border border-neutral-200 bg-neutral-50 p-4"
+              class="rounded-lg border border-neutral-200 bg-neutral-50 p-3"
             >
               <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">{{ metric.label }}</p>
@@ -123,7 +123,7 @@
           </div>
         </div>
 
-        <aside class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+        <aside class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
           <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Comparativa</p>
           <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Contra periodo anterior</h3>
 
@@ -144,9 +144,9 @@
         </aside>
       </section>
 
-      <section class="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.75fr)]">
-        <div class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-          <div class="mb-4 flex items-end justify-between gap-3">
+      <section class="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.75fr)]">
+        <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+          <div class="mb-3 flex items-end justify-between gap-3">
             <div>
               <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Evolucion diaria</p>
               <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Produccion del periodo</h3>
@@ -196,7 +196,7 @@
           </div>
         </div>
 
-        <aside class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+        <aside class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
           <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Ranking</p>
           <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Unidades por produccion</h3>
 
@@ -204,7 +204,7 @@
             <div v-for="(item, index) in overview.unidad_ranking" :key="item.id || item.nombre">
               <div class="flex items-center justify-between gap-3">
                 <div class="flex min-w-0 items-center gap-2">
-                  <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-xs font-extrabold text-primary-dark">
+                  <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-info-light text-xs font-extrabold text-info-dark">
                     {{ index + 1 }}
                   </span>
                   <div class="min-w-0">
@@ -223,15 +223,15 @@
             </div>
           </div>
 
-          <div v-else class="mt-4 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-5 text-center text-sm text-neutral-500">
+          <div v-else class="mt-3 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 text-center text-sm text-neutral-500">
             Sin unidades con produccion en este periodo.
           </div>
         </aside>
       </section>
 
-      <section class="grid gap-4 xl:grid-cols-2">
-        <div class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-          <div class="mb-4">
+      <section class="grid gap-3 xl:grid-cols-2">
+        <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+          <div class="mb-3">
             <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Procesos</p>
             <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Produccion por proceso</h3>
           </div>
@@ -240,30 +240,30 @@
             <table class="w-full border-collapse text-left text-sm">
               <thead class="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-400">
                 <tr>
-                  <th class="px-3 py-3 font-bold">Proceso</th>
-                  <th class="px-3 py-3 text-right font-bold">Produccion</th>
-                  <th class="px-3 py-3 text-right font-bold">TN</th>
-                  <th class="px-3 py-3 text-right font-bold">Reg.</th>
+                  <th class="px-3 py-2.5 font-bold">Proceso</th>
+                  <th class="px-3 py-2.5 text-right font-bold">Produccion</th>
+                  <th class="px-3 py-2.5 text-right font-bold">TN</th>
+                  <th class="px-3 py-2.5 text-right font-bold">Reg.</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-neutral-100">
                 <tr v-for="item in overview.proceso_ranking" :key="item.id || item.nombre">
-                  <td class="px-3 py-3 font-bold text-neutral-800">{{ item.nombre }}</td>
-                  <td class="px-3 py-3 text-right font-extrabold text-primary-dark">{{ formatNumber(item.produccion) }}</td>
-                  <td class="px-3 py-3 text-right text-neutral-600">{{ formatNumber(item.tn_despachadas) }}</td>
-                  <td class="px-3 py-3 text-right text-neutral-500">{{ formatNumber(item.registros) }}</td>
+                  <td class="px-3 py-2.5 font-bold text-neutral-800">{{ item.nombre }}</td>
+                  <td class="px-3 py-2.5 text-right font-extrabold text-info-dark">{{ formatNumber(item.produccion) }}</td>
+                  <td class="px-3 py-2.5 text-right text-neutral-600">{{ formatNumber(item.tn_despachadas) }}</td>
+                  <td class="px-3 py-2.5 text-right text-neutral-500">{{ formatNumber(item.registros) }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <div v-else class="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-5 text-center text-sm text-neutral-500">
+          <div v-else class="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 text-center text-sm text-neutral-500">
             Sin procesos con produccion en este periodo.
           </div>
         </div>
 
-        <div class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-          <div class="mb-4">
+        <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+          <div class="mb-3">
             <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Actividad reciente</p>
             <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Ultimos registros productivos</h3>
           </div>
@@ -272,7 +272,7 @@
             <article
               v-for="record in overview.recent_records"
               :key="record.id"
-              class="grid gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+              class="grid gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
             >
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
@@ -286,13 +286,13 @@
                 </p>
               </div>
               <div class="text-sm md:text-right">
-                <p class="font-extrabold text-primary-dark">{{ formatNumber(record.produccion) }}</p>
+                <p class="font-extrabold text-info-dark">{{ formatNumber(record.produccion) }}</p>
                 <p class="text-xs text-neutral-400">{{ formatNumber(record.combustible) }} L</p>
               </div>
             </article>
           </div>
 
-          <div v-else class="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-5 text-center text-sm text-neutral-500">
+          <div v-else class="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 text-center text-sm text-neutral-500">
             Sin registros recientes para el rango activo.
           </div>
         </div>

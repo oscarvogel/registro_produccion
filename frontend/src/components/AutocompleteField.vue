@@ -10,7 +10,7 @@
       type="button"
       :disabled="disabled"
       @click="startSearch"
-      class="flex w-full items-center justify-between gap-3 rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-left text-sm font-semibold text-neutral-900 transition-all duration-150 ease-out hover:-translate-y-px hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-neutral-200"
+      class="app-input flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-left text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-px hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-neutral-200"
     >
       <span class="min-w-0 truncate">{{ selectedLabel }}</span>
       <AppIcon name="chevronDown" size="sm" class="shrink-0 text-neutral-500" />
@@ -19,7 +19,7 @@
     <div
       v-else-if="selectedLabel && !searching"
       v-motion-pop
-      class="flex items-center gap-3 p-3 bg-success-light/40 border border-success/30 rounded-xl"
+      class="flex items-center gap-3 rounded-xl border border-success/30 bg-success-light/40 p-2.5"
     >
       <AppIcon name="success" class="text-success-dark shrink-0" />
       <span class="text-sm font-semibold text-neutral-900 min-w-0 flex-1 truncate">{{ selectedLabel }}</span>
@@ -27,7 +27,7 @@
         v-if="!disabled"
         type="button"
         @click="startSearch"
-        class="shrink-0 text-xs font-medium text-primary hover:text-primary-dark underline underline-offset-2"
+        class="shrink-0 text-xs font-medium text-info hover:text-info-dark underline underline-offset-2"
       >
         Cambiar
       </button>
@@ -57,7 +57,7 @@
           :aria-activedescendant="activeDescendantId"
           :aria-invalid="invalid || undefined"
           :class="[
-            'w-full px-4 py-3 bg-neutral-100 border rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-primary/40 disabled:bg-neutral-200 disabled:cursor-not-allowed transition-colors',
+            'app-input w-full rounded-xl border px-4 py-2.5 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-neutral-200 transition-colors',
             invalid
               ? 'border-error focus:ring-error/30 focus:border-error'
               : 'border-neutral-300 focus:ring-primary/30 focus:border-primary/40',
@@ -80,7 +80,7 @@
           v-if="isOpen && filteredItems.length > 0"
           :id="listboxId"
           role="listbox"
-          class="absolute left-0 right-0 top-full z-50 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-xl"
+          :class="resultsListClass"
         >
           <button
             v-for="(item, i) in filteredItems"
@@ -91,9 +91,9 @@
             :aria-selected="i === highlightedIndex"
             @mousedown.prevent="selectItem(item)"
             :class="[
-              'w-full text-left px-4 py-2.5 border-b last:border-b-0 border-neutral-100 transition-colors text-sm',
+              'w-full border-b border-neutral-100 px-4 py-2 text-left text-sm transition-colors last:border-b-0',
               i === highlightedIndex
-                ? 'bg-primary/10 text-primary-dark font-medium'
+                ? 'bg-info-light text-info-dark font-medium'
                 : 'hover:bg-neutral-50 text-neutral-900',
             ]"
           >
@@ -106,7 +106,7 @@
       <Transition name="dropdown-soft">
         <div
           v-if="isOpen && query.length >= 1 && filteredItems.length === 0"
-          class="absolute left-0 right-0 top-full z-50 mt-1.5 rounded-lg border border-neutral-200 bg-white p-2.5 text-xs text-neutral-400 shadow-xl"
+          :class="emptyListClass"
         >
           Sin resultados para "{{ query }}"
         </div>
@@ -141,6 +141,7 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   invalid: { type: Boolean, default: false },
   selectedDisplay: { type: String, default: 'chip' },
+  dropdownMode: { type: String, default: 'absolute' },
 })
 
 const emit = defineEmits(['update:modelValue', 'select'])
@@ -154,6 +155,15 @@ const uniqueId = Math.random().toString(36).slice(2)
 const inputId = `autocomplete-input-${uniqueId}`
 const listboxId = `autocomplete-listbox-${uniqueId}`
 const activeDescendantId = computed(() => highlightedIndex.value >= 0 ? optionId(highlightedIndex.value) : undefined)
+const usesInlineDropdown = computed(() => props.dropdownMode === 'inline')
+const resultsListClass = computed(() => [
+  'app-card z-50 mt-1.5 max-h-56 overflow-y-auto rounded-xl',
+  usesInlineDropdown.value ? 'relative' : 'absolute left-0 right-0 top-full',
+])
+const emptyListClass = computed(() => [
+  'app-card z-50 mt-1.5 rounded-lg p-2.5 text-xs text-neutral-400',
+  usesInlineDropdown.value ? 'relative' : 'absolute left-0 right-0 top-full',
+])
 
 const selectedLabel = computed(() => {
   if (props.modelValue === null || props.modelValue === undefined || props.modelValue === '' || props.modelValue === 0) return ''

@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>registro_produccion</title>
+    <script>
+      (function () {
+        var key = 'registro_theme'
+        var theme = localStorage.getItem(key)
+        if (theme !== 'light' && theme !== 'dark') theme = 'dark'
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.colorScheme = theme
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

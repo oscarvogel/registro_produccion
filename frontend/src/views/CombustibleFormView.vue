@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto max-w-5xl px-3 py-4 pb-20 md:px-6 md:pt-6">
+  <div class="mx-auto max-w-6xl px-3 py-3 pb-20 md:px-4 md:pt-4">
     <PageHeader
       title="Carga de Combustible"
       description="Registro independiente de cargas por movil y operador."
@@ -14,9 +14,9 @@
       </template>
     </PageHeader>
 
-    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div class="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <SectionCard title="Nueva carga">
-        <form class="space-y-5" @submit.prevent="submit">
+        <form class="space-y-3" @submit.prevent="submit">
           <div v-if="store.error || formError" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
             {{ formError || store.error }}
           </div>
@@ -25,7 +25,7 @@
             {{ successMessage }}
           </div>
 
-          <div class="grid gap-4 md:grid-cols-2">
+          <div class="grid gap-3 md:grid-cols-2">
             <InputField
               v-model="form.fecha"
               label="Fecha de carga"
@@ -69,8 +69,8 @@
             <span class="mb-1 block text-sm font-medium text-neutral-700">Observaciones</span>
             <textarea
               v-model="form.observaciones"
-              rows="4"
-              class="w-full rounded-xl border border-neutral-300 bg-neutral-100 px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              rows="3"
+              class="w-full rounded-xl border border-neutral-300 bg-neutral-100 px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
               placeholder="Opcional"
             ></textarea>
           </label>
@@ -88,7 +88,7 @@
         </form>
       </SectionCard>
 
-      <aside class="space-y-4">
+      <aside class="space-y-3">
         <SectionCard title="Operador">
           <div class="space-y-3 text-sm">
             <div>

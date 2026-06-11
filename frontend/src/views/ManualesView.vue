@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-[calc(100vh-8.5rem)] bg-neutral-100 px-4 py-5 pb-24 md:min-h-[calc(100vh-3.5rem)] md:px-6 md:py-6">
-    <div class="mx-auto max-w-7xl space-y-4">
+  <div class="min-h-[calc(100vh-8.5rem)] bg-neutral-100 px-3 py-3 pb-20 md:min-h-[calc(100vh-3.5rem)] md:px-4 md:py-4">
+    <div class="mx-auto max-w-[112rem] space-y-3">
       <PageHeader
         title="Manuales de Usuario"
         description="Guía de uso del sistema por tipo de usuario."
       >
         <template #kicker>
-          <span class="rounded-full bg-primary-light/30 px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-primary-dark">
+          <span class="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide app-chip-info">
             {{ currentRoleLabel }}
           </span>
         </template>
@@ -19,7 +19,7 @@
             :href="activeManual.pdfUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary-dark px-4 text-sm font-bold text-white transition-colors hover:bg-primary"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-on-primary transition-colors hover:bg-primary-dark"
           >
             <AppIcon name="download" size="sm" />
             Abrir PDF
@@ -35,7 +35,7 @@
           :class="manualButtonClass(manual)"
           @click="selectManual(manual.id)"
         >
-          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-primary-dark shadow-sm">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-primary-dark">
             <AppIcon :name="manual.icon" />
           </span>
           <span class="min-w-0 text-left">
@@ -45,25 +45,25 @@
         </button>
       </section>
 
-      <section class="rounded-xl border border-neutral-200 bg-white shadow-sm">
-        <div class="flex flex-col gap-3 border-b border-neutral-100 px-4 py-4 md:flex-row md:items-center md:justify-between">
+      <section class="app-card overflow-hidden rounded-xl">
+        <div class="flex flex-col gap-3 border-b border-neutral-100 px-4 py-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Lectura en linea</p>
-            <h2 class="mt-1 text-xl font-extrabold text-primary-dark">{{ activeManual.title }}</h2>
+            <h2 class="mt-1 text-xl font-extrabold text-neutral-950">{{ activeManual.title }}</h2>
           </div>
           <div class="flex flex-wrap gap-2">
             <a
               :href="activeManual.sourceUrl"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 text-sm font-bold text-neutral-700 hover:border-primary/40 hover:text-primary-dark"
+              class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-bold text-neutral-700 hover:border-primary/40 hover:text-primary-dark"
             >
               <AppIcon name="view" size="sm" />
               Markdown
             </a>
             <button
               type="button"
-              class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 text-sm font-bold text-neutral-700 hover:border-primary/40 hover:text-primary-dark"
+              class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-bold text-neutral-700 hover:border-primary/40 hover:text-primary-dark"
               @click="printManual"
             >
               <AppIcon name="download" size="sm" />
@@ -76,7 +76,7 @@
           <AppIcon name="loading" size="xl" class="animate-spin" />
         </div>
 
-        <div v-else-if="error" class="p-6">
+        <div v-else-if="error" class="p-4">
           <div class="rounded-xl border border-error-light bg-error-light/30 p-4 text-sm font-semibold text-error-dark">
             {{ error }}
           </div>
@@ -84,7 +84,7 @@
 
         <article
           v-else
-          class="manual-content prose-safe max-w-none px-4 py-5 md:px-8 md:py-7"
+          class="manual-content prose-safe max-w-none px-4 py-4 md:px-5"
           v-html="renderedManual"
         ></article>
       </section>
@@ -186,8 +186,8 @@ function manualButtonClass(manual) {
   return [
     'flex min-h-24 items-center gap-3 rounded-xl border px-4 py-3 transition-all text-left',
     activeManualId.value === manual.id
-      ? 'border-primary-dark bg-primary-dark text-white shadow-lg'
-      : 'border-neutral-200 bg-white text-neutral-800 shadow-sm hover:border-primary/40 hover:bg-primary-light/20',
+      ? 'border-primary/45 bg-primary-light text-primary-dark shadow-[0_0_18px_rgba(16,185,129,0.10)]'
+      : 'border-neutral-200 bg-white text-neutral-800 shadow-sm hover:border-primary/40 hover:bg-neutral-50',
   ]
 }
 
@@ -336,8 +336,8 @@ function escapeHtml(value) {
 <style scoped>
 .manual-content :deep(.cover) {
   align-items: center;
-  background: linear-gradient(135deg, #f3f8f4, #ffffff);
-  border: 1px solid var(--color-neutral-200);
+  background: var(--app-surface-muted);
+  border: 1px solid var(--app-border);
   border-radius: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -353,7 +353,7 @@ function escapeHtml(value) {
 }
 
 .manual-content :deep(.cover h1) {
-  color: var(--color-primary-dark);
+  color: var(--app-text);
   font-size: 2rem;
   font-weight: 900;
   line-height: 1.05;
@@ -361,14 +361,14 @@ function escapeHtml(value) {
 }
 
 .manual-content :deep(.subtitle) {
-  color: var(--color-primary);
+  color: var(--color-primary-dark);
   font-size: 1.1rem;
   font-weight: 800;
   margin-top: 0.35rem;
 }
 
 .manual-content :deep(.meta) {
-  color: var(--color-neutral-500);
+  color: var(--app-text-muted);
   font-size: 0.85rem;
   margin-top: 0.75rem;
 }
@@ -378,7 +378,7 @@ function escapeHtml(value) {
 }
 
 .manual-content :deep(h1) {
-  color: var(--color-primary-dark);
+  color: var(--app-text);
   font-size: 1.8rem;
   font-weight: 900;
   line-height: 1.15;
@@ -386,7 +386,7 @@ function escapeHtml(value) {
 }
 
 .manual-content :deep(h2) {
-  border-bottom: 1px solid var(--color-neutral-200);
+  border-bottom: 1px solid var(--app-border);
   color: var(--color-primary-dark);
   font-size: 1.35rem;
   font-weight: 900;
@@ -395,21 +395,21 @@ function escapeHtml(value) {
 }
 
 .manual-content :deep(h3) {
-  color: var(--color-neutral-900);
+  color: var(--app-text);
   font-size: 1.05rem;
   font-weight: 900;
   margin: 1.35rem 0 0.5rem;
 }
 
 .manual-content :deep(p) {
-  color: var(--color-neutral-700);
+  color: var(--app-text-muted);
   line-height: 1.65;
   margin: 0 0 0.9rem;
 }
 
 .manual-content :deep(ul),
 .manual-content :deep(ol) {
-  color: var(--color-neutral-700);
+  color: var(--app-text-muted);
   line-height: 1.65;
   margin: 0 0 1rem 1.25rem;
 }
@@ -426,14 +426,14 @@ function escapeHtml(value) {
 
 .manual-content :deep(th),
 .manual-content :deep(td) {
-  border: 1px solid var(--color-neutral-200);
+  border: 1px solid var(--app-border);
   padding: 0.65rem 0.75rem;
   text-align: left;
   vertical-align: top;
 }
 
 .manual-content :deep(th) {
-  background: var(--color-primary-light);
+  background: var(--app-surface-muted);
   color: var(--color-primary-dark);
   font-size: 0.8rem;
   font-weight: 900;
@@ -441,11 +441,12 @@ function escapeHtml(value) {
 }
 
 .manual-content :deep(code) {
-  background: var(--color-neutral-100);
-  border-radius: 0.35rem;
+  background: var(--app-surface-muted);
+  border: 1px solid var(--app-border);
+  border-radius: 0.3rem;
   color: var(--color-primary-dark);
-  font-size: 0.9em;
-  padding: 0.1rem 0.3rem;
+  font-size: 0.86em;
+  padding: 0.08rem 0.28rem;
 }
 
 .manual-content :deep(.warning),
@@ -457,12 +458,12 @@ function escapeHtml(value) {
 }
 
 .manual-content :deep(.warning) {
-  background: var(--color-warning-light);
+  background: var(--color-idle-bg);
   border-left-color: var(--color-warning-dark);
 }
 
 .manual-content :deep(.note) {
-  background: var(--color-primary-light);
+  background: var(--color-active-bg);
 }
 
 @media print {

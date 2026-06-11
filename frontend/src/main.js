@@ -5,6 +5,7 @@ import App from './App.vue'
 import router from './router'
 import { motionPluginOptions } from '@/config/motion'
 import { setUnauthorizedHandler } from '@/services/api'
+import { initializeTheme } from '@/composables/useTheme'
 import './style.css'
 
 const RELOAD_AFTER_PRELOAD_ERROR_KEY = 'registro_preload_error_reloaded'
@@ -33,6 +34,8 @@ window.addEventListener('load', () => {
 
 const app = createApp(App)
 const pinia = createPinia()
+
+initializeTheme()
 
 app.use(pinia)
 app.use(router)

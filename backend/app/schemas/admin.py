@@ -17,6 +17,8 @@ class DashboardResumenItem(BaseModel):
     operadores_activos: int
     equipos_activos: int
     registros_hoy: int
+    ultima_actividad_fecha: date | None = None
+    ultima_actividad_resumen: str | None = None
 
 
 class DashboardUnidadNegocioItem(BaseModel):

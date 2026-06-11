@@ -2,30 +2,28 @@
   <article
     v-motion-panel
     :class="[
-      'rounded-xl border bg-white p-4 shadow-sm transition-all duration-150 ease-out',
-      interactive ? 'hover:-translate-y-px hover:shadow-md' : '',
+      'app-card grid min-h-[5.75rem] grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-xl p-3.5 transition-all duration-150 ease-out',
+      interactive ? 'app-hover-glow hover:-translate-y-px' : '',
       toneClass,
     ]"
   >
-    <div class="flex items-start justify-between gap-3">
-      <div class="min-w-0">
-        <p class="truncate text-xs font-extrabold uppercase tracking-wide text-neutral-500">
-          {{ label }}
-        </p>
-        <div class="mt-2 flex items-baseline gap-1.5">
-          <span class="text-2xl font-extrabold leading-none text-neutral-900 md:text-3xl">
-            {{ value }}
-          </span>
-          <span v-if="unit" class="text-sm font-bold text-neutral-400">{{ unit }}</span>
-        </div>
+    <span v-if="icon" :class="['flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', iconClass]">
+      <AppIcon :name="icon" size="sm" />
+    </span>
+    <div class="min-w-0">
+      <p class="truncate text-xs font-bold uppercase tracking-wide text-neutral-500">
+        {{ label }}
+      </p>
+      <div class="mt-1 flex items-baseline gap-1.5">
+        <span class="text-2xl font-extrabold leading-none text-neutral-900 md:text-[1.75rem]">
+          {{ value }}
+        </span>
+        <span v-if="unit" class="text-xs font-bold text-neutral-400">{{ unit }}</span>
       </div>
-      <span v-if="icon" :class="['flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', iconClass]">
-        <AppIcon :name="icon" size="sm" />
-      </span>
+      <p v-if="description" class="mt-1 truncate text-xs text-neutral-500">
+        {{ description }}
+      </p>
     </div>
-    <p v-if="description" class="mt-2 text-sm text-neutral-500">
-      {{ description }}
-    </p>
   </article>
 </template>
 
@@ -46,10 +44,11 @@ const props = defineProps({
 const toneClass = computed(() => {
   const tones = {
     neutral: 'border-neutral-200',
-    primary: 'border-primary/20 bg-primary-light/10',
-    success: 'border-success/20 bg-success-light/20',
-    warning: 'border-warning/30 bg-warning-light/30',
-    error: 'border-error/20 bg-error-light/30',
+    primary: 'border-primary/20',
+    success: 'border-success/25 bg-success-light/20',
+    info: 'border-info/25 bg-info-light/20',
+    warning: 'border-warning/30 bg-warning-light/25',
+    error: 'border-error/25 bg-error-light/25',
   }
   return tones[props.tone] || tones.neutral
 })
@@ -57,8 +56,9 @@ const toneClass = computed(() => {
 const iconClass = computed(() => {
   const tones = {
     neutral: 'bg-neutral-100 text-neutral-600',
-    primary: 'bg-primary-light/35 text-primary-dark',
-    success: 'bg-success-light/40 text-success-dark',
+    primary: 'bg-primary-light text-primary-dark',
+    success: 'bg-success-light/45 text-success-dark',
+    info: 'bg-info-light text-info-dark',
     warning: 'bg-warning-light text-warning-dark',
     error: 'bg-error-light text-error-dark',
   }

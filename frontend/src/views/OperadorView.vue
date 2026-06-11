@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 px-4 py-5 pb-24 md:px-6 md:py-6 md:pb-8">
-    <div class="mx-auto max-w-4xl space-y-4">
+  <div class="min-h-screen bg-neutral-100 px-3 py-3 pb-20 md:px-4 md:py-4 md:pb-6">
+    <div class="mx-auto max-w-6xl space-y-3">
       <PageHeader
         title="Mis Registros"
         :description="`${authStore.userName} · historial personal y totales del periodo`"
@@ -19,7 +19,7 @@
 
       <FilterBar title="Periodo" eyebrow="Filtros rapidos">
         <template #summary>
-          <span class="rounded-full bg-primary-light/30 px-3 py-1 text-xs font-extrabold text-primary-dark">
+          <span class="rounded-full border px-3 py-1 text-xs font-bold app-chip-info">
             {{ store.registros.length }} registro{{ store.registros.length !== 1 ? 's' : '' }}
           </span>
         </template>
@@ -62,8 +62,8 @@
       </div>
 
       <template v-else>
-        <div class="grid grid-cols-2 gap-3">
-          <MetricCard label="Registros" :value="store.totales.total" icon="records" tone="primary" />
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Registros" :value="store.totales.total" icon="records" tone="info" />
           <MetricCard label="Horas trabajadas" :value="fmt(store.totales.total_horas)" unit="hs" icon="timer" />
           <MetricCard label="Combustible" :value="fmt(store.totales.total_combustible)" unit="lts" icon="fuel" tone="warning" />
           <MetricCard
@@ -83,7 +83,7 @@
             :unit="metric.unit"
             :description="metric.detail"
             icon="production"
-            tone="primary"
+            tone="info"
           />
         </div>
 
@@ -94,11 +94,11 @@
             v-for="record in store.registros"
             :key="record.id"
             v-motion-panel
-            class="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm"
+            class="rounded-xl border border-neutral-200 bg-white p-3.5 shadow-sm"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <span class="inline-flex max-w-full rounded-lg bg-primary/10 px-2 py-0.5 text-xs font-extrabold uppercase tracking-wide text-primary-dark">
+                <span class="inline-flex max-w-full rounded-lg bg-info-light px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-info-dark">
                   <span class="truncate">{{ record.operacion || 'Produccion' }}</span>
                 </span>
                 <p class="mt-1 text-xs font-semibold text-neutral-400">{{ formatFecha(record.fecha) }}</p>
@@ -108,7 +108,7 @@
               </p>
             </div>
 
-            <div class="mt-3 flex flex-wrap gap-2">
+            <div class="mt-2.5 flex flex-wrap gap-2">
               <span
                 v-for="metric in recordMetrics(record)"
                 :key="metric.label"
@@ -215,10 +215,10 @@ function handleManualDate(key, value) {
 
 function quickFilterClass(key) {
   return [
-    'rounded-full border px-3 py-1.5 text-xs font-extrabold transition-colors',
+    'rounded-full border px-3 py-1.5 text-xs font-bold transition-colors',
     activePreset.value === key
-      ? 'border-primary-dark bg-primary-dark text-white'
-      : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-primary/40 hover:text-primary-dark',
+      ? 'border-secondary bg-secondary text-white'
+      : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-secondary/40 hover:text-info-dark',
   ]
 }
 

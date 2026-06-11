@@ -1,15 +1,15 @@
 <template>
-  <section class="rounded-xl border border-neutral-200 bg-white p-3 shadow-sm md:p-4">
-    <div v-if="title || $slots.summary" class="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+  <section class="app-card rounded-xl p-3">
+    <div v-if="title || $slots.summary" class="mb-2.5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
       <div>
-        <p v-if="eyebrow" class="text-xs font-extrabold uppercase tracking-wide text-neutral-400">{{ eyebrow }}</p>
-        <h2 v-if="title" class="text-sm font-extrabold text-primary-dark">{{ title }}</h2>
+        <p v-if="eyebrow" class="text-xs font-bold uppercase tracking-wide text-neutral-400">{{ eyebrow }}</p>
+        <h2 v-if="title" class="text-sm font-bold text-neutral-900">{{ title }}</h2>
       </div>
       <div v-if="$slots.summary" class="flex flex-wrap gap-2">
         <slot name="summary" />
       </div>
     </div>
-    <div class="grid gap-3 md:flex md:flex-wrap md:items-end">
+    <div class="grid gap-2.5 md:flex md:flex-wrap md:items-end">
       <slot />
     </div>
   </section>
