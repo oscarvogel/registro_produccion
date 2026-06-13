@@ -3,7 +3,7 @@
     <Transition name="modal-backdrop">
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 backdrop-blur-sm sm:p-4"
         @click.self="close"
         @keydown.esc.stop.prevent="close"
       >
@@ -17,16 +17,16 @@
           :aria-describedby="description ? descriptionId : undefined"
           tabindex="-1"
         >
-          <div class="flex items-center justify-between gap-4 border-b border-neutral-200 px-4 py-3">
-            <div>
-              <h3 :id="titleId" class="text-lg font-extrabold text-neutral-950">{{ title }}</h3>
+          <div class="flex items-start justify-between gap-4 border-b border-neutral-200 px-4 py-3">
+            <div class="min-w-0">
+              <h3 :id="titleId" class="truncate text-lg font-extrabold text-neutral-950">{{ title }}</h3>
               <p v-if="description" :id="descriptionId" class="mt-0.5 text-xs text-neutral-500">{{ description }}</p>
             </div>
-            <button class="text-sm font-semibold text-neutral-500 transition-colors hover:text-neutral-800" type="button" @click="close">
+            <button class="app-button-soft shrink-0 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors" type="button" @click="close">
               Cerrar
             </button>
           </div>
-          <div class="max-h-[72vh] overflow-y-auto p-4">
+          <div class="max-h-[72vh] overflow-y-auto p-3.5 sm:p-4">
             <slot />
           </div>
         </div>

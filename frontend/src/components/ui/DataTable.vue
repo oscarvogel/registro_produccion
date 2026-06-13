@@ -1,7 +1,7 @@
 <template>
-  <div class="app-card overflow-x-auto rounded-xl">
+  <div class="app-table overflow-x-auto rounded-xl">
     <table class="min-w-full text-sm">
-      <thead class="sticky top-0 z-10 bg-neutral-50 text-neutral-600 shadow-[0_1px_0_var(--color-neutral-200)]">
+      <thead class="app-table-head sticky top-0 z-10">
         <tr>
           <th
             v-for="column in columns"
@@ -15,7 +15,7 @@
               @click="toggleSort(column.key)"
             >
               {{ column.label }}
-              <span class="text-[10px]">{{ sortIndicator(column.key) }}</span>
+              <span class="text-[10px] font-extrabold text-primary-dark">{{ sortIndicator(column.key) }}</span>
             </button>
             <span v-else>{{ column.label }}</span>
           </th>
@@ -24,12 +24,12 @@
       </thead>
       <tbody>
         <tr v-if="loading">
-          <td :colspan="columns.length + ($slots.actions ? 1 : 0)" class="px-3 py-8 text-center text-neutral-500">Cargando...</td>
+          <td :colspan="columns.length + ($slots.actions ? 1 : 0)" class="px-3 py-5 text-center text-neutral-500">Cargando...</td>
         </tr>
         <tr v-else-if="sortedRows.length === 0">
-          <td :colspan="columns.length + ($slots.actions ? 1 : 0)" class="px-3 py-8 text-center text-neutral-500">{{ emptyText }}</td>
+          <td :colspan="columns.length + ($slots.actions ? 1 : 0)" class="px-3 py-5 text-center text-neutral-500">{{ emptyText }}</td>
         </tr>
-        <tr v-for="row in sortedRows" :key="row[rowKey]" class="transition-colors hover:bg-primary-light/10">
+        <tr v-for="row in sortedRows" :key="row[rowKey]" class="app-table-row">
           <td v-for="column in columns" :key="`${row[rowKey]}-${column.key}`" class="border-b border-neutral-100 px-3 py-2">
             <slot :name="`cell-${column.key}`" :row="row" :value="row[column.key]">
               {{ row[column.key] ?? '-' }}

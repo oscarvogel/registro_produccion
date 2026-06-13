@@ -6,7 +6,7 @@
         class="fixed left-0 right-0 top-0 z-50 flex items-center justify-center gap-2 bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white"
       >
         <AppIcon name="offline" size="sm" :stroke-width="2.5" class="shrink-0" />
-        Sin conexion - Los registros se guardaran localmente y se sincronizaran al reconectar
+        Sin conexión - Los registros se guardarán localmente y se sincronizarán al reconectar
         <span v-if="produccionStore.pendingCount > 0" class="ml-1 rounded bg-white/20 px-1.5">
           {{ produccionStore.pendingCount }} pendiente{{ produccionStore.pendingCount !== 1 ? 's' : '' }}
         </span>
@@ -26,13 +26,13 @@
               <AppIcon name="menu" />
             </button>
             <div class="min-w-0 px-3 text-center">
-              <p class="truncate text-sm font-extrabold text-white">Registro Produccion</p>
-              <p class="truncate text-xs font-semibold text-[#9FE1CB]">{{ userRoleLabel }} - {{ isOnline ? 'En linea' : 'Sin conexion' }}</p>
+              <p class="truncate text-sm font-extrabold text-white">Registro Producción</p>
+              <p class="truncate text-xs font-semibold text-[#9FE1CB]">{{ userRoleLabel }} - {{ isOnline ? 'En línea' : 'Sin conexión' }}</p>
             </div>
             <button
               type="button"
               class="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/80"
-              aria-label="Cerrar sesion"
+              aria-label="Cerrar sesión"
               @click="handleLogout"
             >
               <AppIcon name="logout" size="sm" />
@@ -62,7 +62,7 @@
               </span>
               <span class="min-w-0">
                 <p class="truncate text-sm font-extrabold leading-tight text-white">Registro</p>
-                <p class="truncate text-xs font-bold leading-tight text-[#6FFBBE]">Produccion</p>
+                <p class="truncate text-xs font-bold leading-tight text-[#6FFBBE]">Producción</p>
               </span>
             </div>
             <button
@@ -92,7 +92,7 @@
                 <p class="truncate text-sm font-extrabold uppercase text-white">{{ authStore.userName }}</p>
                 <p class="flex items-center gap-1.5 text-xs font-medium text-white">
                   <span class="app-led h-1.5 w-1.5 rounded-full bg-[#10B981] text-[#10B981]"></span>
-                  {{ userRoleLabel }} - {{ isOnline ? 'En linea' : 'Sin conexion' }}
+                  {{ userRoleLabel }} - {{ isOnline ? 'En línea' : 'Sin conexión' }}
                 </p>
               </div>
             </div>
@@ -202,27 +202,26 @@
             <router-link
               :to="{ name: 'configuracion' }"
               :class="navItemClass(route.name === 'configuracion')"
-              :title="sidebarCollapsed ? 'Configuracion' : undefined"
+              :title="sidebarCollapsed ? 'Configuración' : undefined"
               @click="mobileMenuOpen = false"
             >
               <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
                 <AppIcon name="settings" size="sm" />
-                <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">Configuracion</span>
+                <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">Configuración</span>
               </span>
             </router-link>
 
-            <div :class="['mt-3 rounded-lg border border-white/10 bg-white/[0.03] p-3', sidebarCollapsed ? 'md:hidden' : '']">
-              <p class="truncate text-sm font-bold text-white">{{ authStore.userName }}</p>
-              <p class="mt-0.5 text-xs font-semibold text-[#95D3BA]/85">{{ userRoleLabel }} - {{ isOnline ? 'En linea' : 'Sin conexion' }}</p>
-              <button
-                type="button"
-                class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white/80 hover:border-error/40 hover:text-error-light"
-                @click="handleLogout"
-              >
+            <button
+              type="button"
+              :class="navItemClass(false)"
+              :title="sidebarCollapsed ? 'Salir' : undefined"
+              @click="handleLogout"
+            >
+              <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
                 <AppIcon name="logout" size="sm" />
-                Salir
-              </button>
-            </div>
+                <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">Salir</span>
+              </span>
+            </button>
           </div>
         </aside>
 
@@ -306,7 +305,7 @@ const navSections = computed(() => {
     }
     if (isAdmin.value) {
       operacionItems.push(
-        { key: 'admin-dashboard', label: 'Dashboard Produccion', icon: 'dashboard', to: { name: 'admin-dashboard' } },
+        { key: 'admin-dashboard', label: 'Dashboard Producción', icon: 'dashboard', to: { name: 'admin-dashboard' } },
         { key: 'personal', label: 'Personal', icon: 'personnel', to: { name: 'admin-crud', params: { entity: 'personal' } } },
         { key: 'moviles', label: 'Moviles', icon: 'machine', to: { name: 'admin-crud', params: { entity: 'moviles' } } },
         { key: 'asignaciones', label: 'Asignaciones Operativas', icon: 'assignment', to: { name: 'admin-crud', params: { entity: 'asignaciones' } } },
@@ -318,14 +317,14 @@ const navSections = computed(() => {
   if (isAdmin.value) {
     sections.push({
       key: 'catalogos',
-      label: 'Catalogos',
+      label: 'Catálogos',
       items: [
         { key: 'unidades', label: 'Unidades de Negocio', icon: 'unit', to: { name: 'admin-crud', params: { entity: 'unidades-negocio' } } },
         { key: 'tipos', label: 'Tipos de Proceso', icon: 'process', to: { name: 'admin-crud', params: { entity: 'tipos-proceso' } } },
         { key: 'lugares', label: 'Lugares de Carga', icon: 'location', to: { name: 'admin-crud', params: { entity: 'lugares-carga' } } },
         { key: 'predios', label: 'Predios', icon: 'field', to: { name: 'admin-crud', params: { entity: 'predios' } } },
         { key: 'rodales', label: 'Rodales', icon: 'plot', to: { name: 'admin-crud', params: { entity: 'rodales' } } },
-        { key: 'acceso', label: 'Configuracion de Acceso', icon: 'settings', to: { name: 'admin-configuracion' } },
+        { key: 'acceso', label: 'Configuración de Acceso', icon: 'settings', to: { name: 'admin-configuracion' } },
       ],
     })
   }
@@ -339,7 +338,7 @@ const navSections = computed(() => {
   })
 
   const produccionItems = [
-    { key: 'carga-produccion', label: 'Carga de Produccion', icon: 'production', to: { name: 'produccion' } },
+    { key: 'carga-produccion', label: 'Carga de Producción', icon: 'production', to: { name: 'produccion' } },
     { key: 'pendientes', label: 'Pendientes', icon: 'pending', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
   ]
 
@@ -347,7 +346,7 @@ const navSections = computed(() => {
     produccionItems.push({ key: 'mis-registros', label: 'Mis Registros', icon: 'records', to: { name: 'mis-registros' } })
   }
 
-  sections.push({ key: 'produccion', label: 'Produccion', items: produccionItems })
+  sections.push({ key: 'produccion', label: 'Producción', items: produccionItems })
   return sections
 })
 

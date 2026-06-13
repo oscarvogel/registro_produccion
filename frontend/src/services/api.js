@@ -2,6 +2,7 @@ import axios from 'axios'
 import { useToastStore } from '@/stores/toast'
 
 let onUnauthorized = null
+export const SERVER_ERROR_MESSAGE = 'No se pudo conectar con el servidor. Intenta nuevamente en unos minutos.'
 
 export function normalizeBaseURL(value) {
   const baseURL = value || ''
@@ -47,7 +48,7 @@ api.interceptors.response.use(
     } else if (status === 403) {
       useToastStore().error('Acceso restringido', error.response?.data?.detail || 'No tenes permisos para esta accion.')
     } else if (status >= 500) {
-      useToastStore().error('Error del servidor', error.response?.data?.detail || 'Intenta nuevamente en unos minutos.')
+      useToastStore().error('Error del servidor', SERVER_ERROR_MESSAGE)
     }
 
     return Promise.reject(error)

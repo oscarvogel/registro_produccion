@@ -60,6 +60,22 @@ from app.schemas.admin import (
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
+def _hash_personal_password(password: str) -> str:
+    try:
+        return get_password_hash(password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def _dashboard_unit_sort_key(item: DashboardUnidadNegocioItem) -> tuple[bool, int, str]:
+    last_activity = item.resumen.ultima_actividad_fecha
+    return (
+        last_activity is None,
+        -last_activity.toordinal() if last_activity else 0,
+        (item.prefijo or item.nombre or "").lower(),
+    )
+
+
 def _table_exists(db: Session, table_name: str) -> bool:
     try:
         return inspect(db.get_bind()).has_table(table_name)
@@ -590,51 +606,37 @@ async def get_admin_dashboard(
         )
     }
 
-    # Fetch last activity date and summary for each unit
+    # Fetch last activity date and summary for each unit, independent of the selected period.
     last_activity_by_un = {}
     if unidad_ids:
-        # Subquery to get the latest record per unit
-        from sqlalchemy import func as sqlfunc
-        from sqlalchemy.orm import aliased
-        
-        latest_records = (
-            db.query(
-                TableroProduccion.cod_un,
-                sqlfunc.max(TableroProduccion.fecha).label("ultima_fecha"),
-                sqlfunc.max(TableroProduccion.id).label("ultimo_id"),
+        for unidad_id in unidad_ids:
+            record = (
+                db.query(TableroProduccion)
+                .filter(TableroProduccion.cod_un == unidad_id)
+                .order_by(TableroProduccion.fecha.desc(), TableroProduccion.id.desc())
+                .first()
             )
-            .filter(TableroProduccion.cod_un.in_(unidad_ids))
-            .group_by(TableroProduccion.cod_un)
-            .all()
-        )
-        
-        if latest_records:
-            # Get the details of the latest record for each unit
-            for cod_un, ultima_fecha, ultimo_id in latest_records:
-                if ultima_fecha and ultimo_id:
-                    record = db.query(TableroProduccion).filter(TableroProduccion.id == ultimo_id).first()
-                    if record:
-                        # Build a brief summary
-                        partes = []
-                        if record.produccion and float(record.produccion) > 0:
-                            partes.append(f"{record.produccion:.1f} {record.unidad_produccion or 'uds'}")
-                        if record.tn_despachadas and float(record.tn_despachadas) > 0:
-                            partes.append(f"{record.tn_despachadas:.1f} TN")
-                        if record.m3 and int(record.m3) > 0:
-                            partes.append(f"{record.m3} m3")
-                        if record.has and float(record.has) > 0:
-                            partes.append(f"{record.has:.1f} HAS")
-                        if record.carros and int(record.carros) > 0:
-                            partes.append(f"{record.carros} carros")
-                        if record.combustible and int(record.combustible) > 0:
-                            partes.append(f"{record.combustible} L comb.")
-                        
-                        resumen = ", ".join(partes) if partes else f"{record.operacion or 'Actividad'}"
-                        
-                        last_activity_by_un[cod_un] = {
-                            "fecha": ultima_fecha,
-                            "resumen": resumen,
-                        }
+            if not record:
+                continue
+
+            partes = []
+            if record.produccion and float(record.produccion) > 0:
+                partes.append(f"{record.produccion:.1f} {record.unidad_produccion or 'uds'}")
+            if record.tn_despachadas and float(record.tn_despachadas) > 0:
+                partes.append(f"{record.tn_despachadas:.1f} TN")
+            if record.m3 and int(record.m3) > 0:
+                partes.append(f"{record.m3} m3")
+            if record.has and float(record.has) > 0:
+                partes.append(f"{record.has:.1f} HAS")
+            if record.carros and int(record.carros) > 0:
+                partes.append(f"{record.carros} carros")
+            if record.combustible and int(record.combustible) > 0:
+                partes.append(f"{record.combustible} L comb.")
+
+            last_activity_by_un[unidad_id] = {
+                "fecha": record.fecha,
+                "resumen": ", ".join(partes) if partes else f"{record.operacion or 'Actividad'}",
+            }
 
     tipos_by_un: dict[int, list[TipoDeProceso]] = {un_id: [] for un_id in unidad_ids}
     for un_id, tipo in (
@@ -704,13 +706,7 @@ async def get_admin_dashboard(
         )
 
     # Sort by last activity date (most recent first), units with no activity go to the end
-    result.sort(
-        key=lambda x: (
-            x.resumen.ultima_actividad_fecha is None,
-            x.resumen.ultima_actividad_fecha or date.min
-        ),
-        reverse=True
-    )
+    result.sort(key=_dashboard_unit_sort_key)
 
     return result
 
@@ -722,14 +718,10 @@ async def get_admin_recent_records(
     db: Session = Depends(get_db),
     _: Personal = Depends(get_current_admin),
 ):
-    target_date = fecha or date.today()
-    rows = (
-        db.query(TableroProduccion)
-        .filter(TableroProduccion.fecha == target_date)
-        .order_by(TableroProduccion.id.desc())
-        .limit(limit)
-        .all()
-    )
+    query = db.query(TableroProduccion)
+    if fecha:
+        query = query.filter(TableroProduccion.fecha == fecha)
+    rows = query.order_by(TableroProduccion.fecha.desc(), TableroProduccion.id.desc()).limit(limit).all()
 
     return [
         AdminRecentRecordItem(
@@ -856,7 +848,7 @@ async def create_personal(
     )
 
     if payload.password:
-        row.password = get_password_hash(payload.password)
+        row.password = _hash_personal_password(payload.password)
 
     db.add(row)
     db.commit()
@@ -920,7 +912,7 @@ async def update_personal(
     if "password" in data:
         password = data.pop("password")
         if password:
-            row.password = get_password_hash(password)
+            row.password = _hash_personal_password(password)
 
     if unidad_ids is not None:
         _sync_personal_unidades(db, row, unidad_ids)

@@ -1,6 +1,6 @@
 <template>
   <div class="relative">
-    <label v-if="label" class="block text-sm font-medium text-neutral-700 mb-1">
+    <label v-if="label" class="mb-1 block text-sm font-semibold text-neutral-700">
       {{ label }}
     </label>
 
@@ -10,7 +10,7 @@
       type="button"
       :disabled="disabled"
       @click="startSearch"
-      class="app-input flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-left text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-px hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-neutral-200"
+      class="app-input flex min-h-10 w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-px hover:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-neutral-200 sm:px-3.5"
     >
       <span class="min-w-0 truncate">{{ selectedLabel }}</span>
       <AppIcon name="chevronDown" size="sm" class="shrink-0 text-neutral-500" />
@@ -19,7 +19,7 @@
     <div
       v-else-if="selectedLabel && !searching"
       v-motion-pop
-      class="flex items-center gap-3 rounded-xl border border-success/30 bg-success-light/40 p-2.5"
+      class="flex min-h-10 items-center gap-3 rounded-lg border border-success/30 bg-success-light/40 px-3 py-2"
     >
       <AppIcon name="success" class="text-success-dark shrink-0" />
       <span class="text-sm font-semibold text-neutral-900 min-w-0 flex-1 truncate">{{ selectedLabel }}</span>
@@ -57,7 +57,7 @@
           :aria-activedescendant="activeDescendantId"
           :aria-invalid="invalid || undefined"
           :class="[
-            'app-input w-full rounded-xl border px-4 py-2.5 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-neutral-200 transition-colors',
+            'app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-neutral-200 transition-colors sm:px-3.5',
             invalid
               ? 'border-error focus:ring-error/30 focus:border-error'
               : 'border-neutral-300 focus:ring-primary/30 focus:border-primary/40',
@@ -91,10 +91,10 @@
             :aria-selected="i === highlightedIndex"
             @mousedown.prevent="selectItem(item)"
             :class="[
-              'w-full border-b border-neutral-100 px-4 py-2 text-left text-sm transition-colors last:border-b-0',
+              'w-full border-b border-neutral-100 px-3 py-2 text-left text-sm transition-colors last:border-b-0 sm:px-3.5',
               i === highlightedIndex
                 ? 'bg-info-light text-info-dark font-medium'
-                : 'hover:bg-neutral-50 text-neutral-900',
+                : 'hover:bg-primary-light/20 text-neutral-900',
             ]"
           >
             {{ getLabel(item) }}
@@ -137,7 +137,7 @@ const props = defineProps({
   labelKey: { type: String, default: 'label' },
   valueKey: { type: String, default: 'id' },
   label: { type: String, default: '' },
-  placeholder: { type: String, default: '— Escribí para buscar —' },
+  placeholder: { type: String, default: 'Escribí para buscar' },
   disabled: { type: Boolean, default: false },
   invalid: { type: Boolean, default: false },
   selectedDisplay: { type: String, default: 'chip' },
@@ -157,7 +157,7 @@ const listboxId = `autocomplete-listbox-${uniqueId}`
 const activeDescendantId = computed(() => highlightedIndex.value >= 0 ? optionId(highlightedIndex.value) : undefined)
 const usesInlineDropdown = computed(() => props.dropdownMode === 'inline')
 const resultsListClass = computed(() => [
-  'app-card z-50 mt-1.5 max-h-56 overflow-y-auto rounded-xl',
+  'app-card z-50 mt-1.5 max-h-56 overflow-y-auto rounded-lg',
   usesInlineDropdown.value ? 'relative' : 'absolute left-0 right-0 top-full',
 ])
 const emptyListClass = computed(() => [

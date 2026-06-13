@@ -327,6 +327,37 @@
     color: var(--app-text);
   }
 
+  .app-table {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    color: var(--app-text);
+    box-shadow: var(--app-shadow);
+  }
+
+  .app-table-head {
+    background: color-mix(in srgb, var(--app-surface-muted) 86%, var(--app-surface) 14%);
+    color: var(--app-text-muted);
+    box-shadow: 0 1px 0 var(--app-border);
+    backdrop-filter: blur(12px);
+  }
+
+  .app-table-row {
+    background: var(--app-surface);
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+
+  .app-table-row:nth-child(even) {
+    background: color-mix(in srgb, var(--app-surface-muted) 42%, var(--app-surface) 58%);
+  }
+
+  .app-table-row:hover {
+    background: color-mix(in srgb, var(--color-primary) 9%, var(--app-surface));
+  }
+
+  .app-table-expanded {
+    background: color-mix(in srgb, var(--app-surface-muted) 70%, var(--app-surface) 30%);
+  }
+
   .app-button-soft {
     background: var(--app-surface-muted);
     border-color: var(--app-border);

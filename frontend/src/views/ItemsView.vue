@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 px-3 py-3 pb-20 md:px-4 md:py-4">
+  <div class="min-h-screen bg-[var(--app-bg)] px-3 py-3 pb-20 md:px-4 md:py-4">
     <div class="mx-auto max-w-6xl space-y-3">
-      <PageHeader title="Items" description="Catalogo operativo disponible para produccion.">
+      <PageHeader title="Items" description="Catálogo operativo disponible para producción.">
         <template #actions>
           <AppButton variant="secondary" :loading="loading" @click="fetchItems">
             <AppIcon name="refresh" size="sm" />
@@ -11,7 +11,7 @@
       </PageHeader>
 
       <section class="app-card rounded-xl p-4">
-        <div v-if="loading" class="py-4 text-center text-sm text-neutral-500">Cargando items...</div>
+        <div v-if="loading" class="py-5 text-center text-sm text-neutral-500">Cargando items...</div>
         <div v-else-if="error" class="rounded-lg border border-error/25 bg-error-light/30 p-3 text-sm font-semibold text-error-dark">
           Error: {{ error }}
         </div>

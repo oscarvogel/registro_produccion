@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-[calc(100vh-8.5rem)] bg-neutral-100 px-3 py-3 pb-20 md:min-h-[calc(100vh-3.5rem)] md:px-4 md:py-4">
+  <div class="min-h-[calc(100vh-8.5rem)] bg-[var(--app-bg)] px-3 py-3 pb-20 md:min-h-[calc(100vh-3.5rem)] md:px-4 md:py-4">
     <div class="mx-auto max-w-[112rem] space-y-3">
       <PageHeader
         title="Manuales de Usuario"
@@ -19,7 +19,7 @@
             :href="activeManual.pdfUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-on-primary transition-colors hover:bg-primary-dark"
+            class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-on-primary transition-colors hover:bg-primary-dark"
           >
             <AppIcon name="download" size="sm" />
             Abrir PDF
@@ -35,7 +35,7 @@
           :class="manualButtonClass(manual)"
           @click="selectManual(manual.id)"
         >
-          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-primary-dark">
+          <span class="app-surface-muted flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-primary-dark">
             <AppIcon :name="manual.icon" />
           </span>
           <span class="min-w-0 text-left">
@@ -48,7 +48,7 @@
       <section class="app-card overflow-hidden rounded-xl">
         <div class="flex flex-col gap-3 border-b border-neutral-100 px-4 py-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Lectura en linea</p>
+            <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Lectura en línea</p>
             <h2 class="mt-1 text-xl font-extrabold text-neutral-950">{{ activeManual.title }}</h2>
           </div>
           <div class="flex flex-wrap gap-2">
@@ -56,14 +56,14 @@
               :href="activeManual.sourceUrl"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-bold text-neutral-700 hover:border-primary/40 hover:text-primary-dark"
+              class="app-button-soft inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-bold"
             >
               <AppIcon name="view" size="sm" />
               Markdown
             </a>
             <button
               type="button"
-              class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-bold text-neutral-700 hover:border-primary/40 hover:text-primary-dark"
+              class="app-button-soft inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-bold"
               @click="printManual"
             >
               <AppIcon name="download" size="sm" />
@@ -72,12 +72,12 @@
           </div>
         </div>
 
-        <div v-if="loading" class="flex min-h-80 items-center justify-center text-primary">
+        <div v-if="loading" class="flex min-h-64 items-center justify-center text-primary">
           <AppIcon name="loading" size="xl" class="animate-spin" />
         </div>
 
         <div v-else-if="error" class="p-4">
-          <div class="rounded-xl border border-error-light bg-error-light/30 p-4 text-sm font-semibold text-error-dark">
+          <div class="rounded-lg border border-error-light bg-error-light/30 p-3 text-sm font-semibold text-error-dark">
             {{ error }}
           </div>
         </div>
@@ -128,7 +128,7 @@ const manuals = [
     id: 'admin',
     label: 'Admin',
     title: 'Manual de Usuario - Admin',
-    description: 'Panel admin, catalogos, accesos y asignaciones.',
+    description: 'Panel admin, catálogos, accesos y asignaciones.',
     icon: 'admin',
     sourceUrl: '/manuales/manual-admin.md',
     pdfUrl: '/manuales/pdf/manual-admin.pdf',
@@ -184,10 +184,10 @@ function printManual() {
 
 function manualButtonClass(manual) {
   return [
-    'flex min-h-24 items-center gap-3 rounded-xl border px-4 py-3 transition-all text-left',
+    'flex min-h-20 items-center gap-3 rounded-xl border px-3.5 py-3 transition-all text-left',
     activeManualId.value === manual.id
       ? 'border-primary/45 bg-primary-light text-primary-dark shadow-[0_0_18px_rgba(16,185,129,0.10)]'
-      : 'border-neutral-200 bg-white text-neutral-800 shadow-sm hover:border-primary/40 hover:bg-neutral-50',
+      : 'app-button-soft border',
   ]
 }
 
@@ -307,8 +307,23 @@ function inline(value) {
 function renderAllowedHtmlLine(value) {
   if (value === '</div>') return '</div>'
 
+  const pageBreak = value.match(/^<div\s+class="page-break"\s*>\s*<\/div>$/)
+  if (pageBreak) return '<div class="page-break"></div>'
+
   const div = value.match(/^<div\s+class="(cover|page-break|warning|note)">$/)
   if (div) return `<div class="${div[1]}">`
+
+  const subtitle = value.match(/^<div\s+class="subtitle"\s*>(.+)<\/div>$/)
+  if (subtitle) return `<div class="subtitle">${inline(subtitle[1])}</div>`
+
+  const heading = value.match(/^<h([1-4])>(.+)<\/h\1>$/)
+  if (heading) return `<h${heading[1]}>${inline(heading[2])}</h${heading[1]}>`
+
+  const meta = value.match(/^<p\s+class="meta"\s*>(.+)<\/p>$/)
+  if (meta) {
+    const parts = meta[1].split(/<br\s*\/?>/i).map((part) => inline(part))
+    return `<p class="meta">${parts.join('<br>')}</p>`
+  }
 
   const img = value.match(/^<img\s+src="([^"]+)"\s+alt="([^"]*)"\s*\/?>$/)
   if (!img) return ''

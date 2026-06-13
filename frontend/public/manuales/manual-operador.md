@@ -2,7 +2,7 @@
   <img src="../../frontend/public/logo-forestal.png" alt="Logo Forestal">
   <h1>Manual de Usuario</h1>
   <div class="subtitle">Operador</div>
-  <p class="meta">Sistema Registro Produccion Forestal<br>Version documental: Junio 2026</p>
+  <p class="meta">Sistema Registro Producción Forestal<br>Versión documental: Junio 2026</p>
 </div>
 
 <div class="page-break"></div>

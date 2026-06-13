@@ -1,8 +1,8 @@
 <template>
   <div class="space-y-3">
-    <SectionCard title="Configuracion de Acceso">
-      <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 mb-3">
-        Desde aqui se puede habilitar o deshabilitar acceso admin a otros usuarios. No podes quitarte tu propio acceso.
+    <SectionCard title="Configuración de Acceso">
+      <div class="mb-3 rounded-lg border border-warning/30 bg-warning-light/30 px-3.5 py-2.5 text-sm font-semibold text-warning-dark">
+        Desde aquí se puede habilitar o deshabilitar acceso admin a otros usuarios. No podés quitarte tu propio acceso.
       </div>
 
       <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -17,7 +17,7 @@
         />
         <button
           @click="loadUsuarios"
-          class="h-12 px-4 rounded-xl bg-primary-dark text-white font-semibold hover:bg-primary transition-colors"
+          class="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-dark"
           type="button"
         >
           Refrescar
@@ -25,19 +25,19 @@
         <button
           v-if="selectedUserId"
           @click="selectedUserId = ''"
-          class="h-12 px-4 rounded-xl border border-neutral-300 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+          class="app-button-soft min-h-10 rounded-lg border px-4 py-2 text-sm font-semibold"
           type="button"
         >
           Limpiar
         </button>
       </div>
 
-      <p v-if="store.error" class="text-sm text-red-700 mt-2">{{ store.error }}</p>
+      <p v-if="store.error" class="mt-2 rounded-lg border border-error/25 bg-error-light/25 px-3 py-2 text-sm font-semibold text-error-dark">{{ store.error }}</p>
     </SectionCard>
 
-    <div class="overflow-x-auto rounded-xl border border-neutral-200 bg-white">
+    <div class="app-table overflow-x-auto rounded-xl">
       <table class="min-w-full text-sm">
-        <thead class="bg-neutral-50 text-neutral-600">
+        <thead class="app-table-head sticky top-0 z-10">
           <tr>
             <th class="border-b border-neutral-200 px-3 py-2 text-left font-semibold">ID</th>
             <th class="border-b border-neutral-200 px-3 py-2 text-left font-semibold">Nombre</th>
@@ -54,7 +54,7 @@
           <tr v-else-if="usuariosFiltrados.length === 0">
             <td colspan="6" class="px-3 py-4 text-center text-neutral-500">No se encontraron usuarios.</td>
           </tr>
-          <tr v-for="usuario in pagedUsuarios" :key="usuario.idPersonal" class="hover:bg-neutral-50/70">
+          <tr v-for="usuario in pagedUsuarios" :key="usuario.idPersonal" class="app-table-row">
             <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.idPersonal }}</td>
             <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.nombre }}</td>
             <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.dni || '-' }}</td>
@@ -68,7 +68,7 @@
                   :disabled="isCurrentUser(usuario) || savingUsers[usuario.idPersonal]"
                   @change="toggleAdmin(usuario, $event.target.checked)"
                   class="w-4 h-4 accent-primary"
-                  :title="isCurrentUser(usuario) ? 'No podes quitarte el acceso a vos mismo' : ''"
+                  :title="isCurrentUser(usuario) ? 'No podés quitarte el acceso a vos mismo' : ''"
                 />
                 <span class="text-xs text-neutral-500">
                   {{ savingUsers[usuario.idPersonal] ? 'Guardando...' : (usuario.is_admin === 1 ? 'Habilitado' : 'Deshabilitado') }}
@@ -80,7 +80,7 @@
       </table>
     </div>
 
-    <div v-if="usuariosFiltrados.length > 0" class="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div v-if="usuariosFiltrados.length > 0" class="app-card flex flex-col gap-3 rounded-xl px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
         <p class="text-xs font-semibold text-neutral-400">
           Mostrando {{ pageStart + 1 }}-{{ pageEnd }} de {{ usuariosFiltrados.length }} usuarios
@@ -89,11 +89,11 @@
           Ver
           <select
             v-model.number="pageSize"
-            class="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs font-bold text-neutral-700 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            class="app-input rounded-lg border px-2 py-1.5 text-xs font-bold focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option v-for="size in pageSizeOptions" :key="size" :value="size">{{ size }}</option>
           </select>
-          por pagina
+          por página
         </label>
       </div>
 
@@ -101,16 +101,16 @@
         <button
           @click="page = Math.max(1, page - 1)"
           :disabled="page === 1 || store.loading"
-          class="px-4 py-2 rounded-lg border border-neutral-300 text-sm font-semibold text-neutral-700 disabled:opacity-40"
+          class="min-h-10 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 disabled:opacity-40"
           type="button"
         >
           Anterior
         </button>
-        <span class="text-xs text-neutral-400">Pagina {{ page }} / {{ totalPages }}</span>
+        <span class="text-xs text-neutral-400">Página {{ page }} / {{ totalPages }}</span>
         <button
           @click="page = Math.min(totalPages, page + 1)"
           :disabled="page === totalPages || store.loading"
-          class="px-4 py-2 rounded-lg border border-neutral-300 text-sm font-semibold text-neutral-700 disabled:opacity-40"
+          class="min-h-10 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 disabled:opacity-40"
           type="button"
         >
           Siguiente

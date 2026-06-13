@@ -4,12 +4,12 @@
       <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_34rem] xl:items-end">
         <div>
           <p class="text-xs font-bold uppercase tracking-wide text-primary-fixed-dim">Resumen ejecutivo</p>
-          <h2 class="mt-1 text-2xl font-extrabold md:text-3xl">Dashboard de produccion</h2>
+          <h2 class="mt-1 text-2xl font-extrabold md:text-3xl">Dashboard de producción</h2>
           <p class="mt-2 max-w-2xl text-sm text-primary-fixed-dim">
-            Produccion total, toneladas, combustible y actividad operativa para el rango seleccionado.
+            Producción total, toneladas, combustible y actividad operativa para el rango seleccionado.
           </p>
           <p class="mt-3 text-xs font-semibold text-primary-fixed-dim">
-            Ultima actualizacion: {{ lastUpdatedLabel }} - Rango: {{ rangeLabel }}
+            Última actualización: {{ lastUpdatedLabel }} - Rango: {{ rangeLabel }}
           </p>
         </div>
 
@@ -27,11 +27,11 @@
       </div>
     </section>
 
-    <section class="rounded-lg border border-neutral-200 bg-white p-3.5 shadow-sm">
+    <section class="app-card rounded-lg p-3.5">
       <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div>
           <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Filtros</p>
-          <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Periodo de analisis</h3>
+          <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Periodo de análisis</h3>
         </div>
 
         <div class="flex flex-col gap-2.5 lg:flex-row lg:items-end">
@@ -44,7 +44,7 @@
                 'rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
                 activePreset === preset.key
                   ? 'border-secondary bg-secondary text-white'
-                  : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-secondary/40',
+                  : 'app-button-soft border',
               ]"
               type="button"
             >
@@ -59,7 +59,7 @@
 
           <button
             @click="loadOverview"
-            class="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary-dark px-5 text-sm font-semibold text-white transition-colors hover:bg-primary disabled:opacity-60"
+            class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-dark disabled:opacity-60"
             :disabled="store.loadingDashboardOverview"
             type="button"
           >
@@ -70,7 +70,7 @@
       </div>
     </section>
 
-    <div v-if="store.loadingDashboardOverview" class="rounded-lg border border-neutral-200 bg-white p-4 text-center text-neutral-500">
+    <div v-if="store.loadingDashboardOverview" class="app-card rounded-lg p-4 text-center text-neutral-500">
       Cargando resumen ejecutivo...
     </div>
 
@@ -78,17 +78,17 @@
       {{ store.dashboardOverviewError }}
     </div>
 
-    <div v-else-if="!overview" class="rounded-lg border border-neutral-200 bg-white p-7 text-center">
+    <div v-else-if="!overview" class="app-card rounded-lg p-5 text-center">
       <p class="font-bold text-neutral-700">No se pudo preparar el dashboard</p>
-      <p class="mt-1 text-sm text-neutral-500">Actualiza el rango para volver a consultar la informacion.</p>
+      <p class="mt-1 text-sm text-neutral-500">Actualizá el rango para volver a consultar la información.</p>
     </div>
 
     <template v-else>
       <section class="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.65fr)]">
-        <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+        <div class="app-card rounded-lg p-4">
           <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Produccion total</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Producción total</p>
               <div class="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
                 <span class="text-4xl font-extrabold text-neutral-950 md:text-5xl">
                   {{ formatNumber(totals.produccion_total) }}
@@ -111,7 +111,7 @@
             <div
               v-for="metric in metricCards"
               :key="metric.label"
-              class="rounded-lg border border-neutral-200 bg-neutral-50 p-3"
+              class="app-surface-muted rounded-lg border p-3"
             >
               <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">{{ metric.label }}</p>
@@ -123,7 +123,7 @@
           </div>
         </div>
 
-        <aside class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+        <aside class="app-card rounded-lg p-4">
           <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Comparativa</p>
           <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Contra periodo anterior</h3>
 
@@ -145,13 +145,13 @@
       </section>
 
       <section class="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.75fr)]">
-        <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+        <div class="app-card rounded-lg p-4">
           <div class="mb-3 flex items-end justify-between gap-3">
             <div>
-              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Evolucion diaria</p>
-              <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Produccion del periodo</h3>
+              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Evolución diaria</p>
+              <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Producción del periodo</h3>
             </div>
-            <p class="text-xs font-semibold text-neutral-400">{{ overview.evolucion.length }} dias con datos</p>
+            <p class="text-xs font-semibold text-neutral-400">{{ overview.evolucion.length }} días con datos</p>
           </div>
 
           <div v-if="chartPoints.length > 1" class="min-h-64">
@@ -191,14 +191,14 @@
             </div>
           </div>
 
-          <div v-else class="flex h-64 items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50 text-sm text-neutral-500">
-            Sin evolucion suficiente para graficar.
+          <div v-else class="app-surface-muted flex h-64 items-center justify-center rounded-lg border border-dashed text-sm text-neutral-500">
+            Sin evolución suficiente para graficar.
           </div>
         </div>
 
-        <aside class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+        <aside class="app-card rounded-lg p-4">
           <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Ranking</p>
-          <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Unidades por produccion</h3>
+          <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Unidades por producción</h3>
 
           <div v-if="overview.unidad_ranking.length > 0" class="mt-4 space-y-3">
             <div v-for="(item, index) in overview.unidad_ranking" :key="item.id || item.nombre">
@@ -217,37 +217,37 @@
                   <p class="text-xs text-neutral-400">{{ formatNumber(item.share_percent) }}%</p>
                 </div>
               </div>
-              <div class="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100">
+              <div class="app-surface-muted mt-2 h-2 overflow-hidden rounded-full">
                 <div class="h-full rounded-full bg-primary" :style="{ width: `${Math.min(item.share_percent, 100)}%` }"></div>
               </div>
             </div>
           </div>
 
-          <div v-else class="mt-3 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 text-center text-sm text-neutral-500">
-            Sin unidades con produccion en este periodo.
+          <div v-else class="app-surface-muted mt-3 rounded-lg border border-dashed p-4 text-center text-sm text-neutral-500">
+            Sin unidades con producción en este periodo.
           </div>
         </aside>
       </section>
 
       <section class="grid gap-3 xl:grid-cols-2">
-        <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+        <div class="app-card rounded-lg p-4">
           <div class="mb-3">
             <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Procesos</p>
-            <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Produccion por proceso</h3>
+            <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Producción por proceso</h3>
           </div>
 
-          <div v-if="overview.proceso_ranking.length > 0" class="overflow-hidden rounded-lg border border-neutral-200">
+          <div v-if="overview.proceso_ranking.length > 0" class="app-table overflow-hidden rounded-lg">
             <table class="w-full border-collapse text-left text-sm">
-              <thead class="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-400">
+              <thead class="app-table-head text-xs uppercase tracking-wide text-neutral-400">
                 <tr>
                   <th class="px-3 py-2.5 font-bold">Proceso</th>
-                  <th class="px-3 py-2.5 text-right font-bold">Produccion</th>
+                  <th class="px-3 py-2.5 text-right font-bold">Producción</th>
                   <th class="px-3 py-2.5 text-right font-bold">TN</th>
                   <th class="px-3 py-2.5 text-right font-bold">Reg.</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-neutral-100">
-                <tr v-for="item in overview.proceso_ranking" :key="item.id || item.nombre">
+              <tbody>
+                <tr v-for="item in overview.proceso_ranking" :key="item.id || item.nombre" class="app-table-row border-t">
                   <td class="px-3 py-2.5 font-bold text-neutral-800">{{ item.nombre }}</td>
                   <td class="px-3 py-2.5 text-right font-extrabold text-info-dark">{{ formatNumber(item.produccion) }}</td>
                   <td class="px-3 py-2.5 text-right text-neutral-600">{{ formatNumber(item.tn_despachadas) }}</td>
@@ -257,12 +257,12 @@
             </table>
           </div>
 
-          <div v-else class="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 text-center text-sm text-neutral-500">
-            Sin procesos con produccion en este periodo.
+          <div v-else class="app-surface-muted rounded-lg border border-dashed p-4 text-center text-sm text-neutral-500">
+            Sin procesos con producción en este periodo.
           </div>
         </div>
 
-        <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+        <div class="app-card rounded-lg p-4">
           <div class="mb-3">
             <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Actividad reciente</p>
             <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Ultimos registros productivos</h3>
@@ -272,12 +272,12 @@
             <article
               v-for="record in overview.recent_records"
               :key="record.id"
-              class="grid gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+              class="app-surface-muted grid gap-3 rounded-lg border px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
             >
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                   <p class="truncate text-sm font-extrabold text-neutral-800">{{ record.operacion || 'Sin operacion' }}</p>
-                  <span class="rounded-md bg-white px-2 py-0.5 text-xs font-bold text-neutral-500">
+                  <span class="rounded-md border px-2 py-0.5 text-xs font-bold app-state-inactive">
                     {{ formatDate(record.fecha) }}
                   </span>
                 </div>
@@ -292,7 +292,7 @@
             </article>
           </div>
 
-          <div v-else class="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 text-center text-sm text-neutral-500">
+          <div v-else class="app-surface-muted rounded-lg border border-dashed p-4 text-center text-sm text-neutral-500">
             Sin registros recientes para el rango activo.
           </div>
         </div>
@@ -311,8 +311,8 @@ const store = useAdminStore()
 
 const rangePresets = [
   { key: 'today', label: 'Hoy' },
-  { key: '7d', label: 'Ultimos 7 dias' },
-  { key: '30d', label: 'Ultimos 30 dias' },
+  { key: '7d', label: 'Últimos 7 días' },
+  { key: '30d', label: 'Últimos 30 días' },
   { key: 'month', label: 'Este mes' },
 ]
 
@@ -335,7 +335,7 @@ const primaryVariation = computed(() => {
 
 const executiveStats = computed(() => [
   {
-    label: 'Produccion',
+    label: 'Producción',
     value: formatNumber(totals.value.produccion_total),
     detail: variationLabel(primaryVariation.value),
   },
@@ -495,7 +495,7 @@ function variationLabel(item) {
 }
 
 function variationTone(item) {
-  if (!item || item.variation_percent == null) return 'border-neutral-200 bg-neutral-50 text-neutral-500'
+  if (!item || item.variation_percent == null) return 'app-state-inactive'
   if (Number(item.variation_percent) >= 0) return 'border-success-light bg-success-light/30 text-success-dark'
   return 'border-error-light bg-error-light/40 text-error-dark'
 }
