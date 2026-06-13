@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-[calc(100vh-8.5rem)] bg-neutral-100 px-3 py-3 pb-20 md:min-h-screen md:px-4 md:py-4">
+  <div class="min-h-[calc(100vh-8.5rem)] bg-[var(--app-bg)] px-3 py-3 pb-20 md:min-h-screen md:px-4 md:py-4">
     <div class="mx-auto w-full max-w-[112rem] space-y-3">
       <section class="app-card-glass rounded-xl px-4 py-3 md:px-5">
         <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -7,7 +7,7 @@
             <div class="mb-2 flex flex-wrap items-center gap-2">
               <span :class="['inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-extrabold uppercase', isOnline ? 'app-chip-success' : 'app-chip-warning']">
                 <span :class="['app-led h-2 w-2 rounded-full', isOnline ? 'bg-primary text-primary' : 'bg-warning text-warning']"></span>
-                {{ isOnline ? 'En linea' : 'Sin conexion' }}
+                {{ isOnline ? 'En línea' : 'Sin conexión' }}
               </span>
               <span class="rounded-full border px-3 py-1 text-xs font-bold app-chip-info">{{ isAdmin ? 'Administrador' : roleLabel }}</span>
               <span class="rounded-full border px-3 py-1 text-xs font-bold app-state-inactive">{{ todayLabel }}</span>
@@ -16,7 +16,7 @@
               {{ isAdmin ? 'Panel operativo' : authStore.userName }}
             </h1>
             <p class="mt-1 text-sm font-medium text-neutral-500">
-              {{ isAdmin ? 'Resumen general del dia y accesos de administracion.' : 'Accesos diarios, estado de sincronizacion y actividad personal.' }}
+              {{ isAdmin ? 'Resumen general del día y accesos de administración.' : 'Accesos diarios, estado de sincronización y actividad personal.' }}
             </p>
           </div>
 
@@ -30,13 +30,13 @@
                   'rounded-lg border px-3 py-2 text-xs font-bold transition active:scale-[0.98]',
                   selectedDatePreset === preset.key
                     ? 'border-primary/55 bg-primary/20 text-primary-dark'
-                    : 'border-neutral-200 bg-white text-neutral-700 hover:border-primary/40 hover:text-primary-dark',
+                    : 'app-button-soft border',
                 ]"
                 @click="selectDatePreset(preset.key)"
               >
                 {{ preset.label }}
               </button>
-              <label class="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-700">
+              <label class="app-input flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold">
                 Fecha
                 <input
                   v-model="selectedDate"
@@ -72,9 +72,9 @@
             <div class="flex items-center justify-between gap-3 px-4 pb-2 pt-4 md:px-5">
               <div>
                 <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Unidades de negocio</p>
-                <h2 class="mt-1 text-2xl font-extrabold leading-tight text-neutral-900">Ultima actividad registrada</h2>
+                <h2 class="mt-1 text-2xl font-extrabold leading-tight text-neutral-900">Última actividad registrada</h2>
               </div>
-              <span class="hidden h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-neutral-500 sm:flex">
+              <span class="app-surface-muted hidden h-9 w-9 items-center justify-center rounded-lg border text-neutral-500 sm:flex">
                 <AppIcon name="unit" size="sm" />
               </span>
             </div>
@@ -86,7 +86,7 @@
                 <input
                   v-model="unitSearch"
                   type="search"
-                  class="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2.5 pl-10 pr-3 text-sm font-semibold text-neutral-900 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  class="app-input w-full rounded-lg border py-2.5 pl-10 pr-3 text-sm font-semibold placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="Buscar por nombre o prefijo"
                 />
               </label>
@@ -97,7 +97,7 @@
             </div>
 
             <div v-if="adminStore.loading" class="grid gap-3 px-4 py-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:px-5">
-              <div v-for="i in 12" :key="i" class="h-16 animate-pulse rounded-lg bg-neutral-100"></div>
+              <div v-for="i in 12" :key="i" class="app-surface-muted h-16 animate-pulse rounded-lg"></div>
             </div>
 
             <div v-else-if="pagedAdminUnits.length > 0" class="grid gap-3 px-4 py-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:px-5">
@@ -122,7 +122,7 @@
                   </p>
                   <template v-if="unidad.resumen?.ultima_actividad_fecha">
                     <p class="mt-1.5 flex min-w-0 max-w-full items-center overflow-hidden text-[11px] text-neutral-400">
-                      Ultima: {{ formatFecha(unidad.resumen.ultima_actividad_fecha) }}
+                      Última: {{ formatFecha(unidad.resumen.ultima_actividad_fecha) }}
                       <span v-if="unidad.resumen.ultima_actividad_resumen" class="ml-1">-</span>
                       <span v-if="unidad.resumen.ultima_actividad_resumen" class="min-w-0 flex-1 truncate">{{ unidad.resumen.ultima_actividad_resumen }}</span>
                     </p>
@@ -134,9 +134,9 @@
               </button>
             </div>
             <div v-else class="px-5 py-10 text-center">
-              <p class="text-sm font-bold text-neutral-700">No hay unidades para esa busqueda.</p>
+              <p class="text-sm font-bold text-neutral-700">No hay unidades para esa búsqueda.</p>
               <button type="button" class="mt-2 text-xs font-bold text-primary-dark underline underline-offset-4" @click="unitSearch = ''">
-                Limpiar busqueda
+                Limpiar búsqueda
               </button>
             </div>
 
@@ -153,7 +153,7 @@
                 >
                   Anterior
                 </button>
-                <span class="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-extrabold text-neutral-800">
+                <span class="rounded-lg border px-3 py-2 text-xs font-extrabold app-state-inactive">
                   {{ adminUnitPage }} / {{ adminUnitTotalPages }}
                 </span>
                 <button
@@ -209,12 +209,12 @@
           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p class="text-xs font-extrabold uppercase tracking-wide text-neutral-400">Sin actividad hoy</p>
-              <h2 class="mt-1 text-xl font-extrabold text-neutral-900">Todavia no cargaste registros.</h2>
-              <p class="mt-1 text-sm text-neutral-500">Podes iniciar una carga productiva o registrar combustible directamente.</p>
+              <h2 class="mt-1 text-xl font-extrabold text-neutral-900">Todavía no cargaste registros.</h2>
+              <p class="mt-1 text-sm text-neutral-500">Podés iniciar una carga productiva o registrar combustible directamente.</p>
             </div>
             <div class="flex flex-col gap-2 sm:flex-row">
-              <button type="button" class="rounded-lg bg-primary-dark px-4 py-2.5 text-sm font-extrabold text-white" @click="router.push({ name: 'produccion' })">Ir a Carga de Produccion</button>
-              <button type="button" class="rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm font-extrabold text-neutral-700" @click="router.push({ name: 'combustible' })">Ir a Carga de Combustible</button>
+              <button type="button" class="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-extrabold text-on-primary" @click="router.push({ name: 'produccion' })">Ir a Carga de Producción</button>
+              <button type="button" class="app-button-soft rounded-lg border px-4 py-2.5 text-sm font-extrabold" @click="router.push({ name: 'combustible' })">Ir a Carga de Combustible</button>
             </div>
           </div>
         </section>
@@ -267,7 +267,7 @@ const MAX_ALERT_UNIT_LABELS = 12
 const datePresets = [
   { key: 'today', label: 'Hoy' },
   { key: 'yesterday', label: 'Ayer' },
-  { key: 'last7', label: '7 dias' },
+  { key: 'last7', label: '7 días' },
   { key: 'lastWeek', label: 'Semana pasada' },
 ]
 
@@ -302,13 +302,13 @@ const roleLabel = computed(() => authStore.user?.encargado === 1 ? 'Encargado' :
 const topActions = computed(() => isAdmin.value
   ? [
       { name: 'admin-dashboard', label: 'Abrir Dashboard', icon: 'dashboard', to: { name: 'admin-dashboard' } },
-      { name: 'produccion', label: 'Carga Produccion', icon: 'production', to: { name: 'produccion' } },
+      { name: 'produccion', label: 'Carga Producción', icon: 'production', to: { name: 'produccion' } },
       { name: 'combustible', label: 'Carga Combustible', icon: 'fuel', to: { name: 'combustible' } },
     ]
   : operatorMainActions.value.slice(0, 2))
 
 const operatorMainActions = computed(() => [
-  { name: 'produccion', label: 'Ir a Carga de Produccion', description: 'Abre el formulario de produccion.', icon: 'production', to: { name: 'produccion' } },
+  { name: 'produccion', label: 'Ir a Carga de Producción', description: 'Abre el formulario de producción.', icon: 'production', to: { name: 'produccion' } },
   { name: 'combustible', label: 'Ir a Carga de Combustible', description: 'Abre el formulario de combustible.', icon: 'fuel', to: { name: 'combustible' } },
   { name: 'pendientes', label: 'Ver Pendientes', description: 'Abre cola offline y reintentos.', icon: 'pending', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
   authStore.user?.encargado === 1
@@ -324,10 +324,10 @@ const operatorSecondaryActions = computed(() => [
 ])
 
 const adminActions = computed(() => [
-  { name: 'produccion', label: 'Ir a Carga de Produccion', description: 'Abre el formulario de produccion.', to: { name: 'produccion' }, badge: null },
+  { name: 'produccion', label: 'Ir a Carga de Producción', description: 'Abre el formulario de producción.', to: { name: 'produccion' }, badge: null },
   { name: 'combustible', label: 'Ir a Carga de Combustible', description: 'Abre el formulario de combustible.', to: { name: 'combustible' }, badge: null },
   { name: 'pendientes', label: 'Abrir Pendientes', description: 'Cola offline y reintentos.', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
-  { name: 'admin', label: 'Abrir Panel Admin', description: 'Catalogos, permisos y relaciones.', to: { name: 'admin-dashboard' }, badge: null },
+  { name: 'admin', label: 'Abrir Panel Admin', description: 'Catálogos, permisos y relaciones.', to: { name: 'admin-dashboard' }, badge: null },
 ])
 
 const adminTotals = computed(() => adminStore.dashboard.reduce((acc, unidad) => {
@@ -341,7 +341,7 @@ const adminTotals = computed(() => adminStore.dashboard.reduce((acc, unidad) => 
   return acc
 }, { registros: 0, produccion: 0, combustible: 0, operadores: 0, unidadesActivas: 0 }))
 
-const adminUnits = computed(() => [...adminStore.dashboard].sort((a, b) => String(a.prefijo || a.nombre).localeCompare(String(b.prefijo || b.nombre))))
+const adminUnits = computed(() => [...adminStore.dashboard].sort(compareUnitsByLastActivity))
 const inactiveUnits = computed(() => adminUnits.value.filter((unidad) => {
   const resumen = unidad.resumen || {}
   return (resumen.total_registros || 0) === 0 && !resumen.ultima_actividad_fecha
@@ -362,7 +362,7 @@ const adminUnitDisplayStart = computed(() => filteredAdminUnits.value.length ===
 const pagedAdminUnits = computed(() => filteredAdminUnits.value.slice(adminUnitPageStart.value, adminUnitPageEnd.value))
 
 const adminSummaryCards = computed(() => [
-  { label: 'Produccion total periodo', value: fmt(adminTotals.value.produccion), detail: 'Todas las unidades', icon: 'production' },
+  { label: 'Producción total periodo', value: fmt(adminTotals.value.produccion), detail: 'Todas las unidades', icon: 'production' },
   { label: 'Registros periodo', value: fmt(adminTotals.value.registros), detail: 'Cargas del sistema', icon: 'records' },
   { label: 'Unidades con actividad', value: `${adminTotals.value.unidadesActivas} / ${adminUnits.value.length}`, detail: inactiveUnits.value.length ? `${inactiveUnits.value.length} sin actividad registrada` : 'Todas con actividad', icon: 'unit' },
   { label: 'Pendientes offline', value: fmt(produccionStore.pendingCount), detail: syncText.value, icon: 'pending' },
@@ -370,8 +370,8 @@ const adminSummaryCards = computed(() => [
 
 const adminAlerts = computed(() => {
   const alerts = []
-  if (!isOnline.value) alerts.push('Sistema sin conexion: las cargas quedan en cola local.')
-  if (produccionStore.pendingCount > 0) alerts.push(`${produccionStore.pendingCount} registro(s) pendientes de sincronizacion.`)
+  if (!isOnline.value) alerts.push('Sistema sin conexión: las cargas quedan en cola local.')
+  if (produccionStore.pendingCount > 0) alerts.push(`${produccionStore.pendingCount} registro(s) pendientes de sincronización.`)
   if (inactiveUnits.value.length > 0) {
     alerts.push(`${inactiveUnits.value.length} unidades sin actividad registrada.`)
   }
@@ -404,7 +404,7 @@ const productionToday = computed(() => {
     { label: 'KM carreteo', value: totals.total_km_carreteo, unit: 'km' },
     { label: 'KM perfilado', value: totals.total_km_perfilado, unit: 'km' },
   ]
-  return options.find((item) => Number(item.value) > 0) || { label: 'Produccion', value: 0, unit: '' }
+  return options.find((item) => Number(item.value) > 0) || { label: 'Producción', value: 0, unit: '' }
 })
 
 const sortedRecords = computed(() => [...recordsStore.registros].sort((a, b) => {
@@ -429,14 +429,14 @@ const lastRecordMetrics = computed(() => {
 })
 
 const operatorSummaryCards = computed(() => [
-  { label: 'Produccion hoy', value: fmt(productionToday.value.value), unit: productionToday.value.unit, detail: productionToday.value.label, icon: 'production' },
+  { label: 'Producción hoy', value: fmt(productionToday.value.value), unit: productionToday.value.unit, detail: productionToday.value.label, icon: 'production' },
   { label: 'Horas', value: fmt(recordsStore.totales.total_horas), unit: 'hs', detail: 'Tiempo trabajado', icon: 'timer' },
   { label: 'Registros', value: fmt(recordsStore.totales.total), detail: 'Cargas del dia', icon: 'records' },
   { label: 'Combustible', value: fmt(recordsStore.totales.total_combustible), unit: 'lts', detail: 'Consumo cargado', icon: 'fuel' },
 ])
 
 const syncText = computed(() => {
-  if (!isOnline.value) return 'Sin conexion'
+  if (!isOnline.value) return 'Sin conexión'
   if (produccionStore.syncingPending) return 'Sincronizando'
   if (produccionStore.pendingCount > 0) return 'Con pendientes'
   return 'Todo sincronizado'
@@ -480,7 +480,7 @@ const QuickActions = defineComponent({
         ...props.actions.map((action) => h('button', {
           key: action.name,
           type: 'button',
-          class: 'app-hover-glow flex w-full items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-left transition active:scale-[0.98]',
+          class: 'app-hover-glow app-surface-muted flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition active:scale-[0.98]',
           onClick: () => router.push(action.to),
         }, [
           h('span', { class: 'min-w-0' }, [
@@ -490,7 +490,7 @@ const QuickActions = defineComponent({
         ])),
         props.showInstall ? h('button', {
           type: 'button',
-          class: 'app-hover-glow flex w-full items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-left transition active:scale-[0.98]',
+          class: 'app-hover-glow app-surface-muted flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition active:scale-[0.98]',
           onClick: () => emit('install'),
         }, h('span', [
           h('span', { class: 'block text-sm font-bold text-neutral-800' }, 'Instalar app'),
@@ -512,11 +512,11 @@ const LastPersonalRecord = defineComponent({
         h(AppIcon, { name: 'records', size: 'lg', class: 'text-info' }),
       ]),
       recordsStore.loading
-        ? h('div', { class: 'space-y-2' }, [h('div', { class: 'h-4 w-2/3 animate-pulse rounded bg-neutral-200' }), h('div', { class: 'h-4 w-1/2 animate-pulse rounded bg-neutral-100' })])
+        ? h('div', { class: 'space-y-2' }, [h('div', { class: 'app-surface-muted h-4 w-2/3 animate-pulse rounded' }), h('div', { class: 'app-surface-muted h-4 w-1/2 animate-pulse rounded' })])
         : lastRecord.value
           ? h('div', { class: 'space-y-3' }, [
             h('p', { class: 'text-sm text-neutral-500' }, `${formatFecha(lastRecord.value.fecha)} - ${lastRecord.value.equipo || 'Sin equipo'} - ${horaRegistro(lastRecord.value)}`),
-            h('div', { class: 'flex flex-wrap gap-2' }, lastRecordMetrics.value.map((metric) => h('span', { key: metric.label, class: 'rounded-md bg-neutral-100 px-2.5 py-1 text-xs font-bold text-neutral-700' }, `${metric.value} ${metric.unit}`))),
+            h('div', { class: 'flex flex-wrap gap-2' }, lastRecordMetrics.value.map((metric) => h('span', { key: metric.label, class: 'rounded-md border px-2.5 py-1 text-xs font-bold app-state-inactive' }, `${metric.value} ${metric.unit}`))),
             h('button', { type: 'button', class: 'rounded-md border border-neutral-200 px-3 py-2 text-xs font-bold text-neutral-700 hover:border-secondary/40 hover:text-info-dark', onClick: () => router.push({ name: 'mis-registros' }) }, 'Ver mis registros'),
           ])
           : h('p', { class: 'text-sm text-neutral-500' }, 'Todavia no hay registros cargados para hoy.'),
@@ -555,7 +555,7 @@ const AlertPanel = defineComponent({
         ]),
         h(AppIcon, { name: 'warning', size: 'lg', class: 'text-error-dark opacity-80' }),
       ]),
-      h('div', { class: 'space-y-2' }, props.alerts.map((alert) => h('p', { key: alert, class: 'rounded-lg border border-error/25 bg-white/65 px-3 py-2 text-sm font-semibold text-error-dark' }, alert))),
+      h('div', { class: 'space-y-2' }, props.alerts.map((alert) => h('p', { key: alert, class: 'rounded-lg border border-error/25 bg-error-light/30 px-3 py-2 text-sm font-semibold text-error-dark' }, alert))),
       props.unitLabels.length > 0
         ? h('div', { class: 'mt-3 rounded-lg p-0' }, [
           h('p', { class: 'mb-2 text-[11px] font-bold uppercase tracking-wide text-error-dark/70' }, 'Unidades afectadas'),
@@ -576,16 +576,16 @@ const RecentRecordsPanel = defineComponent({
     return () => h('article', { class: 'app-card rounded-xl p-4' }, [
       h('div', { class: 'mb-3' }, [
         h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, 'Ultimos registros'),
-        h('h2', { class: 'mt-0.5 text-xl font-extrabold text-neutral-900' }, 'Cargas de hoy'),
+        h('h2', { class: 'mt-0.5 text-xl font-extrabold text-neutral-900' }, 'Ultimas cargas'),
       ]),
       adminStore.loadingRecentRecords
-        ? h('div', { class: 'space-y-2' }, [1, 2, 3].map((i) => h('div', { key: i, class: 'h-12 animate-pulse rounded-lg bg-neutral-100' })))
+        ? h('div', { class: 'space-y-2' }, [1, 2, 3].map((i) => h('div', { key: i, class: 'app-surface-muted h-12 animate-pulse rounded-lg' })))
         : adminStore.recentRecords.length > 0
           ? h('div', { class: 'divide-y divide-neutral-100' }, adminStore.recentRecords.map((record) => h('div', { key: record.id, class: 'py-3' }, [
-            h('p', { class: 'truncate text-sm font-bold text-neutral-800' }, `${record.operacion || 'Produccion'} - ${record.unidad || 'Sin unidad'}`),
-            h('p', { class: 'truncate text-xs text-neutral-400' }, `${record.operador || 'Sin operador'} - ${record.equipo || 'Sin equipo'}`),
+            h('p', { class: 'truncate text-sm font-bold text-neutral-800' }, `${record.operacion || 'Producción'} - ${record.unidad || 'Sin unidad'}`),
+            h('p', { class: 'truncate text-xs text-neutral-400' }, `${formatFecha(record.fecha)} - ${record.operador || 'Sin operador'} - ${record.equipo || 'Sin equipo'}`),
           ])))
-          : h('p', { class: 'text-sm text-neutral-500' }, 'Sin registros cargados hoy.'),
+          : h('p', { class: 'text-sm text-neutral-500' }, 'Sin registros cargados.'),
     ])
   },
 })
@@ -638,9 +638,18 @@ function unitStatusText(unidad) {
   const tieneActividad = (unidad.resumen?.total_registros || 0) > 0 || unidad.resumen?.ultima_actividad_fecha
   if (!tieneActividad) return 'Sin actividad registrada'
   if (unidad.resumen?.ultima_actividad_fecha) {
-    return `Ultima: ${formatFecha(unidad.resumen.ultima_actividad_fecha)}`
+    return `Última: ${formatFecha(unidad.resumen.ultima_actividad_fecha)}`
   }
   return `${fmt(unidad.resumen.total_registros)} registro${unidad.resumen.total_registros !== 1 ? 's' : ''} en el periodo`
+}
+
+function compareUnitsByLastActivity(a, b) {
+  const aDate = a.resumen?.ultima_actividad_fecha || ''
+  const bDate = b.resumen?.ultima_actividad_fecha || ''
+  if (aDate && bDate && aDate !== bDate) return String(bDate).localeCompare(String(aDate))
+  if (aDate && !bDate) return -1
+  if (!aDate && bDate) return 1
+  return String(a.prefijo || a.nombre || '').localeCompare(String(b.prefijo || b.nombre || ''))
 }
 
 async function loadTodaySummary() {
@@ -653,7 +662,7 @@ async function loadAdminSummary() {
   const { from, to } = selectedDateRange.value
   await Promise.all([
     adminStore.fetchDashboard({ fecha_desde: from, fecha_hasta: to }),
-    adminStore.fetchRecentRecords({ fecha: to, limit: 5 }),
+    adminStore.fetchRecentRecords({ limit: 5 }),
   ])
 }
 

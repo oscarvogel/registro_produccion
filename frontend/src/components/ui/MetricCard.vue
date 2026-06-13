@@ -55,7 +55,7 @@ const toneClass = computed(() => {
 
 const iconClass = computed(() => {
   const tones = {
-    neutral: 'bg-neutral-100 text-neutral-600',
+    neutral: 'app-state-inactive',
     primary: 'bg-primary-light text-primary-dark',
     success: 'bg-success-light/45 text-success-dark',
     info: 'bg-info-light text-info-dark',

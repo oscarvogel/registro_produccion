@@ -3,7 +3,7 @@
     <PageHeader :title="meta.title" :description="meta.description">
       <template #kicker>
         <span class="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide app-chip-info">
-          Administracion
+          Administración
         </span>
         <span class="rounded-full border px-3 py-1 text-xs font-bold app-state-inactive">
           {{ filteredRows.length }} registro{{ filteredRows.length !== 1 ? 's' : '' }}
@@ -21,19 +21,19 @@
       </template>
     </PageHeader>
 
-    <SectionCard title="Gestion">
+    <SectionCard title="Gestión">
       <div class="space-y-3">
-        <FilterBar title="Busqueda y filtros" eyebrow="Vista actual">
+        <FilterBar title="Búsqueda y filtros" eyebrow="Vista actual">
           <template #summary>
             <span class="rounded-full border px-3 py-1 text-xs font-bold app-state-inactive">
-              Pagina {{ page + 1 }}
+              Página {{ page + 1 }}
             </span>
           </template>
           <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-end">
             <input
               v-model="searchText"
               type="search"
-              class="w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/30 sm:w-80"
+              class="app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/30 sm:w-80"
               placeholder="Buscar"
             />
 
@@ -60,7 +60,7 @@
           </div>
         </FilterBar>
 
-        <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+        <div v-if="error" class="rounded-lg border border-error/25 bg-error-light/30 p-3 text-sm font-semibold text-error-dark">
           {{ error }}
         </div>
 
@@ -76,11 +76,11 @@
         />
 
         <div class="space-y-3 md:hidden">
-          <div v-if="loading" class="rounded-xl border border-neutral-200 bg-white px-4 py-4 text-center text-sm text-neutral-500">
+          <div v-if="loading" class="app-card rounded-xl px-4 py-4 text-center text-sm text-neutral-500">
             Cargando...
           </div>
 
-          <div v-else-if="filteredRows.length === 0" class="rounded-xl border border-neutral-200 bg-white px-4 py-4 text-center text-sm text-neutral-500">
+          <div v-else-if="filteredRows.length === 0" class="app-card rounded-xl px-4 py-4 text-center text-sm text-neutral-500">
             Sin registros para estos filtros.
           </div>
 
@@ -88,7 +88,7 @@
           <article
             v-for="row in filteredRows"
             :key="`mobile-${row[meta.idKey]}`"
-            class="app-card rounded-xl p-4 transition-all hover:border-secondary/25 hover:shadow-md"
+            class="app-card rounded-xl p-3.5 transition-all hover:border-secondary/25 hover:shadow-md"
           >
             <div class="mb-3 flex items-start justify-between gap-3">
               <div class="min-w-0">
@@ -97,7 +97,7 @@
                   {{ mobilePrimaryLabel(row) }}
                 </p>
               </div>
-              <span class="rounded-lg bg-neutral-100 px-2 py-1 text-xs font-bold text-neutral-500">
+              <span class="rounded-lg border px-2 py-1 text-xs font-bold app-state-inactive">
                 #{{ row[meta.idKey] }}
               </span>
             </div>
@@ -143,7 +143,7 @@
               </button>
               <button
                 @click="removeRow(row[meta.idKey])"
-                class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-error/35 px-3 py-2 text-xs font-semibold text-error-dark"
                 type="button"
               >
                 <AppIcon name="delete" size="sm" />
@@ -155,7 +155,7 @@
               <div
                 v-for="block in unidadRelations(row[meta.idKey])"
                 :key="`mobile-${row[meta.idKey]}-${block.title}`"
-                class="rounded-lg border border-neutral-200 bg-neutral-50 p-3"
+                class="app-surface-muted rounded-lg border p-3"
               >
                 <div class="mb-2 flex items-center justify-between gap-3">
                   <p class="text-xs font-bold uppercase tracking-wide text-neutral-500">{{ block.title }}</p>
@@ -164,7 +164,7 @@
                     <button
                       v-if="block.manageable"
                       @click="startRelationAdd(row[meta.idKey], block.key)"
-                      class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-secondary/30 bg-white text-info-dark hover:bg-info-light"
+                      class="app-button-soft inline-flex min-h-9 w-9 items-center justify-center rounded-md border text-info-dark hover:border-secondary/40"
                       type="button"
                       :title="`Agregar ${block.title}`"
                     >
@@ -175,7 +175,7 @@
                 <div v-if="isRelationAdding(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
                   <select
                     v-model="relationDraft.selectedId"
-                    class="min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm"
+                    class="app-input min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm"
                   >
                     <option value="">Seleccionar</option>
                     <option
@@ -196,7 +196,7 @@
                 <div v-if="isRelationMoving(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
                   <select
                     v-model="relationDraft.targetUnidadId"
-                    class="min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm"
+                    class="app-input min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm"
                   >
                     <option value="">Mover a unidad</option>
                     <option
@@ -224,7 +224,7 @@
                     <button
                       v-if="block.manageable"
                       @click="startRelationRemove(row[meta.idKey], block.key, item.id)"
-                      class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-red-200 text-red-700 hover:bg-red-50"
+                      class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-error/35 text-error-dark hover:bg-error-light/30"
                       type="button"
                       :title="`Quitar ${item.label}`"
                     >
@@ -233,7 +233,7 @@
                   </div>
                   <p v-if="block.items.length === 0" class="text-sm text-neutral-400">Sin vinculaciones.</p>
                   <p v-else-if="block.items.length > 8" class="text-xs text-neutral-400">
-                    +{{ block.items.length - 8 }} mas
+                    +{{ block.items.length - 8 }} más
                   </p>
                 </div>
               </div>
@@ -242,9 +242,9 @@
           </template>
         </div>
 
-        <div class="hidden max-h-[68vh] overflow-auto rounded-xl border border-neutral-200 bg-white shadow-sm md:block">
+        <div class="app-table hidden max-h-[68vh] overflow-auto rounded-xl md:block">
           <table class="min-w-full text-sm">
-            <thead class="sticky top-0 z-10 bg-neutral-50 text-neutral-600 shadow-[0_1px_0_var(--color-neutral-200)]">
+            <thead class="app-table-head sticky top-0 z-10">
               <tr>
                 <th
                   v-for="column in meta.columns"
@@ -259,15 +259,15 @@
 
             <tbody>
               <tr v-if="loading">
-                <td :colspan="meta.columns.length + 1" class="px-3 py-8 text-center text-neutral-500">Cargando...</td>
+                <td :colspan="meta.columns.length + 1" class="px-3 py-5 text-center text-neutral-500">Cargando...</td>
               </tr>
 
               <tr v-else-if="filteredRows.length === 0">
-                <td :colspan="meta.columns.length + 1" class="px-3 py-8 text-center text-neutral-500">Sin registros para estos filtros.</td>
+                <td :colspan="meta.columns.length + 1" class="px-3 py-5 text-center text-neutral-500">Sin registros para estos filtros.</td>
               </tr>
 
               <template v-for="row in filteredRows" :key="row[meta.idKey]">
-                <tr class="transition-colors hover:bg-primary-light/10">
+                <tr class="app-table-row">
                   <td
                     v-for="column in meta.columns"
                     :key="`${row[meta.idKey]}-${column.key}`"
@@ -288,7 +288,7 @@
                     <button
                       v-if="entity === 'unidades-negocio'"
                       @click="toggleRelations(row[meta.idKey])"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-neutral-300 text-neutral-700 hover:bg-neutral-100 mr-2"
+                      class="app-button-soft mr-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold"
                       type="button"
                     >
                       <AppIcon name="view" size="sm" />
@@ -296,7 +296,7 @@
                     </button>
                     <button
                       @click="openEdit(row)"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-neutral-300 text-neutral-700 hover:bg-neutral-100 mr-2"
+                      class="app-button-soft mr-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold"
                       type="button"
                     >
                       <AppIcon name="edit" size="sm" />
@@ -304,7 +304,7 @@
                     </button>
                     <button
                       @click="removeRow(row[meta.idKey])"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-700 hover:bg-red-50"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-error/35 px-3 py-1.5 text-xs font-semibold text-error-dark hover:bg-error-light/30"
                       type="button"
                     >
                       <AppIcon name="delete" size="sm" />
@@ -314,12 +314,12 @@
                 </tr>
 
                 <tr v-if="entity === 'unidades-negocio' && expandedUnidadId === row[meta.idKey]">
-                  <td :colspan="meta.columns.length + 1" class="px-3 py-3 border-b border-neutral-100 bg-neutral-50">
+                  <td :colspan="meta.columns.length + 1" class="app-table-expanded border-b border-neutral-100 px-3 py-3">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div
                         v-for="block in unidadRelations(row[meta.idKey])"
                         :key="block.title"
-                        class="rounded-lg border border-neutral-200 bg-white p-3"
+                        class="app-surface-muted rounded-lg border p-3"
                       >
                         <div class="flex items-center justify-between gap-3 mb-2">
                           <p class="text-xs font-bold uppercase tracking-wide text-neutral-500">{{ block.title }}</p>
@@ -337,7 +337,7 @@
                           </div>
                         </div>
                         <div v-if="isRelationAdding(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
-                          <select v-model="relationDraft.selectedId" class="min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm">
+                          <select v-model="relationDraft.selectedId" class="app-input min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm">
                             <option value="">Seleccionar</option>
                             <option v-for="option in relationAddOptions(row[meta.idKey], block.key)" :key="option.id" :value="option.id">
                               {{ option.label }}
@@ -347,7 +347,7 @@
                           <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" @click="cancelRelationDraft"><AppIcon name="close" size="xs" /></button>
                         </div>
                         <div v-if="isRelationMoving(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
-                          <select v-model="relationDraft.targetUnidadId" class="min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm">
+                          <select v-model="relationDraft.targetUnidadId" class="app-input min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm">
                             <option value="">Mover a unidad</option>
                             <option v-for="option in relationMoveOptions(row[meta.idKey])" :key="option.idUnidadNegocio" :value="option.idUnidadNegocio">
                               {{ option.nombre }}
@@ -366,7 +366,7 @@
                             <button
                               v-if="block.manageable"
                               @click="startRelationRemove(row[meta.idKey], block.key, item.id)"
-                              class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-red-200 text-red-700 hover:bg-red-50"
+                              class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-error/35 text-error-dark hover:bg-error-light/30"
                               type="button"
                               :title="`Quitar ${item.label}`"
                             >
@@ -375,7 +375,7 @@
                           </div>
                           <p v-if="block.items.length === 0" class="text-sm text-neutral-400">Sin vinculaciones.</p>
                           <p v-else-if="block.items.length > 12" class="text-xs text-neutral-400">
-                            +{{ block.items.length - 12 }} mas
+                            +{{ block.items.length - 12 }} más
                           </p>
                         </div>
                       </div>
@@ -393,27 +393,27 @@
             <select
               v-model.number="limit"
               @change="changePageSize"
-              class="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs font-bold text-neutral-700 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              class="app-input rounded-lg border px-2 py-1.5 text-xs font-bold focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option v-for="size in pageSizeOptions" :key="size" :value="size">{{ size }}</option>
             </select>
-            por pagina
+            por página
           </label>
 
           <div class="flex items-center justify-between gap-3 sm:justify-end">
           <button
             @click="prevPage"
             :disabled="page === 0 || loading"
-            class="px-4 py-2 rounded-lg border border-neutral-300 text-sm font-semibold text-neutral-700 disabled:opacity-40"
+            class="min-h-10 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 disabled:opacity-40"
             type="button"
           >
             Anterior
           </button>
-          <span class="text-xs text-neutral-400">Pagina {{ page + 1 }}</span>
+          <span class="text-xs text-neutral-400">Página {{ page + 1 }}</span>
           <button
             @click="nextPage"
             :disabled="loading || rows.length < limit"
-            class="px-4 py-2 rounded-lg border border-neutral-300 text-sm font-semibold text-neutral-700 disabled:opacity-40"
+            class="min-h-10 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 disabled:opacity-40"
             type="button"
           >
             Siguiente
@@ -423,8 +423,8 @@
       </div>
     </SectionCard>
 
-    <div v-if="showForm" class="fixed inset-0 bg-black/35 z-50 flex items-center justify-center p-4" @click.self="closeForm">
-      <div class="flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-xl">
+    <div v-if="showForm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 backdrop-blur-sm sm:p-4" @click.self="closeForm">
+      <div class="app-card-glass flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-xl">
         <div class="flex shrink-0 items-center justify-between gap-4 border-b border-neutral-200 px-4 py-3">
           <div>
             <h3 class="text-lg font-extrabold text-neutral-950">
@@ -432,7 +432,7 @@
             </h3>
             <p class="text-xs text-neutral-400 mt-0.5">{{ meta.formHint }}</p>
           </div>
-          <button @click="closeForm" class="text-neutral-500 hover:text-neutral-700" type="button">Cerrar</button>
+          <button @click="closeForm" class="app-button-soft rounded-lg border px-3 py-1.5 text-sm font-semibold" type="button">Cerrar</button>
         </div>
 
         <div v-if="formSections.length > 1" class="flex shrink-0 flex-wrap gap-2 px-4 pt-3">
@@ -441,10 +441,10 @@
             :key="section.key"
             @click="activeSection = section.key"
             :class="[
-              'px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors',
+              'min-h-9 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors',
               activeSection === section.key
                 ? 'bg-primary-dark border-primary-dark text-white'
-                : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50',
+                : 'app-button-soft border',
             ]"
             type="button"
           >
@@ -453,18 +453,18 @@
         </div>
 
         <div class="min-h-0 flex-1 overflow-y-auto p-4">
-          <div v-if="formError" class="mb-3 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+          <div v-if="formError" class="mb-3 rounded-lg border border-error/25 bg-error-light/30 p-3 text-sm font-semibold text-error-dark">
             {{ formError }}
           </div>
 
           <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <template v-for="field in visibleFields" :key="field.key">
               <div v-if="field.type === 'textarea'" :class="fieldClass(field)">
-                <label class="block text-sm font-medium text-neutral-600 mb-1.5">{{ field.label }}</label>
+                <label class="mb-1 block text-sm font-semibold text-neutral-600">{{ field.label }}</label>
                 <textarea
                   v-model="form[field.key]"
                   rows="3"
-                  class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-4 py-2.5 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  class="app-input w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 sm:px-3.5"
                 />
               </div>
 
@@ -475,7 +475,7 @@
                   :items="referenceOptions(field)"
                   labelKey="_adminLabel"
                   :valueKey="field.optionValue"
-                  :placeholder="field.placeholder || 'Escribi para buscar'"
+                  :placeholder="field.placeholder || 'Escribí para buscar'"
                   dropdownMode="inline"
                 />
               </div>
@@ -487,7 +487,7 @@
                   :items="referenceOptions(field)"
                   labelKey="_adminLabel"
                   :valueKey="field.optionValue"
-                  :placeholder="field.nullable ? 'Sin valor' : 'Escribi para buscar'"
+                  :placeholder="field.nullable ? 'Sin valor' : 'Escribí para buscar'"
                   dropdownMode="inline"
                 />
                 <button
@@ -501,8 +501,8 @@
               </div>
 
               <div v-else-if="field.type === 'multiselect'" class="md:col-span-2">
-                <label class="block text-sm font-medium text-neutral-600 mb-1.5">{{ field.label }}</label>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                <label class="mb-1 block text-sm font-semibold text-neutral-600">{{ field.label }}</label>
+                <div class="app-surface-muted grid grid-cols-1 gap-2 rounded-lg border p-3 md:grid-cols-2">
                   <label
                     v-for="option in referenceData[field.optionsEntity] || []"
                     :key="option[field.optionValue]"
@@ -535,10 +535,10 @@
           </div>
         </div>
 
-        <div class="shrink-0 px-5 py-4 border-t border-neutral-200 flex items-center justify-end gap-2">
+        <div class="flex shrink-0 items-center justify-end gap-2 border-t border-neutral-200 px-4 py-3">
           <button
             @click="closeForm"
-            class="px-4 py-2 rounded-lg border border-neutral-300 text-sm font-semibold text-neutral-700"
+            class="min-h-10 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700"
             type="button"
           >
             Cancelar
@@ -546,7 +546,7 @@
           <button
             @click="submitForm"
             :disabled="submitting"
-            class="px-4 py-2 rounded-lg bg-primary-dark text-white text-sm font-semibold disabled:opacity-60"
+            class="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-60"
             type="button"
           >
             {{ submitting ? 'Guardando...' : 'Guardar' }}
@@ -557,12 +557,12 @@
 
     <AppModal
       v-model="showDeleteConfirm"
-      title="Confirmar accion"
-      :description="`Vas a ${deleteLabel.toLowerCase()} este registro. Esta accion puede afectar datos vinculados.`"
+      title="Confirmar acción"
+      :description="`Vas a ${deleteLabel.toLowerCase()} este registro. Esta acción puede afectar datos vinculados.`"
     >
       <div class="flex flex-col gap-4">
         <p class="text-sm text-neutral-700">
-          Confirma que queres continuar con <strong>{{ pendingDeleteLabel }}</strong>.
+          Confirmá que querés continuar con <strong>{{ pendingDeleteLabel }}</strong>.
         </p>
         <div class="flex justify-end gap-2">
           <AppButton variant="secondary" @click="cancelDelete">Cancelar</AppButton>
@@ -586,14 +586,15 @@ import FilterBar from '@/components/ui/FilterBar.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AdminQuickAssignment from '@/components/admin/AdminQuickAssignment.vue'
 import { useAdminStore } from '@/stores/admin'
+import { validateAdminPassword } from '@/services/passwordValidation'
 
 const SECTIONS = {
   principal: 'Principal',
   relaciones: 'Relaciones',
   acceso: 'Acceso',
   horarios: 'Horarios',
-  tecnico: 'Tecnico',
-  documentacion: 'Documentacion',
+  tecnico: 'Técnico',
+  documentacion: 'Documentación',
   observaciones: 'Observaciones',
 }
 
@@ -601,8 +602,8 @@ const ENTITY_DEFINITIONS = {
   personal: {
     title: 'Personal',
     singular: 'persona',
-    description: 'Gestiona datos basicos, permisos y unidades vinculadas del personal.',
-    formHint: 'Los datos operativos y de acceso estan separados para editar con menos ruido.',
+    description: 'Gestiona datos básicos, permisos y unidades vinculadas del personal.',
+    formHint: 'Los datos operativos y de acceso están separados para editar con menos ruido.',
     idKey: 'idPersonal',
     deleteVerb: 'Desactivar',
     extraReferences: ['unidades-negocio', 'tipos-proceso'],
@@ -611,8 +612,8 @@ const ENTITY_DEFINITIONS = {
       { key: 'nombre', label: 'Nombre' },
       { key: 'dni', label: 'DNI' },
       { key: 'unidad_ids', label: 'Unidades', type: 'multiLookup', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre' },
-      { key: 'encargado', label: 'Encargado', type: 'badge', trueText: 'Si', falseText: 'No' },
-      { key: 'is_admin', label: 'Admin', type: 'badge', trueText: 'Si', falseText: 'No' },
+      { key: 'encargado', label: 'Encargado', type: 'badge', trueText: 'Sí', falseText: 'No' },
+      { key: 'is_admin', label: 'Admin', type: 'badge', trueText: 'Sí', falseText: 'No' },
       { key: 'activo', label: 'Estado', type: 'badge', trueText: 'Activo', falseText: 'Inactivo' },
     ],
     fields: [
@@ -627,21 +628,21 @@ const ENTITY_DEFINITIONS = {
       { key: 'unidad_negocio', label: 'Unidad Principal', type: 'autocomplete', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre', default: 1, section: 'relaciones' },
       { key: 'unidad_ids', label: 'Unidades vinculadas', type: 'multiselect', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre', default: [1], section: 'relaciones' },
       { key: 'tipo_de_proceso_id', label: 'Tipo de Proceso', type: 'autocomplete', optionsEntity: 'tipos-proceso', optionValue: 'id', optionLabel: 'nombre', nullable: true, section: 'relaciones' },
-      { key: 'entrada_m', label: 'Entrada Manana', type: 'text', default: '00:00', section: 'horarios' },
-      { key: 'salida_m', label: 'Salida Manana', type: 'text', default: '00:00', section: 'horarios' },
+      { key: 'entrada_m', label: 'Entrada Mañana', type: 'text', default: '00:00', section: 'horarios' },
+      { key: 'salida_m', label: 'Salida Mañana', type: 'text', default: '00:00', section: 'horarios' },
       { key: 'entrada_t', label: 'Entrada Tarde', type: 'text', default: '00:00', section: 'horarios' },
       { key: 'salida_t', label: 'Salida Tarde', type: 'text', default: '00:00', section: 'horarios' },
       { key: 'activo', label: 'Activo', type: 'checkbox', output: 'int', default: true, section: 'acceso' },
       { key: 'encargado', label: 'Encargado', type: 'checkbox', output: 'int', default: false, section: 'acceso' },
       { key: 'is_admin', label: 'Acceso Admin', type: 'checkbox', output: 'int', default: false, section: 'acceso' },
-      { key: 'password', label: 'Password', type: 'password', nullable: true, section: 'acceso' },
+      { key: 'password', label: 'Contrasena', type: 'password', nullable: true, section: 'acceso' },
     ],
   },
   moviles: {
-    title: 'Moviles',
-    singular: 'movil',
-    description: 'Administra unidades operativas, documentacion y datos tecnicos.',
-    formHint: 'Los datos tecnicos quedan agrupados para evitar formularios interminables.',
+    title: 'Móviles',
+    singular: 'móvil',
+    description: 'Administra unidades operativas, documentación y datos técnicos.',
+    formHint: 'Los datos técnicos quedan agrupados para evitar formularios interminables.',
     idKey: 'idMovil',
     deleteVerb: 'Desactivar',
     extraReferences: ['unidades-negocio', 'tipos-proceso', 'tipos-movil'],
@@ -662,10 +663,10 @@ const ENTITY_DEFINITIONS = {
       { key: 'cant_neumaticos', label: 'Cantidad Neumaticos', type: 'number', default: 0, section: 'tecnico' },
       { key: 'capacidad_tanque', label: 'Capacidad Tanque', type: 'number', default: 0, section: 'tecnico' },
       { key: 'consumo_promedio', label: 'Consumo Promedio', type: 'number', default: 0, section: 'tecnico' },
-      { key: 'anio_fabricacion', label: 'Año Fabricacion', type: 'number', default: 0, section: 'documentacion' },
-      { key: 'nro_chasis', label: 'Numero Chasis', type: 'text', section: 'documentacion' },
-      { key: 'nro_motor', label: 'Numero Motor', type: 'text', section: 'documentacion' },
-      { key: 'venc_tecnica', label: 'Vencimiento Tecnica', type: 'date', nullable: true, section: 'documentacion' },
+      { key: 'anio_fabricacion', label: 'Año Fabricación', type: 'number', default: 0, section: 'documentacion' },
+      { key: 'nro_chasis', label: 'Número Chasis', type: 'text', section: 'documentacion' },
+      { key: 'nro_motor', label: 'Número Motor', type: 'text', section: 'documentacion' },
+      { key: 'venc_tecnica', label: 'Vencimiento Técnica', type: 'date', nullable: true, section: 'documentacion' },
       { key: 'ruta', label: 'Ruta habilitada', type: 'checkbox', output: 'bool', default: false, section: 'documentacion' },
       { key: 'venc_ruta', label: 'Vencimiento Ruta', type: 'date', nullable: true, section: 'documentacion' },
       { key: 'observaciones', label: 'Observaciones', type: 'textarea', nullable: true, section: 'observaciones', span: 2 },
@@ -696,7 +697,7 @@ const ENTITY_DEFINITIONS = {
     title: 'Tipos de Proceso',
     singular: 'tipo de proceso',
     description: 'Define procesos disponibles y las unidades donde se pueden usar.',
-    formHint: 'Habilita procesos por unidad para controlar la carga de produccion.',
+    formHint: 'Habilita procesos por unidad para controlar la carga de producción.',
     idKey: 'id',
     deleteVerb: 'Desactivar',
     extraReferences: ['unidades-negocio'],
@@ -737,7 +738,7 @@ const ENTITY_DEFINITIONS = {
   predios: {
     title: 'Predios',
     singular: 'predio',
-    description: 'Catalogo simple de predios.',
+    description: 'Catálogo simple de predios.',
     formHint: 'Campos minimos para identificar el predio.',
     idKey: 'idPredio',
     deleteVerb: 'Eliminar',
@@ -756,7 +757,7 @@ const ENTITY_DEFINITIONS = {
   rodales: {
     title: 'Rodales',
     singular: 'rodal',
-    description: 'Catalogo de rodales con valores operativos.',
+    description: 'Catálogo de rodales con valores operativos.',
     formHint: 'El predio se busca por autocompletado.',
     idKey: 'idRodal',
     deleteVerb: 'Eliminar',
@@ -772,7 +773,7 @@ const ENTITY_DEFINITIONS = {
       { key: 'idPredio', label: 'Predio', type: 'autocomplete', optionsEntity: 'predios', optionValue: 'idPredio', optionLabel: 'nombre', section: 'principal' },
       { key: 'vam', label: 'VAM', type: 'number', default: 0, section: 'tecnico' },
       { key: 'tarifa', label: 'Tarifa', type: 'number', default: 0, section: 'tecnico' },
-      { key: 'extraccion', label: 'Extraccion', type: 'number', default: 0, section: 'tecnico' },
+      { key: 'extraccion', label: 'Extracción', type: 'number', default: 0, section: 'tecnico' },
       { key: 'carga', label: 'Carga', type: 'number', default: 0, section: 'tecnico' },
     ],
   },
@@ -1069,6 +1070,10 @@ function normalizePayload() {
 function validatePayload(payload) {
   if (entity.value === 'personal' && !payload.nombre?.trim()) return 'Nombre es obligatorio.'
   if (entity.value === 'personal' && (!payload.unidad_ids || payload.unidad_ids.length === 0)) return 'Selecciona al menos una unidad vinculada.'
+  if (entity.value === 'personal') {
+    const passwordValidation = validateAdminPassword(payload.password)
+    if (passwordValidation) return passwordValidation
+  }
   if (entity.value === 'moviles' && (!payload.patente?.trim() || !payload.detalle?.trim())) return 'Patente y detalle son obligatorios.'
   if (entity.value === 'tipos-proceso' && !payload.nombre?.trim()) return 'Nombre es obligatorio.'
   if (entity.value === 'asignaciones') return validateAssignment(payload)

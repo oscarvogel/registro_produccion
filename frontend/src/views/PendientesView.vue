@@ -7,7 +7,7 @@
       >
         <template #kicker>
           <AppBadge :tone="navigatorOnline ? 'success' : 'warning'">
-            {{ navigatorOnline ? 'En linea' : 'Sin conexion' }}
+            {{ navigatorOnline ? 'En línea' : 'Sin conexión' }}
           </AppBadge>
           <AppBadge v-if="scopedFailedRecords.length > 0" tone="error">
             {{ scopedFailedRecords.length }} fallido{{ scopedFailedRecords.length !== 1 ? 's' : '' }}
@@ -25,13 +25,13 @@
         </template>
       </PageHeader>
 
-      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-3.5 shadow-sm">
+      <section class="app-card rounded-xl p-3.5">
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Estado de sincronizacion</p>
+            <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Estado de sincronización</p>
             <h2 class="mt-1 text-xl font-extrabold text-neutral-950">{{ syncStatusTitle }}</h2>
             <p class="mt-1 text-sm text-on-surface-variant">
-              {{ navigatorOnline ? 'Sistema en linea' : 'Sistema sin conexion' }} · {{ healthMessage }} · Ultima revision: {{ lastCheckLabel }}
+              {{ navigatorOnline ? 'Sistema en línea' : 'Sistema sin conexión' }} · {{ healthMessage }} · Última revisión: {{ lastCheckLabel }}
             </p>
           </div>
           <div class="flex h-12 w-12 items-center justify-center rounded-full bg-info-light text-info-dark">
@@ -44,7 +44,7 @@
         <MetricCard
           label="Pendientes locales"
           :value="localPendingRecords.length"
-          description="Registros esperando sincronizacion"
+          description="Registros esperando sincronización"
           icon="pending"
           tone="warning"
         />
@@ -71,10 +71,10 @@
         />
       </div>
 
-      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-3.5 shadow-sm">
+      <section class="app-card rounded-xl p-3.5">
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Cola de sincronizacion</p>
+            <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Cola de sincronización</p>
             <h2 class="mt-1 text-lg font-extrabold text-on-surface">{{ queueTitle }}</h2>
           </div>
 
@@ -87,7 +87,7 @@
                 'rounded-full border px-3 py-1.5 text-xs font-bold transition-colors',
                 activeFilter === filter.value
                   ? 'border-secondary bg-secondary text-white'
-                  : 'border-outline-variant bg-white text-on-surface-variant hover:bg-surface-container-low',
+                  : 'app-button-soft border',
               ]"
               @click="activeFilter = filter.value"
             >
@@ -106,7 +106,7 @@
             description="No hay registros pendientes ni fallidos. Las cargas realizadas se encuentran guardadas correctamente."
             icon="sync"
           >
-            <p class="mt-3 text-xs font-semibold text-outline">Ultima verificacion: {{ lastCheckFullLabel }}</p>
+            <p class="mt-3 text-xs font-semibold text-outline">Última verificación: {{ lastCheckFullLabel }}</p>
           </EmptyState>
         </div>
 
@@ -115,7 +115,7 @@
             v-for="record in visibleRecords"
             :key="record.id"
             :class="[
-              'rounded-xl border bg-white p-3.5 shadow-sm',
+              'rounded-xl border p-3.5 shadow-sm',
               isFailedRecord(record) ? 'border-error/30 bg-error-light/20' : 'border-warning/30 bg-warning-light/20',
             ]"
           >
@@ -123,12 +123,12 @@
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                   <AppBadge :tone="isFailedRecord(record) ? 'error' : 'warning'">
-                    {{ isFailedRecord(record) ? 'Fallo sincronizacion' : 'Pendiente' }}
+                    {{ isFailedRecord(record) ? 'Falló sincronización' : 'Pendiente' }}
                   </AppBadge>
                   <span class="text-xs text-outline">{{ formatDate(record.timestamp) }}</span>
                 </div>
                 <p class="mt-2 text-base font-extrabold text-on-surface">
-                  Produccion - {{ record.payload?.UN || 'Unidad sin definir' }}
+                  Producción - {{ record.payload?.UN || 'Unidad sin definir' }}
                 </p>
                 <dl class="mt-2 grid gap-1 text-sm text-on-surface-variant sm:grid-cols-2 xl:grid-cols-4">
                   <div><dt class="inline font-bold text-on-surface">Fecha:</dt> <dd class="inline">{{ record.payload?.fecha || '-' }}</dd></div>
@@ -166,7 +166,7 @@
         </div>
       </section>
 
-      <section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-3.5 shadow-sm">
+      <section class="app-card rounded-xl p-3.5">
         <div class="flex items-start gap-3">
           <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container text-info-dark">
             <AppIcon name="refresh" />
@@ -179,7 +179,7 @@
         </div>
       </section>
 
-      <AppModal v-model="showDetail" title="Detalle del Registro" description="Payload guardado localmente para sincronizacion.">
+      <AppModal v-model="showDetail" title="Detalle del Registro" description="Payload guardado localmente para sincronización.">
         <pre class="max-h-[55vh] overflow-auto rounded-lg bg-neutral-900 p-4 text-xs text-white">{{ selectedRecordText }}</pre>
       </AppModal>
     </div>
@@ -253,7 +253,7 @@ const visibleRecords = computed(() => {
 })
 
 const scopeDescription = computed(() => {
-  if (isAdmin.value) return 'Vista global de la cola disponible en este dispositivo y estado general de sincronizacion.'
+  if (isAdmin.value) return 'Vista global de la cola disponible en este dispositivo y estado general de sincronización.'
   if (isEncargado.value) return 'Vista de registros pendientes o fallidos para tus unidades de negocio asignadas.'
   return 'Vista de registros pendientes o fallidos generados por tu usuario.'
 })
@@ -284,8 +284,8 @@ const systemFailedDescription = computed(() => {
 
 const isHealthy = computed(() => navigatorOnline.value && scopedRecords.value.length === 0)
 const syncStatusTitle = computed(() => {
-  if (!navigatorOnline.value) return 'Sin conexion'
-  if (scopedFailedRecords.value.length > 0) return 'Requiere revision'
+  if (!navigatorOnline.value) return 'Sin conexión'
+  if (scopedFailedRecords.value.length > 0) return 'Requiere revisión'
   if (scopedPendingRecords.value.length > 0) return 'Con registros pendientes'
   return 'Todo sincronizado'
 })
@@ -304,7 +304,7 @@ const queueTitle = computed(() => {
 })
 
 const recentActivityTitle = computed(() => {
-  if (scopedFailedRecords.value.length === 0) return 'No hubo intentos fallidos de sincronizacion.'
+  if (scopedFailedRecords.value.length === 0) return 'No hubo intentos fallidos de sincronización.'
   return `${scopedFailedRecords.value.length} intento(s) fallidos detectados.`
 })
 
@@ -367,9 +367,9 @@ async function syncAll() {
   try {
     const count = await produccionStore.syncPending()
     await loadRecords()
-    toast.success('Sincronizacion completa', `${count || 0} registro(s) sincronizado(s).`)
+    toast.success('Sincronización completa', `${count || 0} registro(s) sincronizado(s).`)
   } catch {
-    toast.error('No se pudo sincronizar', 'Revisa la conexion o intenta de nuevo.')
+    toast.error('No se pudo sincronizar', 'Revisá la conexión o intentá de nuevo.')
   } finally {
     syncing.value = false
   }
@@ -392,7 +392,7 @@ async function retryRecord(record) {
       failedAt: Date.now(),
     })
     await loadRecords()
-    toast.error('Sincronizacion fallida', detail)
+    toast.error('Sincronización fallida', detail)
   } finally {
     retryingId.value = null
   }

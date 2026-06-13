@@ -4,10 +4,18 @@ from passlib.context import CryptContext
 from app.core.config import settings
 
 ALGORITHM = "HS256"
+PASSWORD_MAX_BYTES = 72
+PASSWORD_TOO_LONG_MESSAGE = "La contrasena es demasiado larga. Usa hasta 72 caracteres o una clave mas corta."
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+def validate_password_length(password: str) -> None:
+    if len(password.encode("utf-8")) > PASSWORD_MAX_BYTES:
+        raise ValueError(PASSWORD_TOO_LONG_MESSAGE)
+
+
 def get_password_hash(password: str) -> str:
+    validate_password_length(password)
     return pwd_context.hash(password)
 
 

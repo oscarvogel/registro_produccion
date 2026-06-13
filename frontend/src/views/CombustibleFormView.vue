@@ -8,7 +8,7 @@
         <span class="rounded-full bg-warning-light/60 px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-warning-dark">
           Combustible
         </span>
-        <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-extrabold text-neutral-600">
+        <span class="rounded-full border px-3 py-1 text-xs font-extrabold app-state-inactive">
           {{ unidadLabel }}
         </span>
       </template>
@@ -17,7 +17,7 @@
     <div class="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <SectionCard title="Nueva carga">
         <form class="space-y-3" @submit.prevent="submit">
-          <div v-if="store.error || formError" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
+          <div v-if="store.error || formError" class="rounded-lg border border-error/35 bg-error-light/30 p-3 text-sm font-semibold text-error-dark">
             {{ formError || store.error }}
           </div>
 
@@ -70,7 +70,7 @@
             <textarea
               v-model="form.observaciones"
               rows="3"
-              class="w-full rounded-xl border border-neutral-300 bg-neutral-100 px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              class="app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 sm:px-3.5"
               placeholder="Opcional"
             ></textarea>
           </label>
@@ -102,7 +102,7 @@
           </div>
         </SectionCard>
 
-        <SectionCard v-if="store.lastCarga" title="Ultima carga">
+        <SectionCard v-if="store.lastCarga" title="Última carga">
           <div class="space-y-2 text-sm text-neutral-700">
             <p><strong>{{ store.lastCarga.movil }}</strong></p>
             <p>{{ Number(store.lastCarga.litros).toLocaleString('es-AR') }} L</p>

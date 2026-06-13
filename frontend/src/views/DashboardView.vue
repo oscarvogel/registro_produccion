@@ -1,34 +1,34 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 pb-20 md:pb-6">
-    <div class="border-b border-neutral-200 bg-white">
+  <div class="min-h-screen bg-[var(--app-bg)] pb-20 md:pb-6">
+    <div class="app-card-glass border-b border-neutral-200">
       <div class="mx-auto flex max-w-[112rem] flex-col gap-3 px-3 py-3 md:px-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <span class="rounded-full border px-3 py-1 text-xs font-bold app-chip-info">
               {{ selectedUnitName || 'Sin unidad' }}
             </span>
-            <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-600">
+            <span class="rounded-full border px-3 py-1 text-xs font-bold app-state-inactive">
               {{ dateRangeLabel }}
             </span>
-            <span v-if="store.isLoading" class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-500">
+            <span v-if="store.isLoading" class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-bold app-state-inactive">
               <AppIcon name="loading" size="xs" class="animate-spin" />
               Actualizando
             </span>
           </div>
-          <h1 class="text-xl font-extrabold text-neutral-950 md:text-2xl">Dashboard de Produccion</h1>
+          <h1 class="text-xl font-extrabold text-neutral-950 md:text-2xl">Dashboard de Producción</h1>
           <p class="mt-0.5 text-sm text-neutral-500">{{ authStore.userName }} · Lectura operativa y comparativa</p>
         </div>
 
         <div class="flex flex-wrap gap-2">
-          <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-bold text-neutral-700 transition-colors hover:border-secondary/40 hover:text-info-dark" @click="refreshDashboard">
+          <button type="button" class="app-button-soft inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold transition-colors" @click="refreshDashboard">
             <AppIcon name="refresh" size="sm" />
             Actualizar
           </button>
-          <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-bold text-neutral-700 transition-colors hover:border-secondary/40 hover:text-info-dark" @click="exportCsv">
+          <button type="button" class="app-button-soft inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold transition-colors" @click="exportCsv">
             <AppIcon name="download" size="sm" />
             Exportar CSV
           </button>
-          <button type="button" class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-extrabold text-on-primary transition-colors hover:bg-primary-dark" @click="router.push({ name: 'mis-registros' })">
+          <button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-extrabold text-on-primary transition-colors hover:bg-primary-dark" @click="router.push({ name: 'mis-registros' })">
             <AppIcon name="records" size="sm" />
             Ver detalle
           </button>
@@ -36,7 +36,7 @@
       </div>
     </div>
 
-    <div class="sticky top-0 z-30 border-b border-neutral-200 bg-white/95 shadow-sm backdrop-blur-sm">
+    <div class="app-card-glass sticky top-0 z-30 border-b border-neutral-200">
       <div class="mx-auto max-w-[112rem] px-3 py-2.5 md:px-4">
         <button
           type="button"
@@ -86,13 +86,13 @@
             />
 
             <div>
-              <label class="mb-1 block text-xs font-medium text-neutral-500">Maquina / Equipo</label>
+              <label class="mb-1 block text-xs font-semibold text-neutral-500">Máquina / Equipo</label>
               <AutocompleteField
                 v-model="movilFilter"
                 :items="movilOptions"
                 labelKey="_label"
                 valueKey="idMovil"
-                placeholder="Todas las maquinas"
+                placeholder="Todas las máquinas"
               />
             </div>
 
@@ -102,7 +102,7 @@
                 type="date"
                 :value="store.filtros.fecha_desde"
                 @change="setDateFilter('fecha_desde', $event.target.value || null)"
-                class="w-full rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                class="app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
 
@@ -112,14 +112,14 @@
                 type="date"
                 :value="store.filtros.fecha_hasta"
                 @change="setDateFilter('fecha_hasta', $event.target.value || null)"
-                class="w-full rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                class="app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
 
             <button
               type="button"
               @click="store.limpiarFiltros()"
-              class="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-bold text-neutral-500 transition-colors hover:bg-neutral-50 hover:text-neutral-800"
+              class="app-button-soft min-h-10 rounded-lg border px-4 py-2 text-sm font-bold transition-colors"
             >
               Limpiar
             </button>
@@ -140,7 +140,7 @@
         <p class="mb-1 text-base font-bold text-warning-dark">Sin unidades disponibles</p>
         <p class="text-sm text-neutral-600">No se encontraron unidades de negocio habilitadas para consultar el dashboard.</p>
         <button type="button" @click="handleRelogin" class="mt-3 rounded-lg bg-warning-dark px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-warning">
-          Cerrar sesion
+          Cerrar sesión
         </button>
       </section>
 
@@ -150,15 +150,15 @@
             <div>
               <div class="mb-2 flex items-center gap-2 text-sm font-bold text-primary-dark">
                 <AppIcon :name="getIconName(store.kpiPrincipal?.icono)" size="sm" />
-                {{ store.kpiPrincipal?.nombre || 'Metrica principal' }}
+                {{ store.kpiPrincipal?.nombre || 'Métrica principal' }}
               </div>
-              <div v-if="store.loading.kpis" class="h-12 w-56 animate-pulse rounded bg-white/15"></div>
+              <div v-if="store.loading.kpis" class="app-surface-muted h-12 w-56 animate-pulse rounded"></div>
               <div v-else class="flex items-baseline gap-3">
                 <span class="text-4xl font-extrabold tracking-normal text-neutral-950 md:text-5xl">{{ animatedHeroValue }}</span>
                 <span class="text-lg font-bold text-neutral-500">{{ store.kpiPrincipal?.unidad || '' }}</span>
               </div>
             </div>
-            <div class="max-w-md rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+            <div class="app-surface-muted max-w-md rounded-lg border p-3">
               <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Resumen ejecutivo</p>
               <p class="mt-2 text-sm font-semibold leading-6 text-neutral-800">{{ executiveSummary }}</p>
             </div>
@@ -172,7 +172,7 @@
         </div>
 
         <div class="app-card rounded-lg p-4">
-          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Lectura rapida</p>
+          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Lectura rápida</p>
           <div class="mt-4 space-y-3 text-sm">
             <div class="flex items-center justify-between gap-3">
               <span class="text-neutral-500">Unidad</span>
@@ -195,9 +195,9 @@
       </section>
 
       <section v-if="store.loading.kpis" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <div v-for="i in 5" :key="i" class="rounded-lg border border-neutral-200 bg-white p-4">
-          <div class="mb-4 h-8 w-8 animate-pulse rounded-lg bg-neutral-100"></div>
-          <div class="mb-2 h-4 w-3/4 animate-pulse rounded bg-neutral-100"></div>
+        <div v-for="i in 5" :key="i" class="app-card rounded-lg p-4">
+          <div class="app-surface-muted mb-4 h-8 w-8 animate-pulse rounded-lg"></div>
+          <div class="app-surface-muted mb-2 h-4 w-3/4 animate-pulse rounded"></div>
           <div class="h-7 w-1/2 animate-pulse rounded bg-neutral-200"></div>
         </div>
       </section>
@@ -237,15 +237,15 @@
       </section>
 
       <section class="grid grid-cols-1 gap-3 lg:grid-cols-5">
-        <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm lg:col-span-3">
+        <div class="app-card rounded-lg p-4 lg:col-span-3">
           <div class="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Evolucion diaria</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Evolución diaria</p>
               <h2 class="text-lg font-extrabold text-neutral-950">{{ chartTitle }}</h2>
             </div>
             <div class="flex flex-wrap gap-2">
               <button type="button" :class="metricTabClass('produccion')" @click="activeChartMetric = 'produccion'">
-                Produccion
+                Producción
               </button>
               <button type="button" :class="metricTabClass('combustible')" @click="activeChartMetric = 'combustible'">
                 Combustible
@@ -263,7 +263,7 @@
               placeholder="Todos los procesos"
               selectedDisplay="input"
             />
-            <button type="button" class="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-bold text-neutral-600 hover:border-secondary/40" @click="router.push({ name: 'mis-registros' })">
+            <button type="button" class="min-h-10 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-bold text-neutral-600 hover:border-secondary/40" @click="router.push({ name: 'mis-registros' })">
               Abrir registros
             </button>
           </div>
@@ -313,18 +313,18 @@
 
           <div v-else class="h-72 flex items-center justify-center">
             <EmptyState
-              title="Sin datos de evolucion para el periodo"
-              description="Proba ampliar fechas, cambiar la unidad o quitar filtros de proceso/equipo."
+              title="Sin datos de evolución para el periodo"
+              description="Probá ampliar fechas, cambiar la unidad o quitar filtros de proceso/equipo."
               icon="empty"
             />
           </div>
         </div>
 
-        <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm lg:col-span-2">
+        <div class="app-card rounded-lg p-4 lg:col-span-2">
           <div class="mb-3 flex items-start justify-between gap-3">
             <div>
               <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Ranking</p>
-              <h2 class="text-lg font-extrabold text-neutral-950">Maquinas</h2>
+              <h2 class="text-lg font-extrabold text-neutral-950">Máquinas</h2>
             </div>
             <button type="button" class="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-bold text-neutral-600 hover:border-secondary/40" @click="exportCsv">
               CSV
@@ -343,7 +343,7 @@
             />
             <div class="grid grid-cols-2 gap-2">
               <button type="button" :class="rankingMetricClass('produccion')" @click="store.setRankingMetric('produccion')">
-                Produccion
+                Producción
               </button>
               <button type="button" :class="rankingMetricClass('combustible')" @click="store.setRankingMetric('combustible')">
                 Combustible
@@ -354,7 +354,7 @@
           <div v-if="store.loading.ranking" class="space-y-4">
             <div v-for="i in 5" :key="i" class="animate-pulse">
               <div class="mb-2 h-3 w-2/3 rounded bg-neutral-200"></div>
-              <div class="h-5 rounded bg-neutral-100"></div>
+              <div class="app-surface-muted h-5 rounded"></div>
             </div>
           </div>
 
@@ -364,7 +364,7 @@
                 <div class="flex min-w-0 items-center gap-2">
                   <span :class="[
                     'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold',
-                    idx === 0 ? 'bg-secondary text-white shadow-sm' : idx === 1 ? 'bg-info-light text-info-dark' : idx === 2 ? 'bg-warning-light text-warning-dark' : 'bg-neutral-100 text-neutral-500'
+                    idx === 0 ? 'bg-secondary text-white shadow-sm' : idx === 1 ? 'bg-info-light text-info-dark' : idx === 2 ? 'bg-warning-light text-warning-dark' : 'app-state-inactive border'
                   ]">{{ idx + 1 }}</span>
                   <div class="min-w-0">
                     <p class="truncate text-sm font-bold text-neutral-800">{{ item.patente }}</p>
@@ -376,7 +376,7 @@
                   <span class="block text-[10px] text-neutral-400">{{ item.registros }} reg.</span>
                 </div>
               </div>
-              <div class="h-1.5 overflow-hidden rounded-full bg-neutral-100">
+              <div class="app-surface-muted h-1.5 overflow-hidden rounded-full">
                 <div
                   class="h-full rounded-full transition-all duration-500"
                   :class="store.filtros.ranking_metric === 'combustible' ? 'bg-warning-dark' : idx === 0 ? 'bg-secondary' : 'bg-info-light'"
@@ -389,7 +389,7 @@
           <div v-else class="h-56 flex items-center justify-center">
             <EmptyState
               title="Sin datos de ranking"
-              description="No hay maquinas con actividad para los filtros actuales."
+              description="No hay máquinas con actividad para los filtros actuales."
               icon="empty"
             />
           </div>
@@ -419,7 +419,7 @@ const activeChartMetric = ref('produccion')
 const datePresets = [
   { key: 'today', label: 'Hoy' },
   { key: 'yesterday', label: 'Ayer' },
-  { key: '7days', label: '7 dias' },
+  { key: '7days', label: '7 días' },
   { key: 'lastWeek', label: 'Semana pasada' },
   { key: 'month', label: 'Mes actual' },
 ]
@@ -491,8 +491,8 @@ const dateRangeLabel = computed(() => {
 })
 
 const emptyFilterMessage = computed(() => {
-  if (activeFilterChips.value.length === 0) return 'Proba modificando el rango de fechas o los filtros.'
-  return `Sin resultados para: ${activeFilterChips.value.join(', ')}. Proba ampliando fechas o quitando algun filtro.`
+  if (activeFilterChips.value.length === 0) return 'Probá modificando el rango de fechas o los filtros.'
+  return `Sin resultados para: ${activeFilterChips.value.join(', ')}. Probá ampliando fechas o quitando algún filtro.`
 })
 
 const secondaryKpiGridClass = computed(() => {
@@ -506,7 +506,7 @@ const periodRecords = computed(() => {
 })
 
 const executiveSummary = computed(() => {
-  if (store.loading.kpis) return 'Cargando metricas para el periodo seleccionado.'
+  if (store.loading.kpis) return 'Cargando métricas para el periodo seleccionado.'
   if (!store.kpiPrincipal) return 'Sin datos suficientes para generar lectura del periodo.'
   const primary = `${formatNumber(store.kpiPrincipal.valor)} ${store.kpiPrincipal.unidad || ''}`.trim()
   const efficiency = store.kpis.find((kpi) => String(kpi.nombre || '').toLowerCase().includes('eficiencia'))
@@ -560,7 +560,7 @@ function datePresetClass(key) {
     'rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
     isDatePresetActive(key)
       ? 'border-secondary bg-secondary text-white'
-      : 'border-neutral-200 bg-white text-neutral-600 hover:border-secondary/40 hover:text-info-dark',
+      : 'app-button-soft border',
   ]
 }
 
@@ -619,7 +619,7 @@ function rankingMetricClass(metric) {
     'rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
     store.filtros.ranking_metric === metric
       ? 'border-secondary bg-secondary text-white'
-      : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-secondary/40',
+      : 'app-button-soft border',
   ]
 }
 
@@ -628,7 +628,7 @@ function metricTabClass(metric) {
     'rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
     activeChartMetric.value === metric
       ? 'border-secondary bg-secondary text-white'
-      : 'border-neutral-200 bg-white text-neutral-600 hover:border-secondary/40',
+      : 'app-button-soft border',
   ]
 }
 
@@ -681,7 +681,7 @@ function addDays(date, days) {
 
 function exportCsv() {
   const rows = [
-    ['Dashboard de Produccion'],
+    ['Dashboard de Producción'],
     ['Unidad', selectedUnitName.value],
     ['Periodo', dateRangeLabel.value],
     [],
@@ -720,7 +720,7 @@ const activeChartLoading = computed(() => (
 
 const activeChartValues = computed(() => activeChartData.value.datasets?.[0]?.valores || [])
 const activeChartUnit = computed(() => (activeChartMetric.value === 'combustible' ? 'L' : (activeChartData.value.datasets?.[0]?.unidad || '')))
-const chartTitle = computed(() => activeChartMetric.value === 'combustible' ? 'Combustible consumido' : (activeChartData.value.datasets?.[0]?.nombre || 'Produccion'))
+const chartTitle = computed(() => activeChartMetric.value === 'combustible' ? 'Combustible consumido' : (activeChartData.value.datasets?.[0]?.nombre || 'Producción'))
 
 const maxVal = computed(() => Math.max(...activeChartValues.value, 1))
 

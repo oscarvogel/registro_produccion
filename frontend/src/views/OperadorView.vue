@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 px-3 py-3 pb-20 md:px-4 md:py-4 md:pb-6">
+  <div class="min-h-screen bg-[var(--app-bg)] px-3 py-3 pb-20 md:px-4 md:py-4 md:pb-6">
     <div class="mx-auto max-w-6xl space-y-3">
       <PageHeader
         title="Mis Registros"
@@ -12,7 +12,7 @@
           </AppButton>
           <AppButton @click="$router.push({ name: 'produccion' })">
             <AppIcon name="production" size="sm" />
-            Cargar produccion
+            Cargar producción
           </AppButton>
         </template>
       </PageHeader>
@@ -42,7 +42,7 @@
             type="date"
             :value="store.filtros.fecha_desde"
             @change="handleManualDate('fecha_desde', $event.target.value || null)"
-            class="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            class="app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
 
@@ -52,12 +52,12 @@
             type="date"
             :value="store.filtros.fecha_hasta"
             @change="handleManualDate('fecha_hasta', $event.target.value || null)"
-            class="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            class="app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
       </FilterBar>
 
-      <div v-if="store.loading" class="flex justify-center py-16">
+      <div v-if="store.loading" class="flex justify-center py-10">
         <div class="h-8 w-8 animate-spin rounded-full border-3 border-primary border-t-transparent"></div>
       </div>
 
@@ -94,12 +94,12 @@
             v-for="record in store.registros"
             :key="record.id"
             v-motion-panel
-            class="rounded-xl border border-neutral-200 bg-white p-3.5 shadow-sm"
+            class="app-card rounded-xl p-3.5"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <span class="inline-flex max-w-full rounded-lg bg-info-light px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-info-dark">
-                  <span class="truncate">{{ record.operacion || 'Produccion' }}</span>
+                  <span class="truncate">{{ record.operacion || 'Producción' }}</span>
                 </span>
                 <p class="mt-1 text-xs font-semibold text-neutral-400">{{ formatFecha(record.fecha) }}</p>
               </div>
@@ -114,7 +114,7 @@
                 :key="metric.label"
                 :class="[
                   'rounded-lg px-2.5 py-1 text-xs font-extrabold',
-                  metric.tone === 'warning' ? 'bg-warning-light text-warning-dark' : 'bg-neutral-100 text-neutral-700',
+                  metric.tone === 'warning' ? 'bg-warning-light text-warning-dark' : 'app-state-inactive border',
                 ]"
               >
                 {{ metric.value }} <span class="font-semibold opacity-70">{{ metric.unit }}</span>
@@ -123,10 +123,10 @@
           </article>
         </section>
 
-        <EmptyState v-else title="No hay registros para este periodo" description="Proba con otro rango de fechas o carga una nueva produccion.">
+        <EmptyState v-else title="No hay registros para este periodo" description="Probá con otro rango de fechas o cargá una nueva producción.">
           <AppButton @click="$router.push({ name: 'produccion' })">
             <AppIcon name="production" size="sm" />
-            Cargar produccion
+            Cargar producción
           </AppButton>
         </EmptyState>
       </template>
@@ -218,7 +218,7 @@ function quickFilterClass(key) {
     'rounded-full border px-3 py-1.5 text-xs font-bold transition-colors',
     activePreset.value === key
       ? 'border-secondary bg-secondary text-white'
-      : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-secondary/40 hover:text-info-dark',
+      : 'app-button-soft border',
   ]
 }
 

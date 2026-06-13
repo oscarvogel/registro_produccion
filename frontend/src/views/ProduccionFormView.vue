@@ -21,10 +21,10 @@
       <AppIcon name="loading" size="xl" class="animate-spin text-primary" />
     </div>
 
-    <form v-else class="md:grid md:grid-cols-[16rem_minmax(0,1fr)] md:items-start md:gap-4" novalidate @submit.prevent="handleSubmit">
+    <form v-else class="md:grid md:grid-cols-[13.5rem_minmax(0,1fr)] md:items-start md:gap-3 xl:grid-cols-[14.5rem_minmax(0,1fr)]" novalidate @submit.prevent="handleSubmit">
 
       <!-- Step indicator -->
-      <aside class="mb-4 md:sticky md:top-20 md:mb-0 md:rounded-xl md:border md:border-neutral-200 md:bg-white md:p-3 md:shadow-sm">
+      <aside class="app-card mb-4 rounded-xl p-3 md:sticky md:top-20 md:mb-0 md:p-2.5">
         <div class="md:hidden">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-medium text-neutral-400">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
@@ -46,18 +46,18 @@
               :disabled="i > pasoActual"
               @click="irAPaso(i)"
               :class="[
-                'flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors',
+                'flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors',
                 i === pasoActual
                   ? 'border-primary bg-primary/10 text-primary-dark'
-                  : i < pasoActual
-                    ? 'border-neutral-200 bg-white text-neutral-700 hover:border-primary/40'
-                    : 'border-neutral-100 bg-neutral-50 text-neutral-400',
+                : i < pasoActual
+                    ? 'app-surface-muted text-neutral-700 hover:border-primary/40'
+                    : 'border-neutral-200 bg-transparent text-neutral-400',
               ]"
             >
               <span
                 :class="[
-                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold',
-                  i < pasoActual ? 'bg-success text-white' : i === pasoActual ? 'bg-primary text-white' : 'bg-neutral-200 text-neutral-500',
+                   'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold',
+                  i < pasoActual ? 'bg-success text-white' : i === pasoActual ? 'bg-primary text-on-primary' : 'app-surface-muted text-neutral-500',
                 ]"
               >
                 {{ i < pasoActual ? 'OK' : i + 1 }}
@@ -71,7 +71,7 @@
 
       <div class="min-w-0 space-y-3">
 
-      <div class="mb-3 rounded-xl border border-neutral-200 bg-white p-3.5 shadow-sm">
+      <div class="app-card mb-3 rounded-xl p-3.5">
         <div class="mb-2.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Carga en curso</p>
@@ -91,7 +91,7 @@
       <!-- ═══ 1. FECHA ═══ -->
       <SectionCard v-show="pasoActual === 0" title="Contexto de Carga">
         <p class="mb-3 text-sm text-neutral-500">
-          Selecciona el dia correspondiente y la unidad de negocio para la que se cargara la produccion.
+          Seleccioná el día correspondiente y la unidad de negocio para la que se cargará la producción.
         </p>
         <InputField
           label="Fecha"
@@ -99,7 +99,7 @@
           v-model="form.fecha"
           required
         />
-        <p class="mt-2 text-xs text-neutral-400">Si estas cargando una produccion atrasada, modifica esta fecha.</p>
+        <p class="mt-2 text-xs text-neutral-400">Si estás cargando una producción atrasada, modificá esta fecha.</p>
 
         <div class="mt-3">
           <AutocompleteField
@@ -117,7 +117,7 @@
       <!-- ═══ 2. UNIDAD DE NEGOCIO ═══ -->
       <SectionCard v-show="pasoActual === 3" title="Proceso / Actividad">
         <p class="mb-3 text-sm text-neutral-500">
-          Selecciona el tipo de proceso que corresponde a esta carga. Los campos de produccion se ajustan segun esta seleccion.
+          Seleccioná el tipo de proceso que corresponde a esta carga. Los campos de producción se ajustan según esta selección.
         </p>
         <AutocompleteField v-if="false"
           label="Unidad de Negocio"
@@ -148,7 +148,7 @@
         <!-- Si es operador: bloqueado -->
         <div v-if="!canSelectOperador">
           <label class="block text-sm font-medium text-neutral-700 mb-1">Operador</label>
-          <div class="w-full rounded-xl border border-neutral-300 bg-neutral-100 px-4 py-2.5 text-neutral-700">
+          <div class="app-input w-full rounded-xl border px-4 py-2.5">
             {{ authStore.userName }}
           </div>
         </div>
@@ -195,7 +195,7 @@
                 :key="asig.idAsignacion"
                 type="button"
                 @click="seleccionarDesdeAsignacion(asig)"
-                class="px-3 py-1.5 text-xs font-medium bg-neutral-100 border border-neutral-200 rounded-lg hover:bg-neutral-200 transition-colors truncate max-w-full"
+                class="app-button-soft max-w-full truncate rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
               >
                 {{ asig.detalle }}
               </button>
@@ -214,7 +214,7 @@
                 :key="asig.idAsignacion"
                 type="button"
                 @click="seleccionarDesdeAsignacion(asig)"
-                class="w-full text-left px-3 py-2 rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                class="app-surface-muted w-full rounded-lg border px-3 py-2 text-left transition-colors hover:border-primary/30"
               >
                 <p class="text-sm font-semibold text-neutral-900 truncate">{{ asig.detalle }}</p>
                 <p class="text-[11px] text-neutral-400">{{ asig.patente }} · {{ getProcesoTexto(asig.idProceso) }}</p>
@@ -223,7 +223,7 @@
           </div>
 
           <!-- Mensaje si no hay asignaciones ni movilAsignado -->
-          <div v-else-if="!form.operador_id" class="p-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-500 mb-3">
+          <div v-else-if="!form.operador_id" class="app-surface-muted mb-3 rounded-lg border p-3 text-sm text-neutral-500">
             Seleccioná un operador para autocompletar la máquina.
           </div>
 
@@ -235,13 +235,17 @@
                 ref="inputBuscadorMovil"
                 type="text"
                 v-model="busquedaMovil"
+                @focus="abrirListaMoviles"
+                @click="abrirListaMoviles"
+                @input="abrirListaMoviles"
+                @blur="cerrarListaMovilesDiferido"
                 :class="fieldClass"
                 placeholder="Ej: 1470, JOHN DEERE, N° 3..."
               />
               <button
                 v-if="busquedaMovil.trim()"
                 type="button"
-                @click="busquedaMovil = ''"
+                @mousedown.prevent="limpiarBusquedaMovil"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
               >
                 <AppIcon name="close" size="sm" />
@@ -249,14 +253,14 @@
             </div>
             <div
               v-if="mostrarListaMoviles"
-              class="mt-1.5 border border-neutral-200 rounded-xl bg-white max-h-52 overflow-y-auto shadow-sm"
+              class="app-table mt-1.5 max-h-52 overflow-y-auto rounded-xl"
             >
               <button
                 v-for="movil in movilesFiltrados"
                 :key="movil.idMovil"
                 type="button"
-                @click="seleccionarMovil(movil)"
-                class="w-full text-left px-3 py-2 border-b last:border-b-0 border-neutral-100 hover:bg-neutral-50 transition-colors"
+                @mousedown.prevent="seleccionarMovil(movil)"
+                class="app-table-row w-full border-b border-neutral-100 px-3 py-2 text-left last:border-b-0"
               >
                 <p class="text-sm font-medium text-neutral-900 truncate">{{ movil.detalle }}</p>
                 <p class="text-[11px] text-neutral-400">{{ movil.patente }} · ID {{ movil.idMovil }}</p>
@@ -264,9 +268,15 @@
             </div>
             <div
               v-else-if="mostrarNoResultados"
-              class="mt-1.5 p-2.5 text-xs text-neutral-400 bg-neutral-50 rounded-lg"
+              class="app-surface-muted mt-1.5 rounded-lg p-2.5 text-xs text-neutral-400"
             >
               Sin resultados para "{{ busquedaMovil }}".
+            </div>
+            <div
+              v-else-if="mostrarSinMoviles"
+              class="app-surface-muted mt-1.5 rounded-lg p-2.5 text-xs text-neutral-400"
+            >
+              No hay equipos disponibles para esta unidad.
             </div>
 
             <!-- Botón cancelar si ya había máquina seleccionada -->
@@ -510,7 +520,7 @@
         </div>
       </SectionCard>
 
-      <div v-show="pasoActual === 5" v-if="form.tipo_de_proceso_id && camposActivos.length === 0" class="p-3 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-neutral-500">
+      <div v-show="pasoActual === 5" v-if="form.tipo_de_proceso_id && camposActivos.length === 0" class="app-surface-muted rounded-lg border p-3 text-sm text-neutral-500">
         No hay campos de producción definidos para este tipo de proceso.
       </div>
 
@@ -630,7 +640,7 @@
       </SectionCard>
 
       <!-- ═══ 10. UBICACIÓN Y REFERENCIA ═══ -->
-      <SectionCard v-show="pasoActual === 7" title="Ubicacion y Referencia">
+      <SectionCard v-show="pasoActual === 7" title="Ubicación y Referencia">
         <div>
           <AutocompleteField
             label="Lugar de Carga"
@@ -704,15 +714,15 @@
         />
       </SectionCard>
 
-      <SectionCard v-show="pasoActual === 8" title="Revision y Confirmacion">
+      <SectionCard v-show="pasoActual === 8" title="Revisión y Confirmación">
         <p class="mb-3 text-sm text-neutral-500">
-          Revisa los datos principales antes de guardar el registro de produccion.
+          Revisá los datos principales antes de guardar el registro de producción.
         </p>
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div
             v-for="item in revisionItems"
             :key="item.label"
-            class="rounded-lg border border-neutral-200 bg-white px-3 py-2.5"
+            class="app-surface-muted rounded-lg border px-3 py-2.5"
           >
             <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">{{ item.label }}</p>
             <p class="mt-1 text-sm font-extrabold text-neutral-900">{{ item.value }}</p>
@@ -728,7 +738,7 @@
         <AppIcon name="error" class="text-error shrink-0" />
         <span>{{ store.error }}</span>
       </div>
-      <div class="hidden items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 shadow-sm md:flex">
+      <div class="app-card hidden items-center justify-between gap-3 rounded-xl p-3.5 md:flex">
         <p class="max-w-md text-sm font-semibold text-error-dark">
           {{ mensajePasoIncompleto }}
         </p>
@@ -737,14 +747,14 @@
           v-if="pasoActual > 0"
           type="button"
           @click="retroceder"
-          class="rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-bold text-neutral-700 hover:bg-neutral-50"
+          class="app-button-soft rounded-xl border px-4 py-2.5 text-sm font-bold text-neutral-700 hover:border-primary/30"
         >
           Anterior
         </button>
         <button
           type="button"
           @click="guardarBorrador"
-          class="rounded-xl border border-neutral-300 px-4 py-2.5 text-sm font-bold text-neutral-500 hover:bg-neutral-50"
+          class="app-button-soft rounded-xl border px-4 py-2.5 text-sm font-bold text-neutral-500 hover:border-primary/30"
         >
           Guardar borrador
         </button>
@@ -753,7 +763,7 @@
           type="button"
           @click="avanzar"
           :disabled="!puedeAvanzar"
-          class="rounded-xl bg-primary px-5 py-2.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+          class="rounded-xl bg-primary px-5 py-2.5 text-sm font-extrabold text-on-primary disabled:cursor-not-allowed disabled:opacity-40"
         >
           Siguiente
         </button>
@@ -761,7 +771,7 @@
           v-else
           type="submit"
           :disabled="store.submitting"
-          class="rounded-xl bg-primary px-5 py-2.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          class="rounded-xl bg-primary px-5 py-2.5 text-sm font-extrabold text-on-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
           {{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}
         </button>
@@ -770,13 +780,13 @@
       </div>
 
       <!-- Step navigation — fixed bottom -->
-      <div class="fixed bottom-0 left-0 right-0 z-30 border-t border-neutral-200 bg-white/95 px-3 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm md:hidden">
+      <div class="app-card-glass fixed bottom-0 left-0 right-0 z-30 px-3 py-3 md:hidden">
         <div class="mx-auto flex max-w-2xl items-center gap-3">
           <button
             v-if="pasoActual > 0"
             type="button"
             @click="retroceder"
-            class="flex-1 rounded-xl border border-neutral-200 bg-neutral-100 px-4 py-3.5 font-semibold text-neutral-700 transition-colors active:bg-neutral-200 flex items-center justify-center gap-2"
+            class="app-button-soft flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-3.5 font-semibold text-neutral-700 transition-colors"
           >
             <AppIcon name="back" size="sm" :stroke-width="2.5" />
             Anterior
@@ -788,7 +798,7 @@
             type="button"
             @click="avanzar"
             :disabled="!puedeAvanzar"
-            class="flex-1 rounded-xl bg-primary px-4 py-3.5 font-bold text-white shadow-[0_4px_14px_rgba(20,61,35,0.25)] transition-colors active:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none flex items-center justify-center gap-2"
+            class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 font-bold text-on-primary shadow-[0_4px_14px_rgba(20,61,35,0.25)] transition-colors active:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
           >
             Siguiente
             <AppIcon name="forward" size="sm" :stroke-width="2.5" />
@@ -797,7 +807,7 @@
             v-else
             type="submit"
             :disabled="store.submitting"
-            class="flex-1 rounded-xl bg-primary px-4 py-3.5 font-bold text-white shadow-[0_8px_18px_rgba(20,61,35,0.25)] transition-colors active:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2.5"
+            class="flex flex-1 items-center justify-center gap-2.5 rounded-xl bg-primary px-4 py-3.5 font-bold text-on-primary shadow-[0_8px_18px_rgba(20,61,35,0.25)] transition-colors active:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
             <AppIcon v-if="store.submitting" name="loading" class="animate-spin" />
             <AppIcon v-else name="save" />
@@ -835,14 +845,15 @@ const cargoCombustible = ref(false)
 const motivoSeleccionado = ref('')
 const busquedaMovil = ref('')
 const mostrandoBuscador = ref(false)
+const listaMovilesAbierta = ref(false)
 const inputBuscadorMovil = ref(null)
 const ultimaHoraFinRef = ref(0)
-const fieldClass = 'w-full rounded-xl border border-neutral-300 bg-neutral-100 px-4 py-2.5 text-neutral-900 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:bg-neutral-200 transition-colors'
+const fieldClass = 'app-input w-full rounded-xl border px-4 py-2.5 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:bg-neutral-200 transition-colors'
 const preferenciasKey = computed(() => `produccion_preferencias_${authStore.user?.idPersonal || 'anon'}`)
 
 // ─── Wizard steps ───
 const pasoActual = ref(0)
-const pasos = ['Contexto', 'Operador', 'Equipo', 'Proceso', 'Tiempo', 'Produccion', 'Consumos', 'Ubicacion', 'Revision']
+const pasos = ['Contexto', 'Operador', 'Equipo', 'Proceso', 'Tiempo', 'Producción', 'Consumos', 'Ubicación', 'Revisión']
 const totalPasos = pasos.length
 
 // Determina si el tipo de proceso elegido es "PROCESO"
@@ -923,11 +934,21 @@ const asignacionSeleccionada = computed(() => {
 const busquedaNormalizada = computed(() => (busquedaMovil.value || '').trim().toLowerCase())
 
 const mostrarListaMoviles = computed(() => {
-  return !!form.un_id && busquedaNormalizada.value.length >= 1 && movilesFiltrados.value.length > 0
+  return !!form.un_id && listaMovilesAbierta.value && movilesFiltrados.value.length > 0
 })
 
 const mostrarNoResultados = computed(() => {
-  return !!form.un_id && busquedaNormalizada.value.length >= 2 && movilesFiltrados.value.length === 0
+  return !!form.un_id
+    && listaMovilesAbierta.value
+    && busquedaNormalizada.value.length >= 1
+    && (store.moviles || []).length > 0
+    && movilesFiltrados.value.length === 0
+})
+
+const mostrarSinMoviles = computed(() => {
+  return !!form.un_id
+    && listaMovilesAbierta.value
+    && (store.moviles || []).length === 0
 })
 
 const movilSeleccionadoDetalle = computed(() => {
@@ -1073,13 +1094,14 @@ const revisionItems = computed(() => [
   { label: 'Equipo', value: movilSeleccionadoDetalle.value || 'Pendiente' },
   { label: 'Proceso', value: tipoProcesoNombre.value || 'Pendiente' },
   { label: 'Horario', value: `${form.hr_inicio || '-'} a ${form.hr_fin || '-'}` },
-  { label: 'Produccion', value: `${resolveProduccion() || 0} ${resolveUnidadProduccion() || ''}`.trim() },
-  { label: 'Ubicacion', value: [form.acta ? `Acta ${form.acta}` : '', getPredioNombre(form.predio_id), getRodalNombre()].filter(Boolean).join(' / ') || 'Pendiente' },
+  { label: 'Producción', value: `${resolveProduccion() || 0} ${resolveUnidadProduccion() || ''}`.trim() },
+  { label: 'Ubicación', value: [form.acta ? `Acta ${form.acta}` : '', getPredioNombre(form.predio_id), getRodalNombre()].filter(Boolean).join(' / ') || 'Pendiente' },
 ])
 
 function stepStatus(index) {
   if (index === pasoActual.value) return 'Actual'
-  return stepComplete.value[index] ? 'Completo' : 'Pendiente'
+  if (index < pasoActual.value && stepComplete.value[index]) return 'Validado'
+  return 'Pendiente'
 }
 
 const mensajePasoIncompleto = computed(() => {
@@ -1327,6 +1349,7 @@ function seleccionarMovil(movil) {
   form.equipo = formatearMovil(movil)
   form.cod_equipo = movil.idMovil || 0
   busquedaMovil.value = ''
+  listaMovilesAbierta.value = false
   mostrandoBuscador.value = false
 
   autocompletarHoraInicio({ force: true })
@@ -1344,6 +1367,7 @@ function limpiarMovilSeleccionado() {
   form.equipo = ''
   form.cod_equipo = 0
   busquedaMovil.value = ''
+  listaMovilesAbierta.value = false
   mostrandoBuscador.value = false
 }
 
@@ -1358,6 +1382,23 @@ function abrirBuscador() {
 function cerrarBuscador() {
   mostrandoBuscador.value = false
   busquedaMovil.value = ''
+  listaMovilesAbierta.value = false
+}
+
+function abrirListaMoviles() {
+  if (!form.un_id) return
+  listaMovilesAbierta.value = true
+}
+
+function cerrarListaMovilesDiferido() {
+  setTimeout(() => {
+    listaMovilesAbierta.value = false
+  }, 200)
+}
+
+function limpiarBusquedaMovil() {
+  busquedaMovil.value = ''
+  abrirListaMoviles()
 }
 
 // ─── Determinar unidad de producción ───
