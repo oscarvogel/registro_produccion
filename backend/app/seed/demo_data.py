@@ -7,6 +7,9 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Iterable
+from sqlalchemy import text
+
+from app.core.config import settings
 
 DEMO_MARKER = "DEMO_SEED"
 DEMO_ID_BASE = 900000
@@ -376,6 +379,7 @@ def run_seed(*, record_count: int, clear_only: bool = False) -> dict[str, int]:
     dataset = build_demo_dataset(record_count=record_count)
     db = SessionLocal()
     try:
+        foreign_key_checks_disabled = _set_mysql_foreign_key_checks(db, enabled=False)
         deleted = _delete_existing_demo_data(db)
         created: dict[str, int] = {}
         if not clear_only:
@@ -391,15 +395,29 @@ def run_seed(*, record_count: int, clear_only: bool = False) -> dict[str, int]:
             created["moviles_operadores"] = _bulk_insert(db, MovilOperador, dataset.moviles_operadores)
             created["produccion"] = _bulk_insert(db, TableroProduccion, dataset.produccion)
             created["cargas_combustible"] = _bulk_insert(db, CargaComb, dataset.cargas_combustible)
+        if foreign_key_checks_disabled:
+            _set_mysql_foreign_key_checks(db, enabled=True)
         db.commit()
         return {f"deleted_{key}": value for key, value in deleted.items()} | {
             f"created_{key}": value for key, value in created.items()
         }
     except Exception:
+        if "foreign_key_checks_disabled" in locals() and foreign_key_checks_disabled:
+            try:
+                _set_mysql_foreign_key_checks(db, enabled=True)
+            except Exception:
+                pass
         db.rollback()
         raise
     finally:
         db.close()
+
+
+def _set_mysql_foreign_key_checks(db, *, enabled: bool) -> bool:
+    if "mysql" not in settings.DATABASE_URL.lower():
+        return False
+    db.execute(text(f"SET FOREIGN_KEY_CHECKS={1 if enabled else 0}"))
+    return True
 
 
 def _record_count_from_env() -> int:

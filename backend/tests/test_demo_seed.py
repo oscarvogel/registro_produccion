@@ -54,3 +54,26 @@ def test_demo_dataset_uses_clearly_fake_names():
     assert set(production_names) <= set(personal_names)
     assert all("Demo" in name for name in personal_names + mobile_names + production_names)
 
+
+def test_mysql_foreign_key_checks_are_session_scoped(monkeypatch):
+    executed = []
+
+    class FakeSession:
+        def execute(self, statement):
+            executed.append(str(statement))
+
+    monkeypatch.setattr(demo_data.settings, "DATABASE_URL", "mysql://user:pass@host/db")
+
+    assert demo_data._set_mysql_foreign_key_checks(FakeSession(), enabled=False) is True
+    assert demo_data._set_mysql_foreign_key_checks(FakeSession(), enabled=True) is True
+    assert executed == ["SET FOREIGN_KEY_CHECKS=0", "SET FOREIGN_KEY_CHECKS=1"]
+
+
+def test_foreign_key_checks_are_not_changed_for_non_mysql(monkeypatch):
+    class FakeSession:
+        def execute(self, statement):
+            raise AssertionError("execute should not be called for non-MySQL URLs")
+
+    monkeypatch.setattr(demo_data.settings, "DATABASE_URL", "sqlite:///demo.db")
+
+    assert demo_data._set_mysql_foreign_key_checks(FakeSession(), enabled=False) is False
