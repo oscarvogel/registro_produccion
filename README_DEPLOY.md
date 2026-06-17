@@ -2,12 +2,38 @@
 
 Este repositorio `registro_produccion` alimenta dos instancias productivas:
 
-- `indufor`: `produccion.indufor.com.ar`, backend actual en `127.0.0.1:8004`, contenedor futuro en `127.0.0.1:18004`.
+- `indufor`: `produccion.indufor.com.ar`, backend Docker actual en `127.0.0.1:18004`.
 - `produccion_fg`: `produccion.servinlgsm.com.ar`, backend actual en `0.0.0.0:8005`, contenedor futuro en `127.0.0.1:18005`.
 
 `viajesfg` y `viajes_fgpy` usan otro repositorio y quedan fuera de este despliegue.
 
 No cambiar Nginx ni detener servicios actuales hasta validar cada contenedor en paralelo.
+
+## Estado actual - Indufor migrado
+
+`produccion.indufor.com.ar` ya usa Docker.
+
+```text
+contenedor: registro_produccion_indufor
+puerto backend Docker: 127.0.0.1:18004
+Nginx: proxy_pass http://127.0.0.1:18004;
+servicio viejo: indufor_backend.service detenido, pero no eliminado
+backup Nginx: /etc/nginx/sites-available/produccion.indufor.com.ar.bak-20260617-092001
+```
+
+Health interno:
+
+```bash
+curl -f http://127.0.0.1:18004/health
+```
+
+Smoke publico recomendado:
+
+```bash
+curl -f https://produccion.indufor.com.ar/api/produccion/lugares-carga
+```
+
+`/health` no esta expuesto como ruta publica directa por Nginx en el estado actual. Las rutas `/api/...` si llegan al backend Docker.
 
 ## Estructura recomendada
 
@@ -64,9 +90,9 @@ docker compose config
 docker compose build
 ```
 
-## Prueba futura de Indufor en paralelo
+## Prueba de Indufor en paralelo
 
-No ejecutar hasta tener backup de `.env`, Nginx y `indufor_backend.service`.
+Indufor ya fue migrado a Docker. Esta seccion queda como referencia historica del procedimiento usado antes del switch.
 
 ```bash
 docker compose up -d indufor
@@ -84,7 +110,7 @@ curl -f http://127.0.0.1:8004/openapi.json
 curl -f http://127.0.0.1:18004/openapi.json
 ```
 
-Mantener `indufor_backend.service` activo mientras se valida el contenedor.
+Para rollback, `indufor_backend.service` puede volver a iniciarse manualmente mientras exista la app vieja en disco.
 
 ## Prueba futura de produccion_fg en paralelo
 
@@ -108,9 +134,9 @@ curl -f http://127.0.0.1:18005/openapi.json
 
 ## Cambio Nginx
 
-No cambiar Nginx hasta que el contenedor paralelo este validado. El cambio futuro debe ser minimo:
+No cambiar Nginx hasta que el contenedor paralelo este validado. El cambio debe ser minimo:
 
-- Indufor: `proxy_pass http://127.0.0.1:8004` a `proxy_pass http://127.0.0.1:18004`.
+- Indufor: ya aplicado, `proxy_pass http://127.0.0.1:18004`.
 - produccion_fg: `proxy_pass http://127.0.0.1:8005` a `proxy_pass http://127.0.0.1:18005`.
 
 Siempre ejecutar:
@@ -128,8 +154,8 @@ sudo systemctl reload nginx
 2. Volver `proxy_pass` a `http://127.0.0.1:8004`.
 3. Ejecutar `sudo nginx -t`.
 4. Recargar Nginx.
-5. Detener el contenedor si hace falta.
-6. Confirmar que `indufor_backend.service` sigue operativo.
+5. Iniciar `indufor_backend.service` si esta detenido.
+6. Detener el contenedor si hace falta.
 7. Validar `https://produccion.indufor.com.ar/`.
 
 ### produccion_fg
@@ -144,7 +170,6 @@ sudo systemctl reload nginx
 
 ## Pendientes antes de deploy
 
-- Confirmar rama/tag exacto para Indufor, porque la instancia actual no coincide totalmente con `main`.
 - Regularizar o documentar el proceso actual de `produccion_fg` en `8005`.
 - Validar cada contenedor en puerto paralelo antes de tocar Nginx.
 - No ejecutar migraciones sin autorizacion explicita.
