@@ -5,13 +5,23 @@ APP_DIR="${APP_DIR:-/var/www/html/django/produccion_fg}"
 PACKAGE="${1:-}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/registro_produccion}"
 HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:8005/}"
+PUBLIC_URL="${PUBLIC_URL:-https://produccion.servinlgsm.com.ar/}"
+EXPECTED_COMMIT="${EXPECTED_COMMIT:-}"
+PACKAGE_DIR="${PACKAGE_DIR:-/home/ferreteria}"
 
 if [[ "${EUID}" -ne 0 ]]; then
-  exec sudo bash "$0" "$PACKAGE"
+  exec sudo \
+    APP_DIR="$APP_DIR" \
+    BACKUP_DIR="$BACKUP_DIR" \
+    HEALTH_URL="$HEALTH_URL" \
+    PUBLIC_URL="$PUBLIC_URL" \
+    EXPECTED_COMMIT="$EXPECTED_COMMIT" \
+    PACKAGE_DIR="$PACKAGE_DIR" \
+    bash "$0" "$PACKAGE"
 fi
 
 if [[ -z "$PACKAGE" ]]; then
-  PACKAGE="$(find /home/ferreteria -maxdepth 1 -name 'registro_produccion_deploy_*.tar.gz' -printf '%T@ %p\n' | sort -nr | awk 'NR == 1 {print $2}')"
+  PACKAGE="$(find "$PACKAGE_DIR" -maxdepth 1 -name 'registro_produccion_deploy_*.tar.gz' -printf '%T@ %p\n' | sort -nr | awk 'NR == 1 {print $2}')"
 fi
 
 if [[ -z "$PACKAGE" || ! -f "$PACKAGE" ]]; then
@@ -32,14 +42,63 @@ fi
 timestamp="$(date +%Y%m%d_%H%M%S)"
 backup_file="$BACKUP_DIR/pre_deploy_$timestamp.tar.gz"
 tmp_dir="$(mktemp -d)"
+rollback_needed=0
 
 cleanup() {
   rm -rf "$tmp_dir"
 }
 trap cleanup EXIT
 
-echo "==> Validando paquete"
+restore_backup() {
+  if [[ "$rollback_needed" -ne 1 || ! -f "$backup_file" ]]; then
+    return
+  fi
+
+  echo "==> Fallo detectado; restaurando backup: $backup_file" >&2
+  rm -rf "$APP_DIR/backend/app" "$APP_DIR/frontend"
+  mkdir -p "$APP_DIR"
+  tar -xzf "$backup_file" -C "$APP_DIR"
+  if [[ -f "$APP_DIR/restart.sh" ]]; then
+    bash "$APP_DIR/restart.sh" || true
+  fi
+}
+trap restore_backup ERR
+
+echo "==> Validando paquete: $PACKAGE"
 tar -tzf "$PACKAGE" >/dev/null
+package_sha="$(sha256sum "$PACKAGE" | awk '{print $1}')"
+tar -xzf "$PACKAGE" -C "$tmp_dir"
+
+manifest="$tmp_dir/RELEASE_MANIFEST.txt"
+if [[ ! -f "$manifest" ]]; then
+  echo "ERROR: el paquete no incluye RELEASE_MANIFEST.txt." >&2
+  exit 1
+fi
+
+release_commit="$(awk -F= '$1 == "commit" {print $2}' "$manifest" | tr -d '\r')"
+if [[ -z "$release_commit" ]]; then
+  echo "ERROR: RELEASE_MANIFEST.txt no declara commit=." >&2
+  exit 1
+fi
+
+if [[ -n "$EXPECTED_COMMIT" && "$release_commit" != "$EXPECTED_COMMIT" ]]; then
+  echo "ERROR: commit del paquete ($release_commit) no coincide con EXPECTED_COMMIT ($EXPECTED_COMMIT)." >&2
+  exit 1
+fi
+
+if [[ ! -d "$tmp_dir/backend/app" || ! -f "$tmp_dir/backend/requirements.txt" || ! -d "$tmp_dir/frontend/dist" ]]; then
+  echo "ERROR: el paquete no tiene la estructura esperada." >&2
+  exit 1
+fi
+
+if find "$tmp_dir" -path '*/.env' -o -name '.env.*' | grep -q .; then
+  echo "ERROR: el paquete contiene archivos .env; no despliego secretos." >&2
+  exit 1
+fi
+
+echo "==> Paquete OK"
+echo "Commit: $release_commit"
+echo "SHA256: $package_sha"
 
 echo "==> Creando backup: $backup_file"
 mkdir -p "$BACKUP_DIR"
@@ -48,28 +107,34 @@ tar -C "$APP_DIR" \
   --exclude='backend/.env' \
   --exclude='frontend/.env' \
   -czf "$backup_file" \
+  backend/app backend/requirements.txt frontend restart.sh RELEASE_MANIFEST.txt 2>/dev/null || \
+tar -C "$APP_DIR" \
+  --exclude='backend/venv' \
+  --exclude='backend/.env' \
+  --exclude='frontend/.env' \
+  -czf "$backup_file" \
   backend/app backend/requirements.txt frontend restart.sh
 
-echo "==> Extrayendo paquete"
-tar -xzf "$PACKAGE" -C "$tmp_dir"
-
-if [[ ! -d "$tmp_dir/backend/app" || ! -f "$tmp_dir/backend/requirements.txt" || ! -d "$tmp_dir/frontend/dist" ]]; then
-  echo "ERROR: el paquete no tiene la estructura esperada." >&2
-  exit 1
-fi
+rollback_needed=1
 
 echo "==> Actualizando backend"
 rm -rf "$APP_DIR/backend/app"
 cp -a "$tmp_dir/backend/app" "$APP_DIR/backend/"
 cp "$tmp_dir/backend/requirements.txt" "$APP_DIR/backend/requirements.txt"
 
-echo "==> Actualizando frontend"
-find "$APP_DIR/frontend" -mindepth 1 \
-  ! -name '.env' \
-  ! -path "$APP_DIR/frontend/assets" \
-  ! -path "$APP_DIR/frontend/assets/*" \
-  -exec rm -rf {} +
-cp -a "$tmp_dir/frontend/dist/." "$APP_DIR/frontend/"
+echo "==> Preparando frontend en staging"
+rm -rf "$APP_DIR/frontend.next"
+mkdir -p "$APP_DIR/frontend.next"
+cp -a "$tmp_dir/frontend/dist/." "$APP_DIR/frontend.next/"
+
+echo "==> Publicando frontend"
+rm -rf "$APP_DIR/frontend.previous"
+if [[ -d "$APP_DIR/frontend" ]]; then
+  mv "$APP_DIR/frontend" "$APP_DIR/frontend.previous"
+fi
+mv "$APP_DIR/frontend.next" "$APP_DIR/frontend"
+
+cp "$manifest" "$APP_DIR/RELEASE_MANIFEST.txt"
 
 echo "==> Instalando dependencias backend"
 cd "$APP_DIR/backend"
@@ -78,10 +143,19 @@ cd "$APP_DIR/backend"
 echo "==> Reiniciando backend"
 bash "$APP_DIR/restart.sh"
 
-echo "==> Verificando health: $HEALTH_URL"
+echo "==> Verificando health interno: $HEALTH_URL"
 sleep 2
 curl -fsS "$HEALTH_URL"
 echo
 
+echo "==> Verificando home publica: $PUBLIC_URL"
+curl -fsSI "$PUBLIC_URL" >/dev/null
+curl -fsS "$PUBLIC_URL" | grep -qi '<div id="app"></div>'
+
+rollback_needed=0
+rm -rf "$APP_DIR/frontend.previous"
+
 echo "==> Despliegue completado correctamente"
+echo "Commit: $release_commit"
 echo "Backup: $backup_file"
+echo "Package SHA256: $package_sha"

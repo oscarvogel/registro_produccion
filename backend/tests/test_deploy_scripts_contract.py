@@ -1,0 +1,50 @@
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def read(path: str) -> str:
+    return (REPO_ROOT / path).read_text(encoding="utf-8")
+
+
+def test_remote_deploy_script_has_safe_release_contract():
+    script = read("deploy_produccion_fg.sh")
+
+    required_fragments = [
+        "RELEASE_MANIFEST.txt",
+        "EXPECTED_COMMIT",
+        "pre_deploy_",
+        "frontend.next",
+        "frontend.previous",
+        "restore_backup",
+        "curl -fsS \"$HEALTH_URL\"",
+        "curl -fsSI \"$PUBLIC_URL\"",
+        "sha256sum",
+    ]
+
+    missing = [fragment for fragment in required_fragments if fragment not in script]
+    assert missing == []
+
+
+def test_windows_package_script_builds_manifested_package_without_env_files():
+    script = read("scripts/build_deploy_package.ps1")
+
+    required_fragments = [
+        "git rev-parse HEAD",
+        "git rev-parse origin/main",
+        "python -m pytest",
+        "npm run test",
+        "npm run build",
+        "RELEASE_MANIFEST.txt",
+        "backend/app",
+        "backend/requirements.txt",
+        "frontend/dist",
+        "deploy_produccion_fg.sh",
+        "backend/.env",
+        "frontend/.env",
+        "tar -czf",
+    ]
+
+    missing = [fragment for fragment in required_fragments if fragment not in script]
+    assert missing == []
