@@ -43,7 +43,7 @@ Aplicar el esquema que corresponda al ambiente demo. No ejecutar migraciones ni 
 
 ## Preparar env file
 
-Crear `/srv/env/registro_produccion/indufor_demo.env` en el host:
+Crear `/srv/env/registro_produccion/indufor_demo.env` en el host. Hay una plantilla sin secretos en `docs/examples/indufor_demo.env.example`.
 
 ```dotenv
 DATABASE_URL=mysql://registro_demo:CAMBIAR_PASSWORD_DEMO@HOST:3306/indufor_demo
