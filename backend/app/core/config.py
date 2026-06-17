@@ -12,6 +12,11 @@ except Exception:
 class Settings(BaseSettings):
     PROJECT_NAME: str = "registro_produccion"
     DATABASE_URL: str = "mysql+pymysql://user:password@localhost:3306/dbname"
+    APP_NAME: str = "registro_produccion"
+    APP_INSTANCE: str = "local"
+    APP_ENV: str = "development"
+    APP_VERSION: str = "unknown"
+    LOG_LEVEL: str = "info"
     # Add the frontend dev server origins (common ports 5173/5174 and 3000)
     ALLOWED_ORIGINS: list = [
         "http://localhost:5173",

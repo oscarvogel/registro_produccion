@@ -1,0 +1,30 @@
+name: registro_produccion
+
+x-registro-produccion-base: &registro-produccion-base
+  image: registro_produccion:latest
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
+
+services:
+  indufor:
+    <<: *registro-produccion-base
+    container_name: registro_produccion_indufor
+    env_file:
+      - /srv/env/registro_produccion/indufor.env
+    ports:
+      - "127.0.0.1:18004:8000"
+
+  produccion_fg:
+    <<: *registro-produccion-base
+    container_name: registro_produccion_produccion_fg
+    env_file:
+      - /srv/env/registro_produccion/produccion_fg.env
+    ports:
+      - "127.0.0.1:18005:8000"

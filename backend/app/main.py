@@ -1,9 +1,12 @@
 import re
 import traceback
+from datetime import datetime, timezone
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 from app.core.config import settings
+from app.core.database import engine
 from app.api.routes import items, auth, produccion, dashboard, admin, combustible
 
 import pymysql
@@ -51,4 +54,30 @@ app.include_router(admin.router, prefix="/api")
 @app.get("/")
 async def root():
     return {"message": f"Welcome to {settings.PROJECT_NAME}"}
+
+
+def check_database_health() -> bool:
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
+    return True
+
+
+@app.get("/health")
+async def health():
+    database_ok = False
+    try:
+        database_ok = check_database_health()
+    except Exception:
+        database_ok = False
+
+    healthy = bool(database_ok)
+    payload = {
+        "status": "ok" if healthy else "error",
+        "service": settings.APP_NAME,
+        "instance": settings.APP_INSTANCE,
+        "database": "ok" if healthy else "error",
+        "version": settings.APP_VERSION,
+        "time": datetime.now(timezone.utc).isoformat(),
+    }
+    return JSONResponse(status_code=200 if healthy else 503, content=payload)
  
