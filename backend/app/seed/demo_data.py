@@ -177,6 +177,7 @@ def build_demo_dataset(*, record_count: int, today: date | None = None) -> DemoD
         fecha = today - timedelta(days=rng.randint(0, 59))
         produccion.append(
             {
+                "id": DEMO_ID_BASE + index + 1,
                 "UN": unidades_negocio[0]["Nombre"],
                 "operacion": tipos_proceso[index % len(tipos_proceso)]["nombre"],
                 "fecha": fecha,

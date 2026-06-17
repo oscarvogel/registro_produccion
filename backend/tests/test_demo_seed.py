@@ -46,6 +46,7 @@ def test_demo_dataset_uses_clearly_fake_names():
     personal_names = [row["Nombre"] for row in dataset.personal]
     mobile_names = [row["Detalle"] for row in dataset.moviles]
     production_names = [row["operador"] for row in dataset.produccion]
+    production_ids = [row["id"] for row in dataset.produccion]
 
     assert "Admin Demo" in personal_names
     assert "Encargado Demo" in personal_names
@@ -53,6 +54,7 @@ def test_demo_dataset_uses_clearly_fake_names():
     assert "Movil Demo 01" in mobile_names
     assert set(production_names) <= set(personal_names)
     assert all("Demo" in name for name in personal_names + mobile_names + production_names)
+    assert production_ids == [900001, 900002, 900003, 900004, 900005]
 
 
 def test_mysql_foreign_key_checks_are_session_scoped(monkeypatch):
