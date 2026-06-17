@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     APP_INSTANCE: str = "local"
     APP_ENV: str = "development"
     APP_VERSION: str = "unknown"
+    EXPECTED_DB_NAME: str = ""
     LOG_LEVEL: str = "info"
     # Add the frontend dev server origins (common ports 5173/5174 and 3000)
     ALLOWED_ORIGINS: list = [

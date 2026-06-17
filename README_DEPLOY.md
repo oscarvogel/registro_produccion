@@ -9,6 +9,39 @@ Este repositorio `registro_produccion` alimenta dos instancias productivas:
 
 No cambiar Nginx ni detener servicios actuales hasta validar cada contenedor en paralelo.
 
+## Instancia demo/staging
+
+La instancia demo se documenta en `docs/DEMO_ENVIRONMENT.md` y no reemplaza a `indufor`.
+
+Valores sugeridos:
+
+```text
+APP_INSTANCE=indufor_demo
+APP_ENV=staging
+DATABASE_URL=mysql://USER:PASSWORD@HOST:3306/indufor_demo
+EXPECTED_DB_NAME=indufor_demo
+contenedor: registro_produccion_indufor_demo
+puerto: 127.0.0.1:18104
+```
+
+Compose opcional:
+
+```bash
+ssh fasa_195
+cd /srv/apps/registro_produccion
+docker compose -f docker-compose.yml -f docker-compose.demo.yml up -d --build indufor_demo
+```
+
+Seed de datos falsos, solo con `ALLOW_DEMO_SEED=true` en el env demo:
+
+```bash
+ssh fasa_195
+cd /srv/apps/registro_produccion
+docker compose -f docker-compose.yml -f docker-compose.demo.yml exec indufor_demo python -m app.seed.demo_data
+```
+
+Nunca ejecutar el seed demo contra una base real.
+
 ## Estado actual - Indufor migrado
 
 `produccion.indufor.com.ar` ya usa Docker.
@@ -59,6 +92,7 @@ APP_NAME=registro_produccion
 APP_INSTANCE=indufor
 APP_ENV=production
 APP_VERSION=unknown
+EXPECTED_DB_NAME=
 LOG_LEVEL=info
 SECRET_KEY=change-me
 ACCESS_TOKEN_EXPIRE_HOURS=8

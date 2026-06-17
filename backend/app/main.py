@@ -62,15 +62,39 @@ def check_database_health() -> bool:
     return True
 
 
+def get_current_database_name() -> str | None:
+    with engine.connect() as connection:
+        return connection.execute(text("SELECT DATABASE()")).scalar()
+
+
 @app.get("/health")
 async def health():
     database_ok = False
+    database_name_check = None
     try:
         database_ok = check_database_health()
     except Exception:
         database_ok = False
 
-    healthy = bool(database_ok)
+    expected_db_name = (settings.EXPECTED_DB_NAME or "").strip()
+    if database_ok and expected_db_name:
+        try:
+            actual_db_name = get_current_database_name()
+            database_name_check = {
+                "expected": expected_db_name,
+                "actual": actual_db_name,
+                "matches": actual_db_name == expected_db_name,
+            }
+        except Exception:
+            database_name_check = {
+                "expected": expected_db_name,
+                "actual": None,
+                "matches": False,
+            }
+
+    healthy = bool(database_ok) and (
+        database_name_check is None or bool(database_name_check["matches"])
+    )
     payload = {
         "status": "ok" if healthy else "error",
         "service": settings.APP_NAME,
@@ -79,5 +103,8 @@ async def health():
         "version": settings.APP_VERSION,
         "time": datetime.now(timezone.utc).isoformat(),
     }
+    if database_name_check is not None:
+        payload["database"] = "ok" if database_ok else "error"
+        payload["database_name"] = database_name_check
     return JSONResponse(status_code=200 if healthy else 503, content=payload)
  
