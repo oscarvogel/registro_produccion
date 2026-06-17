@@ -119,6 +119,9 @@ foreach ($Forbidden in $ForbiddenEnvFiles) {
     }
 }
 
+Get-ChildItem -Path $Stage -Directory -Recurse -Force -Filter "__pycache__" |
+    Remove-Item -Recurse -Force
+
 Run-Step "Generando paquete" {
     New-Item -ItemType Directory -Force -Path $OutputPath | Out-Null
     if (Test-Path $PackagePath) {

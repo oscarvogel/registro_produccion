@@ -43,6 +43,7 @@ def test_windows_package_script_builds_manifested_package_without_env_files():
         "deploy_produccion_fg.sh",
         "backend/.env",
         "frontend/.env",
+        "__pycache__",
         "tar -czf",
     ]
 
