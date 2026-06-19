@@ -1,0 +1,17 @@
+services:
+  indufor_demo:
+    image: registro_produccion:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: registro_produccion_indufor_demo
+    env_file:
+      - /srv/env/registro_produccion/indufor_demo.env
+    ports:
+      - "127.0.0.1:18104:8000"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"

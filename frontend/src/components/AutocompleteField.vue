@@ -3,6 +3,31 @@
     <label v-if="label" class="mb-1 block text-sm font-semibold text-neutral-700">
       {{ label }}
     </label>
+    <div
+      v-if="statusMessage"
+      :class="[
+        'mb-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium',
+        error
+          ? 'border-error/30 bg-error-light/40 text-error-dark'
+          : stale
+            ? 'border-warning/30 bg-warning-light text-warning-dark'
+            : 'border-neutral-200 bg-neutral-100 text-neutral-500',
+      ]"
+    >
+      {{ statusMessage }}
+    </div>
+    <div
+      v-if="stale && statusMessage !== staleMessage"
+      class="mb-1.5 rounded-lg border border-warning/30 bg-warning-light px-2.5 py-1.5 text-xs font-medium text-warning-dark"
+    >
+      {{ staleMessage }}
+    </div>
+    <div
+      v-if="inlineEmptyMessage"
+      class="mb-1.5 rounded-lg border border-neutral-200 bg-neutral-100 px-2.5 py-1.5 text-xs font-medium text-neutral-500"
+    >
+      {{ inlineEmptyMessage }}
+    </div>
 
     <!-- ── Selected state (like machine assignment) ── -->
     <button
@@ -105,10 +130,10 @@
       <!-- No results -->
       <Transition name="dropdown-soft">
         <div
-          v-if="isOpen && query.length >= 1 && filteredItems.length === 0"
+          v-if="isOpen && showEmptyState"
           :class="emptyListClass"
         >
-          Sin resultados para "{{ query }}"
+          {{ emptyStateMessage }}
         </div>
       </Transition>
 
@@ -142,6 +167,11 @@ const props = defineProps({
   invalid: { type: Boolean, default: false },
   selectedDisplay: { type: String, default: 'chip' },
   dropdownMode: { type: String, default: 'absolute' },
+  loading: { type: Boolean, default: false },
+  error: { type: [String, Boolean], default: '' },
+  emptyMessage: { type: String, default: '' },
+  errorMessage: { type: String, default: '' },
+  stale: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:modelValue', 'select'])
@@ -164,6 +194,26 @@ const emptyListClass = computed(() => [
   'app-card z-50 mt-1.5 rounded-lg p-2.5 text-xs text-neutral-400',
   usesInlineDropdown.value ? 'relative' : 'absolute left-0 right-0 top-full',
 ])
+const statusMessage = computed(() => {
+  if (props.loading) return `Cargando${props.label ? ` ${props.label.toLowerCase()}` : ''}...`
+  if (props.error) return props.errorMessage || (typeof props.error === 'string' ? props.error : 'No se pudo cargar. Reintentar')
+  if (props.stale) return staleMessage.value
+  if ((props.items || []).length === 0 && props.emptyMessage && !props.disabled) return props.emptyMessage
+  return ''
+})
+const staleMessage = computed(() => 'Usando datos guardados en este dispositivo')
+const inlineEmptyMessage = computed(() => {
+  if (props.loading || props.error || !props.emptyMessage || props.disabled || (props.items || []).length > 0) return ''
+  return statusMessage.value === props.emptyMessage ? '' : props.emptyMessage
+})
+const showEmptyState = computed(() => {
+  if (props.loading || props.error) return false
+  return filteredItems.value.length === 0 && (query.value.length >= 1 || !!props.emptyMessage)
+})
+const emptyStateMessage = computed(() => {
+  if (props.emptyMessage && !query.value.trim()) return props.emptyMessage
+  return `Sin resultados para "${query.value}"`
+})
 
 const selectedLabel = computed(() => {
   if (props.modelValue === null || props.modelValue === undefined || props.modelValue === '' || props.modelValue === 0) return ''
