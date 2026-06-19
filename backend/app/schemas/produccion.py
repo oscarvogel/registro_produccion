@@ -29,6 +29,9 @@ class TipoProcesoResponse(BaseModel):
     id: int
     nombre: str
     campos: str
+    requiere_acta: bool = False
+    requiere_predio: bool = False
+    requiere_rodal: bool = False
 
     class Config:
         from_attributes = True

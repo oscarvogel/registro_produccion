@@ -712,8 +712,8 @@
           </button>
         </div>
 
-        <template v-if="actaPredioRequeridos">
-          <div class="mt-3">
+        <template v-if="ubicacionOperativaRequerida">
+          <div v-if="requiereActa" class="mt-3">
             <AutocompleteField
               label="Acta"
               :modelValue="form.acta"
@@ -738,7 +738,7 @@
             </button>
           </div>
 
-          <div class="mt-3">
+          <div v-if="requierePredio" class="mt-3">
             <AutocompleteField
               label="Predio"
               v-model="form.predio_id"
@@ -763,7 +763,7 @@
             </button>
           </div>
 
-          <div class="mt-3">
+          <div v-if="requiereRodal" class="mt-3">
             <AutocompleteField
               v-if="store.rodales.length > 0"
               label="Rodal"
@@ -801,7 +801,7 @@
         </template>
 
         <div v-else class="app-surface-muted mt-3 rounded-lg border p-3 text-sm text-neutral-500">
-          Acta y Predio no aplican para este tipo de trabajo.
+          Acta, Predio y Rodal no aplican para este tipo de trabajo.
         </div>
         <div
           v-if="mostrarErrorUbicacion"
@@ -940,7 +940,7 @@ import InputField from '@/components/InputField.vue'
 import AutocompleteField from '@/components/AutocompleteField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
-import { cleanActaPredioValues, shouldShowActaPredioFields } from '@/services/actaPredioRules'
+import { cleanLocationValues, getLocationRequirements, shouldShowActaPredioFields } from '@/services/actaPredioRules'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1047,7 +1047,11 @@ const tipoProcesoNombre = computed(() => {
   return tipoProcesoSeleccionado.value?.nombre || ''
 })
 
-const actaPredioRequeridos = computed(() => shouldShowActaPredioFields(tipoProcesoSeleccionado.value))
+const requisitosUbicacion = computed(() => getLocationRequirements(tipoProcesoSeleccionado.value))
+const requiereActa = computed(() => requisitosUbicacion.value.requiere_acta)
+const requierePredio = computed(() => requisitosUbicacion.value.requiere_predio)
+const requiereRodal = computed(() => requisitosUbicacion.value.requiere_rodal)
+const ubicacionOperativaRequerida = computed(() => shouldShowActaPredioFields(tipoProcesoSeleccionado.value))
 
 const movilesFiltrados = computed(() => {
   const texto = (busquedaMovil.value || '').trim().toLowerCase()
@@ -1204,25 +1208,32 @@ const rodalCompleto = computed(() => {
 })
 
 const ubicacionValida = computed(() => {
-  if (!actaPredioRequeridos.value) return true
-  return !!actaNormalizada.value && !!form.predio_id && rodalCompleto.value
+  if (!ubicacionOperativaRequerida.value) return true
+  if (requiereActa.value && (!actaNormalizada.value || actaNormalizada.value === '0')) return false
+  if (requierePredio.value && !form.predio_id) return false
+  if (requiereRodal.value && !rodalCompleto.value) return false
+  return true
 })
 
 const ubicacionCatalogosConError = computed(() => {
-  if (!actaPredioRequeridos.value) return []
+  if (!ubicacionOperativaRequerida.value) return []
   const catalogos = []
-  if (catalogHasError('actas') && store.actas.length === 0) catalogos.push('actas')
-  if (catalogHasError('predios') && store.predios.length === 0) catalogos.push('predios')
-  if (form.predio_id && catalogHasError('rodales') && store.rodales.length === 0) catalogos.push('rodales')
+  if (requiereActa.value && catalogHasError('actas') && store.actas.length === 0) catalogos.push('actas')
+  if (requierePredio.value && catalogHasError('predios') && store.predios.length === 0) catalogos.push('predios')
+  if (requiereRodal.value && form.predio_id && catalogHasError('rodales') && store.rodales.length === 0) catalogos.push('rodales')
   return catalogos
 })
 
 const mensajeUbicacionIncompleta = computed(() => {
-  if (!actaPredioRequeridos.value) return ''
+  if (!ubicacionOperativaRequerida.value) return ''
   if (ubicacionCatalogosConError.value.length > 0) {
     return `No se pudo cargar ${ubicacionCatalogosConError.value.join(', ')}. Reintentá el catálogo para completar la ubicación.`
   }
-  return 'Completá Acta, Predio y Rodal para Arauco o Biomasa gajos.'
+  const pendientes = []
+  if (requiereActa.value) pendientes.push('Acta')
+  if (requierePredio.value) pendientes.push('Predio')
+  if (requiereRodal.value) pendientes.push('Rodal')
+  return `Completá ${pendientes.join(', ')} para este tipo de trabajo.`
 })
 
 const mostrarErrorHoras = computed(() => {
@@ -1422,8 +1433,8 @@ function guardarBorrador() {
 }
 
 function limpiarUbicacionSiNoAplica() {
-  if (form.tipo_de_proceso_id && tipoProcesoSeleccionado.value && !actaPredioRequeridos.value) {
-    cleanActaPredioValues(form)
+  if (form.tipo_de_proceso_id && tipoProcesoSeleccionado.value) {
+    cleanLocationValues(form, requisitosUbicacion.value)
   }
 }
 
@@ -1639,7 +1650,7 @@ async function handleSubmit() {
   }
 
   try {
-    if (actaPredioRequeridos.value && (!actaNormalizada.value || actaNormalizada.value === '0')) {
+    if (requiereActa.value && (!actaNormalizada.value || actaNormalizada.value === '0')) {
       await Swal.fire({
         icon: 'warning',
         title: 'Acta obligatoria',
@@ -1673,7 +1684,7 @@ async function handleSubmit() {
       return
     }
 
-    if (actaPredioRequeridos.value && !ubicacionValida.value) {
+    if (ubicacionOperativaRequerida.value && !ubicacionValida.value) {
       await Swal.fire({
         icon: 'warning',
         title: 'Ubicación incompleta',
@@ -1710,9 +1721,9 @@ async function handleSubmit() {
       aceite_motor: form.aceite_motor,
       aceite_transmision: form.aceite_transmision,
       aceite_embrague: form.aceite_embrague,
-      acta: actaPredioRequeridos.value ? form.acta : '',
-      rodal: actaPredioRequeridos.value ? getRodalNombre() : '',
-      predio: actaPredioRequeridos.value ? getPredioNombre(form.predio_id) : '',
+      acta: requiereActa.value ? form.acta : '',
+      rodal: requiereRodal.value ? getRodalNombre() : '',
+      predio: requierePredio.value ? getPredioNombre(form.predio_id) : '',
       m3: form.m3,
       carros: form.carros,
       tn_despachadas: form.tn_despachadas,

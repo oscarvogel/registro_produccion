@@ -188,12 +188,16 @@ Campos principales:
 - Nombre.
 - Activo.
 - Unidades habilitadas.
+- Requiere Acta.
+- Requiere Predio.
+- Requiere Rodal.
 
 Regla importante:
 
 - `Nombre` es obligatorio.
 
 La vinculacion con unidades controla que procesos aparecen al cargar produccion o al filtrar dashboards.
+Los requisitos `Acta`, `Predio` y `Rodal` controlan que campos de ubicacion se muestran y se exigen en la carga de produccion. Para crear un proceso nuevo, activar solo los datos que correspondan a la operacion; si los tres quedan desactivados, la carga no pedira ubicacion operativa.
 
 ### Lugares de Carga
 

@@ -244,6 +244,9 @@ class TipoProcesoCreate(BaseModel):
     nombre: str = Field(min_length=1)
     campos: str = ""
     unidad_ids: list[int] = Field(default_factory=list)
+    requiere_acta: bool = False
+    requiere_predio: bool = False
+    requiere_rodal: bool = False
     activo: int = 1
 
 
@@ -251,6 +254,9 @@ class TipoProcesoUpdate(BaseModel):
     nombre: str | None = None
     campos: str | None = None
     unidad_ids: list[int] | None = None
+    requiere_acta: bool | None = None
+    requiere_predio: bool | None = None
+    requiere_rodal: bool | None = None
     activo: int | None = None
 
 
@@ -259,6 +265,9 @@ class TipoProcesoResponse(BaseModel):
     nombre: str
     campos: str
     unidad_ids: list[int] = Field(default_factory=list)
+    requiere_acta: bool = False
+    requiere_predio: bool = False
+    requiere_rodal: bool = False
     activo: int
 
 
