@@ -588,6 +588,9 @@ import AdminQuickAssignment from '@/components/admin/AdminQuickAssignment.vue'
 import { useAdminStore } from '@/stores/admin'
 import { validateAdminPassword } from '@/services/passwordValidation'
 
+const SAFE_LOAD_ERROR_MESSAGE = 'No se pudieron cargar los datos necesarios. Actualiza e intenta nuevamente.'
+const SAFE_SAVE_ERROR_MESSAGE = 'No se pudo guardar el registro. Actualiza e intenta nuevamente.'
+
 const SECTIONS = {
   principal: 'Principal',
   relaciones: 'Relaciones',
@@ -996,7 +999,7 @@ async function loadRows() {
     })
   } catch (err) {
     rows.value = []
-    error.value = err.response?.data?.detail || `No se pudo cargar ${meta.value.title.toLowerCase()}`
+    error.value = safeAdminErrorMessage(err, `No se pudo cargar ${meta.value.title.toLowerCase()}`)
   } finally {
     loading.value = false
   }
@@ -1139,7 +1142,7 @@ async function submitForm() {
     await Promise.all([loadRows(), loadReferences()])
     closeForm()
   } catch (err) {
-    formError.value = err.response?.data?.detail || 'No se pudo guardar el registro'
+    formError.value = safeAdminErrorMessage(err, SAFE_SAVE_ERROR_MESSAGE)
   } finally {
     submitting.value = false
   }
@@ -1167,7 +1170,7 @@ async function submitQuickAssignment() {
     resetQuickAssignment()
     await loadRows()
   } catch (err) {
-    error.value = err.response?.data?.detail || 'No se pudo crear la asignacion'
+    error.value = safeAdminErrorMessage(err, 'No se pudo crear la asignacion')
   } finally {
     submitting.value = false
   }
@@ -1196,7 +1199,7 @@ async function confirmDelete() {
     clearReferenceCacheFor(entity.value)
     await loadRows()
   } catch (err) {
-    error.value = err.response?.data?.detail || `No se pudo ${verb} el registro`
+    error.value = safeAdminErrorMessage(err, `No se pudo ${verb} el registro`)
   } finally {
     submitting.value = false
     cancelDelete()
@@ -1345,10 +1348,21 @@ async function updateRelationEntity(refEntity, id, payload) {
     await loadReferences()
     cancelRelationDraft()
   } catch (err) {
-    error.value = err.response?.data?.detail || 'No se pudo actualizar la vinculacion'
+    error.value = safeAdminErrorMessage(err, 'No se pudo actualizar la vinculacion')
   } finally {
     submitting.value = false
   }
+}
+
+function safeAdminErrorMessage(err, fallback) {
+  const detail = err?.response?.data?.detail
+  if (typeof detail !== 'string' || !detail.trim()) return fallback
+  if (err?.response?.status >= 500 || containsTechnicalError(detail)) return SAFE_LOAD_ERROR_MESSAGE
+  return detail
+}
+
+function containsTechnicalError(message) {
+  return /\b(SQL|SELECT|INSERT|UPDATE|DELETE|Traceback|OperationalError|ProgrammingError|SQLAlchemy|pymysql|MySQL|parameters?:|Background on this error)\b/i.test(message)
 }
 
 function fieldClass(field) {

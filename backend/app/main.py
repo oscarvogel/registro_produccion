@@ -1,10 +1,11 @@
+import logging
 import re
-import traceback
 from datetime import datetime, timezone
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from app.core.config import settings
 from app.core.database import engine
 from app.api.routes import items, auth, produccion, dashboard, admin, combustible
@@ -13,6 +14,9 @@ import pymysql
 
 pymysql.install_as_MySQLdb()
 app = FastAPI(title=settings.PROJECT_NAME)
+logger = logging.getLogger(__name__)
+SAFE_DATABASE_ERROR_DETAIL = "No se pudieron cargar los datos necesarios. Actualiza e intenta nuevamente."
+SAFE_SERVER_ERROR_DETAIL = "No se pudo completar la operacion. Intenta nuevamente en unos minutos."
 
 # CORS
 app.add_middleware(
@@ -29,18 +33,32 @@ def _is_allowed_origin(origin: str) -> bool:
     return origin in settings.ALLOWED_ORIGINS or bool(re.match(settings.ALLOWED_ORIGIN_REGEX, origin))
 
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    traceback.print_exc()
+def _cors_headers_for_request(request: Request) -> dict[str, str]:
     origin = request.headers.get("origin", "")
     headers = {}
     if _is_allowed_origin(origin):
         headers["Access-Control-Allow-Origin"] = origin
         headers["Access-Control-Allow-Credentials"] = "true"
+    return headers
+
+
+@app.exception_handler(SQLAlchemyError)
+async def database_exception_handler(request: Request, exc: SQLAlchemyError):
+    logger.exception("Unhandled database error while processing %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=503,
+        content={"detail": SAFE_DATABASE_ERROR_DETAIL},
+        headers=_cors_headers_for_request(request),
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled application error while processing %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=500,
-        content={"detail": str(exc)},
-        headers=headers,
+        content={"detail": SAFE_SERVER_ERROR_DETAIL},
+        headers=_cors_headers_for_request(request),
     )
 
 # Include routers
