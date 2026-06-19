@@ -82,8 +82,24 @@ def build_demo_dataset(*, record_count: int, today: date | None = None) -> DemoD
         }
     ]
     tipos_proceso = [
-        {"id": DEMO_ID_BASE + 1, "nombre": "Proceso Demo Cosecha", "campos": "", "activo": 1},
-        {"id": DEMO_ID_BASE + 2, "nombre": "Proceso Demo Transporte", "campos": "", "activo": 1},
+        {
+            "id": DEMO_ID_BASE + 1,
+            "nombre": "Proceso Demo Cosecha",
+            "campos": "",
+            "requiere_acta": False,
+            "requiere_predio": False,
+            "requiere_rodal": False,
+            "activo": 1,
+        },
+        {
+            "id": DEMO_ID_BASE + 2,
+            "nombre": "Proceso Demo Transporte",
+            "campos": "",
+            "requiere_acta": False,
+            "requiere_predio": False,
+            "requiere_rodal": False,
+            "activo": 1,
+        },
     ]
     tipos_movil = [
         {"id": DEMO_ID_BASE + 1, "detalle": "Tipo Movil Demo Harvester", "activo": 1},

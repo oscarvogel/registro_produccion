@@ -22,9 +22,17 @@ CREATE TABLE IF NOT EXISTS tipo_de_proceso (
   id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
   nombre        VARCHAR(100) NOT NULL,
   campos        VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'Campos separados por coma que aplican a este proceso',
+  requiere_acta   TINYINT(1) NOT NULL DEFAULT 0,
+  requiere_predio TINYINT(1) NOT NULL DEFAULT 0,
+  requiere_rodal  TINYINT(1) NOT NULL DEFAULT 0,
   activo        TINYINT(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+ALTER TABLE tipo_de_proceso
+  ADD COLUMN IF NOT EXISTS requiere_acta TINYINT(1) NOT NULL DEFAULT 0 AFTER campos,
+  ADD COLUMN IF NOT EXISTS requiere_predio TINYINT(1) NOT NULL DEFAULT 0 AFTER requiere_acta,
+  ADD COLUMN IF NOT EXISTS requiere_rodal TINYINT(1) NOT NULL DEFAULT 0 AFTER requiere_predio;
 
 -- 3. Insertar los tipos de proceso
 INSERT IGNORE INTO tipo_de_proceso (id, nombre, campos) VALUES
@@ -41,6 +49,13 @@ INSERT IGNORE INTO tipo_de_proceso (id, nombre, campos) VALUES
   (11, 'ACOPIO BIOMASA',           'tn_despachadas'),
   (12, 'CHIPEADO EN SUELO',        'tn_despachadas'),
   (13, 'CHIPEADO SOBRE CAMION',    'tn_despachadas');
+
+UPDATE tipo_de_proceso
+  SET requiere_acta = 1,
+      requiere_predio = 1,
+      requiere_rodal = 1
+  WHERE LOWER(nombre) = 'arauco'
+     OR (LOWER(nombre) LIKE '%biomasa%' AND LOWER(nombre) LIKE '%gajos%');
 
 -- 4. Tabla pivot: qué tipos de proceso puede tener cada unidad de negocio
 CREATE TABLE IF NOT EXISTS unidadnegocio_tipo_proceso (
