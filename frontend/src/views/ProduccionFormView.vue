@@ -712,90 +712,96 @@
           </button>
         </div>
 
-        <div class="mt-3">
-          <AutocompleteField
-            label="Acta"
-            :modelValue="form.acta"
-            :items="store.actas"
-            labelKey="numero"
-            valueKey="numero"
-            placeholder="— Buscar acta —"
-            :loading="catalogLoading('actas')"
-            :error="catalogError('actas')"
-            :errorMessage="catalogErrorMessage('actas')"
-            emptyMessage="Sin actas configuradas"
-            :stale="catalogStale('actas')"
-            @select="item => { form.acta = item ? item.numero : '' }"
-          />
-          <button
-            v-if="catalogHasError('actas')"
-            type="button"
-            class="mt-2 text-xs font-semibold text-primary underline underline-offset-2"
-            @click="store.retryCatalogo('actas')"
-          >
-            Reintentar actas
-          </button>
-        </div>
-
-        <div class="mt-3">
-          <AutocompleteField
-            label="Predio"
-            v-model="form.predio_id"
-            :items="store.predios"
-            labelKey="nombre"
-            valueKey="idPredio"
-            placeholder="— Buscar predio —"
-            :loading="catalogLoading('predios')"
-            :error="catalogError('predios')"
-            :errorMessage="catalogErrorMessage('predios')"
-            emptyMessage="Sin predios configurados"
-            :stale="catalogStale('predios')"
-            @select="onPredioChange"
-          />
-          <button
-            v-if="catalogHasError('predios')"
-            type="button"
-            class="mt-2 text-xs font-semibold text-primary underline underline-offset-2"
-            @click="store.retryCatalogo('predios')"
-          >
-            Reintentar predios
-          </button>
-        </div>
-
-        <div class="mt-3">
-          <AutocompleteField
-            v-if="store.rodales.length > 0"
-            label="Rodal"
-            v-model="form.rodal_id"
-            :items="store.rodales"
-            labelKey="rodal"
-            valueKey="idRodal"
-            placeholder="— Buscar rodal —"
-            :loading="catalogLoading('rodales')"
-            :error="catalogError('rodales')"
-            :errorMessage="catalogErrorMessage('rodales')"
-            emptyMessage="Sin rodales configurados para este predio"
-            :stale="catalogStale('rodales')"
-          />
-          <div v-else-if="catalogHasError('rodales')" class="app-surface-muted rounded-lg border p-3 text-sm text-neutral-600">
-            No se pudo cargar rodales.
+        <template v-if="actaPredioRequeridos">
+          <div class="mt-3">
+            <AutocompleteField
+              label="Acta"
+              :modelValue="form.acta"
+              :items="store.actas"
+              labelKey="numero"
+              valueKey="numero"
+              placeholder="— Buscar acta —"
+              :loading="catalogLoading('actas')"
+              :error="catalogError('actas')"
+              :errorMessage="catalogErrorMessage('actas')"
+              emptyMessage="Sin actas configuradas"
+              :stale="catalogStale('actas')"
+              @select="item => { form.acta = item ? item.numero : '' }"
+            />
             <button
+              v-if="catalogHasError('actas')"
               type="button"
-              class="font-semibold text-primary underline underline-offset-2"
-              @click="store.retryCatalogo('rodales', form.predio_id)"
+              class="mt-2 text-xs font-semibold text-primary underline underline-offset-2"
+              @click="store.retryCatalogo('actas')"
             >
-              Reintentar
+              Reintentar actas
             </button>
           </div>
-          <div v-else>
-            <label class="block text-sm font-medium text-neutral-700 mb-1">Rodal</label>
-            <input
-              type="text"
-              v-model="form.rodal_manual"
-              placeholder="Ingresá el rodal manualmente"
-              :class="fieldClass"
+
+          <div class="mt-3">
+            <AutocompleteField
+              label="Predio"
+              v-model="form.predio_id"
+              :items="store.predios"
+              labelKey="nombre"
+              valueKey="idPredio"
+              placeholder="— Buscar predio —"
+              :loading="catalogLoading('predios')"
+              :error="catalogError('predios')"
+              :errorMessage="catalogErrorMessage('predios')"
+              emptyMessage="Sin predios configurados"
+              :stale="catalogStale('predios')"
+              @select="onPredioChange"
             />
+            <button
+              v-if="catalogHasError('predios')"
+              type="button"
+              class="mt-2 text-xs font-semibold text-primary underline underline-offset-2"
+              @click="store.retryCatalogo('predios')"
+            >
+              Reintentar predios
+            </button>
           </div>
+
+          <div class="mt-3">
+            <AutocompleteField
+              v-if="store.rodales.length > 0"
+              label="Rodal"
+              v-model="form.rodal_id"
+              :items="store.rodales"
+              labelKey="rodal"
+              valueKey="idRodal"
+              placeholder="— Buscar rodal —"
+              :loading="catalogLoading('rodales')"
+              :error="catalogError('rodales')"
+              :errorMessage="catalogErrorMessage('rodales')"
+              emptyMessage="Sin rodales configurados para este predio"
+              :stale="catalogStale('rodales')"
+            />
+            <div v-else-if="catalogHasError('rodales')" class="app-surface-muted rounded-lg border p-3 text-sm text-neutral-600">
+              No se pudo cargar rodales.
+              <button
+                type="button"
+                class="font-semibold text-primary underline underline-offset-2"
+                @click="store.retryCatalogo('rodales', form.predio_id)"
+              >
+                Reintentar
+              </button>
+            </div>
+            <div v-else>
+              <label class="block text-sm font-medium text-neutral-700 mb-1">Rodal</label>
+              <input
+                type="text"
+                v-model="form.rodal_manual"
+                placeholder="Ingresá el rodal manualmente"
+                :class="fieldClass"
+              />
+            </div>
+          </div>
+        </template>
+
+        <div v-else class="app-surface-muted mt-3 rounded-lg border p-3 text-sm text-neutral-500">
+          Acta y Predio no aplican para este tipo de trabajo.
         </div>
         <div
           v-if="mostrarErrorUbicacion"
@@ -934,6 +940,7 @@ import InputField from '@/components/InputField.vue'
 import AutocompleteField from '@/components/AutocompleteField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
+import { cleanActaPredioValues, shouldShowActaPredioFields } from '@/services/actaPredioRules'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1023,19 +1030,24 @@ function irAPaso(i) {
 // Campos dinámicos según tipo de proceso seleccionado
 const camposActivos = computed(() => {
   if (!form.tipo_de_proceso_id) return []
-  const tipo = store.tiposProceso.find(t => t.id === form.tipo_de_proceso_id)
-    || store.todosLosTipos.find(t => t.id === form.tipo_de_proceso_id)
+  const tipo = tipoProcesoSeleccionado.value
   if (!tipo || !tipo.campos) return []
   return tipo.campos.split(',').map(c => c.trim())
 })
 
+const tipoProcesoSeleccionado = computed(() => {
+  if (!form.tipo_de_proceso_id) return null
+  return store.tiposProceso.find(t => t.id === form.tipo_de_proceso_id)
+    || store.todosLosTipos.find(t => t.id === form.tipo_de_proceso_id)
+    || null
+})
+
 // Nombre del tipo de proceso seleccionado
 const tipoProcesoNombre = computed(() => {
-  if (!form.tipo_de_proceso_id) return ''
-  const tipo = store.tiposProceso.find(t => t.id === form.tipo_de_proceso_id)
-    || store.todosLosTipos.find(t => t.id === form.tipo_de_proceso_id)
-  return tipo?.nombre || ''
+  return tipoProcesoSeleccionado.value?.nombre || ''
 })
+
+const actaPredioRequeridos = computed(() => shouldShowActaPredioFields(tipoProcesoSeleccionado.value))
 
 const movilesFiltrados = computed(() => {
   const texto = (busquedaMovil.value || '').trim().toLowerCase()
@@ -1192,10 +1204,12 @@ const rodalCompleto = computed(() => {
 })
 
 const ubicacionValida = computed(() => {
+  if (!actaPredioRequeridos.value) return true
   return !!actaNormalizada.value && !!form.predio_id && rodalCompleto.value
 })
 
 const ubicacionCatalogosConError = computed(() => {
+  if (!actaPredioRequeridos.value) return []
   const catalogos = []
   if (catalogHasError('actas') && store.actas.length === 0) catalogos.push('actas')
   if (catalogHasError('predios') && store.predios.length === 0) catalogos.push('predios')
@@ -1204,10 +1218,11 @@ const ubicacionCatalogosConError = computed(() => {
 })
 
 const mensajeUbicacionIncompleta = computed(() => {
+  if (!actaPredioRequeridos.value) return ''
   if (ubicacionCatalogosConError.value.length > 0) {
     return `No se pudo cargar ${ubicacionCatalogosConError.value.join(', ')}. Reintentá el catálogo para completar la ubicación.`
   }
-  return 'Completá Acta, Predio y Rodal cuando sean solicitados para poder guardar.'
+  return 'Completá Acta, Predio y Rodal para Arauco o Biomasa gajos.'
 })
 
 const mostrarErrorHoras = computed(() => {
@@ -1406,6 +1421,12 @@ function guardarBorrador() {
   })
 }
 
+function limpiarUbicacionSiNoAplica() {
+  if (form.tipo_de_proceso_id && tipoProcesoSeleccionado.value && !actaPredioRequeridos.value) {
+    cleanActaPredioValues(form)
+  }
+}
+
 async function onOperadorChange() {
   if (!form.operador_id) return
   // Fetch asignaciones operativas + fallback legacy
@@ -1468,6 +1489,7 @@ function onTipoProcesoChange() {
   form.km_perfilado = 0
   form.hr_disposicion = 0
   form.km = 0
+  limpiarUbicacionSiNoAplica()
 
   autocompletarHoraInicio({ force: true })
   guardarPreferenciasProduccion()
@@ -1484,6 +1506,10 @@ async function onPredioChange() {
 // ─── Watch combustible toggle ───
 watch(cargoCombustible, (val) => {
   if (!val) form.combustible = 0
+})
+
+watch(() => [form.tipo_de_proceso_id, tipoProcesoNombre.value], () => {
+  limpiarUbicacionSiNoAplica()
 })
 
 // Removed old busquedaMovil watcher — selection/buscador now handled via mostrandoBuscador state
@@ -1613,7 +1639,7 @@ async function handleSubmit() {
   }
 
   try {
-    if (!actaNormalizada.value || actaNormalizada.value === '0') {
+    if (actaPredioRequeridos.value && (!actaNormalizada.value || actaNormalizada.value === '0')) {
       await Swal.fire({
         icon: 'warning',
         title: 'Acta obligatoria',
@@ -1647,7 +1673,7 @@ async function handleSubmit() {
       return
     }
 
-    if (!ubicacionValida.value) {
+    if (actaPredioRequeridos.value && !ubicacionValida.value) {
       await Swal.fire({
         icon: 'warning',
         title: 'Ubicación incompleta',
@@ -1684,9 +1710,9 @@ async function handleSubmit() {
       aceite_motor: form.aceite_motor,
       aceite_transmision: form.aceite_transmision,
       aceite_embrague: form.aceite_embrague,
-      acta: form.acta,
-      rodal: getRodalNombre(),
-      predio: getPredioNombre(form.predio_id),
+      acta: actaPredioRequeridos.value ? form.acta : '',
+      rodal: actaPredioRequeridos.value ? getRodalNombre() : '',
+      predio: actaPredioRequeridos.value ? getPredioNombre(form.predio_id) : '',
       m3: form.m3,
       carros: form.carros,
       tn_despachadas: form.tn_despachadas,
