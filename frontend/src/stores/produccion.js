@@ -6,6 +6,37 @@ import { useToastStore } from '@/stores/toast'
 
 const ensureArray = (value) => (Array.isArray(value) ? value : [])
 const CATALOG_TTL_MS = 5 * 60 * 1000
+const CATALOG_KEYS = [
+  'unidadesNegocio',
+  'operadores',
+  'moviles',
+  'tiposProceso',
+  'todosLosTipos',
+  'actas',
+  'predios',
+  'rodales',
+  'lugaresCarga',
+  'asignaciones',
+]
+
+const createCatalogState = () => ({
+  state: 'idle',
+  stale: false,
+  lastError: null,
+  updatedAt: 0,
+})
+
+const createCatalogStatus = () => Object.fromEntries(
+  CATALOG_KEYS.map((key) => [key, createCatalogState()]),
+)
+
+const catalogCacheKey = (catalog, scope = '') => `${catalog}:${scope || 'all'}`
+
+const errorMessage = (err) => err?.response?.data?.detail || err?.message || 'No se pudo cargar el catalogo'
+
+function isValidCatalogPayload(data) {
+  return Array.isArray(data)
+}
 
 export const useProduccionStore = defineStore('produccion', {
   state: () => ({
@@ -26,64 +57,133 @@ export const useProduccionStore = defineStore('produccion', {
     submitting: false,
     syncingPending: false,
     error: null,
+    catalogStatus: createCatalogStatus(),
   }),
 
   actions: {
-    async fetchOperadores(unId) {
-      this.operadores = []
-      if (!unId) return
-      try {
-        const { data } = await api.get('/api/produccion/operadores', {
-          params: { un_id: unId },
-        })
-        this.operadores = ensureArray(data)
-      } catch (err) {
-        console.error('Error loading operadores:', err)
+    setCatalogStatus(catalog, patch) {
+      this.catalogStatus[catalog] = {
+        ...this.catalogStatus[catalog],
+        ...patch,
       }
+    },
+
+    async saveCatalogCache(catalog, scope, items) {
+      if (!db.catalogos || !isValidCatalogPayload(items)) return
+      await db.catalogos.put({
+        key: catalogCacheKey(catalog, scope),
+        catalog,
+        scope: String(scope || 'all'),
+        items,
+        timestamp: Date.now(),
+      })
+    },
+
+    async loadCatalogFallback(catalog, scope) {
+      if (!db.catalogos) return null
+      const cached = await db.catalogos.get(catalogCacheKey(catalog, scope))
+      if (!cached || !isValidCatalogPayload(cached.items)) return null
+      return cached
+    },
+
+    async fetchCatalog({ catalog, target, url, params, scope = 'all', skipWhenMissingScope = false }) {
+      if (skipWhenMissingScope && !scope) {
+        this[target] = []
+        this.setCatalogStatus(catalog, createCatalogState())
+        return []
+      }
+
+      this.setCatalogStatus(catalog, {
+        state: 'loading',
+        stale: this.catalogStatus[catalog]?.stale || false,
+        lastError: null,
+      })
+
+      try {
+        const { data } = await api.get(url, params ? { params } : undefined)
+        if (!isValidCatalogPayload(data)) {
+          throw new Error('Respuesta invalida del servidor')
+        }
+        const items = ensureArray(data)
+        this[target] = items
+        await this.saveCatalogCache(catalog, scope, items)
+        this.setCatalogStatus(catalog, {
+          state: items.length > 0 ? 'success' : 'empty',
+          stale: false,
+          lastError: null,
+          updatedAt: Date.now(),
+        })
+        return items
+      } catch (err) {
+        const cached = await this.loadCatalogFallback(catalog, scope)
+        if (cached) {
+          this[target] = cached.items
+          this.setCatalogStatus(catalog, {
+            state: cached.items.length > 0 ? 'success' : 'empty',
+            stale: true,
+            lastError: errorMessage(err),
+            updatedAt: cached.timestamp || 0,
+          })
+          return cached.items
+        }
+
+        this.setCatalogStatus(catalog, {
+          state: 'error',
+          stale: false,
+          lastError: errorMessage(err),
+        })
+        console.error(`Error loading ${catalog}:`, err)
+        return this[target]
+      }
+    },
+
+    async fetchOperadores(unId) {
+      return this.fetchCatalog({
+        catalog: 'operadores',
+        target: 'operadores',
+        url: '/api/produccion/operadores',
+        params: { un_id: unId },
+        scope: unId,
+        skipWhenMissingScope: true,
+      })
     },
 
     async fetchMoviles(unId) {
-      this.moviles = []
-      if (!unId) return
-      try {
-        const { data } = await api.get('/api/produccion/moviles', {
-          params: { un_id: unId },
-        })
-        this.moviles = ensureArray(data)
-      } catch (err) {
-        console.error('Error loading moviles:', err)
-      }
+      return this.fetchCatalog({
+        catalog: 'moviles',
+        target: 'moviles',
+        url: '/api/produccion/moviles',
+        params: { un_id: unId },
+        scope: unId,
+        skipWhenMissingScope: true,
+      })
     },
 
     async fetchUnidadesNegocio() {
-      try {
-        const { data } = await api.get('/api/produccion/unidades-negocio')
-        this.unidadesNegocio = ensureArray(data)
-      } catch (err) {
-        console.error('Error loading unidades de negocio:', err)
-      }
+      return this.fetchCatalog({
+        catalog: 'unidadesNegocio',
+        target: 'unidadesNegocio',
+        url: '/api/produccion/unidades-negocio',
+      })
     },
 
     async fetchTiposProceso(unId) {
-      this.tiposProceso = []
-      if (!unId) return
-      try {
-        const { data } = await api.get('/api/produccion/tipo-proceso', {
-          params: { un_id: unId },
-        })
-        this.tiposProceso = ensureArray(data)
-      } catch (err) {
-        console.error('Error loading tipos de proceso:', err)
-      }
+      return this.fetchCatalog({
+        catalog: 'tiposProceso',
+        target: 'tiposProceso',
+        url: '/api/produccion/tipo-proceso',
+        params: { un_id: unId },
+        scope: unId,
+        skipWhenMissingScope: true,
+      })
     },
 
     async fetchAllTiposProceso() {
-      try {
-        const { data } = await api.get('/api/produccion/tipos-proceso-all')
-        this.todosLosTipos = ensureArray(data)
-      } catch (err) {
-        console.error('Error loading all tipos de proceso:', err)
-      }
+      return this.fetchCatalog({
+        catalog: 'todosLosTipos',
+        target: 'todosLosTipos',
+        url: '/api/produccion/tipos-proceso-all',
+      })
     },
 
     async fetchMovilByOperador(operadorId) {
@@ -98,58 +198,51 @@ export const useProduccionStore = defineStore('produccion', {
     },
 
     async fetchAsignaciones(operadorId) {
-      this.asignaciones = []
-      if (!operadorId) return
-      try {
-        const { data } = await api.get(`/api/produccion/asignaciones/${operadorId}`)
-        this.asignaciones = ensureArray(data)
-      } catch (err) {
-        console.error('Error loading asignaciones:', err)
-      }
+      return this.fetchCatalog({
+        catalog: 'asignaciones',
+        target: 'asignaciones',
+        url: `/api/produccion/asignaciones/${operadorId}`,
+        scope: operadorId,
+        skipWhenMissingScope: true,
+      })
     },
 
     async fetchActas() {
-      try {
-        const { data } = await api.get('/api/produccion/actas')
-        this.actas = ensureArray(data)
-      } catch (err) {
-        console.error('Error loading actas:', err)
-      }
+      return this.fetchCatalog({
+        catalog: 'actas',
+        target: 'actas',
+        url: '/api/produccion/actas',
+      })
     },
 
     async fetchPredios() {
-      try {
-        const { data } = await api.get('/api/produccion/predios')
-        this.predios = ensureArray(data)
-      } catch (err) {
-        console.error('Error loading predios:', err)
-      }
+      return this.fetchCatalog({
+        catalog: 'predios',
+        target: 'predios',
+        url: '/api/produccion/predios',
+      })
     },
 
     async fetchRodales(predioId) {
-      this.rodales = []
-      if (!predioId) return
-      try {
-        const { data } = await api.get('/api/produccion/rodales', {
-          params: { predio_id: predioId },
-        })
-        this.rodales = ensureArray(data)
-      } catch (err) {
-        console.error('Error loading rodales:', err)
-      }
+      return this.fetchCatalog({
+        catalog: 'rodales',
+        target: 'rodales',
+        url: '/api/produccion/rodales',
+        params: { predio_id: predioId },
+        scope: predioId,
+        skipWhenMissingScope: true,
+      })
     },
 
     async fetchLugaresCarga(unId) {
-      this.lugaresCarga = []
-      if (!unId) return
-      try {
-        const { data } = await api.get('/api/produccion/lugares-carga', {
-          params: { un_id: unId },
-        })
-        this.lugaresCarga = ensureArray(data)
-      } catch (err) {
-        console.error('Error loading lugares de carga:', err)
-      }
+      return this.fetchCatalog({
+        catalog: 'lugaresCarga',
+        target: 'lugaresCarga',
+        url: '/api/produccion/lugares-carga',
+        params: { un_id: unId },
+        scope: unId,
+        skipWhenMissingScope: true,
+      })
     },
 
     async fetchUltimaHoraFin(params) {
@@ -272,11 +365,31 @@ export const useProduccionStore = defineStore('produccion', {
           this.fetchPredios(),
           this.fetchAllTiposProceso(),
         ])
-        this.catalogosLoadedAt = Date.now()
+        const criticalCatalogs = ['unidadesNegocio', 'actas', 'predios', 'todosLosTipos']
+        const allCriticalLoaded = criticalCatalogs.every((catalog) => this.catalogStatus[catalog]?.state !== 'error')
+        if (allCriticalLoaded) {
+          this.catalogosLoadedAt = Date.now()
+        }
         await this.refreshPendingCount()
       } finally {
         this.loading = false
       }
+    },
+
+    async retryCatalogo(catalog, scope) {
+      const retryMap = {
+        unidadesNegocio: () => this.fetchUnidadesNegocio(),
+        operadores: () => this.fetchOperadores(scope),
+        moviles: () => this.fetchMoviles(scope),
+        tiposProceso: () => this.fetchTiposProceso(scope),
+        todosLosTipos: () => this.fetchAllTiposProceso(),
+        actas: () => this.fetchActas(),
+        predios: () => this.fetchPredios(),
+        rodales: () => this.fetchRodales(scope),
+        lugaresCarga: () => this.fetchLugaresCarga(scope),
+        asignaciones: () => this.fetchAsignaciones(scope),
+      }
+      return retryMap[catalog]?.()
     },
   },
 })

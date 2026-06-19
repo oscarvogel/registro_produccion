@@ -109,8 +109,21 @@
             labelKey="nombre"
             valueKey="idUnidadNegocio"
             placeholder="Seleccionar unidad"
+            :loading="catalogLoading('unidadesNegocio')"
+            :error="catalogError('unidadesNegocio')"
+            :errorMessage="catalogErrorMessage('unidades de negocio')"
+            emptyMessage="Sin unidades de negocio configuradas"
+            :stale="catalogStale('unidadesNegocio')"
             @select="onUnidadChange"
           />
+          <button
+            v-if="catalogHasError('unidadesNegocio')"
+            type="button"
+            class="mt-2 text-xs font-semibold text-primary underline underline-offset-2"
+            @click="store.retryCatalogo('unidadesNegocio')"
+          >
+            Reintentar carga de unidades
+          </button>
         </div>
       </SectionCard>
 
@@ -136,10 +149,23 @@
             :items="store.tiposProceso"
             labelKey="nombre"
             valueKey="id"
-            :disabled="!form.un_id || store.tiposProceso.length === 0"
-            :placeholder="!form.un_id ? '— Primero seleccioná UN —' : store.tiposProceso.length === 0 ? '— Sin procesos disponibles —' : '— Escribí para buscar —'"
+            :disabled="!form.un_id || catalogLoading('tiposProceso')"
+            :placeholder="!form.un_id ? '— Primero seleccioná UN —' : catalogHasError('tiposProceso') ? '— Error de carga —' : store.tiposProceso.length === 0 ? '— Sin procesos disponibles —' : '— Escribí para buscar —'"
+            :loading="catalogLoading('tiposProceso')"
+            :error="catalogError('tiposProceso')"
+            :errorMessage="catalogErrorMessage('tipos de proceso')"
+            emptyMessage="Sin procesos configurados para esta unidad"
+            :stale="catalogStale('tiposProceso')"
             @select="onTipoProcesoChange"
           />
+          <button
+            v-if="catalogHasError('tiposProceso')"
+            type="button"
+            class="mt-2 text-xs font-semibold text-primary underline underline-offset-2"
+            @click="store.retryCatalogo('tiposProceso', form.un_id)"
+          >
+            Reintentar tipos de proceso
+          </button>
         </div>
       </SectionCard>
 
@@ -160,10 +186,23 @@
             :items="store.operadores"
             labelKey="nombre"
             valueKey="idPersonal"
-            :disabled="!form.un_id || store.operadores.length === 0"
-            :placeholder="!form.un_id ? '— Primero seleccioná UN —' : store.operadores.length === 0 ? '— Sin operadores —' : '— Escribí para buscar —'"
+            :disabled="!form.un_id || catalogLoading('operadores')"
+            :placeholder="!form.un_id ? '— Primero seleccioná UN —' : catalogHasError('operadores') ? '— Error de carga —' : store.operadores.length === 0 ? '— Sin operadores —' : '— Escribí para buscar —'"
+            :loading="catalogLoading('operadores')"
+            :error="catalogError('operadores')"
+            :errorMessage="catalogErrorMessage('operadores')"
+            emptyMessage="Sin operadores configurados para esta unidad"
+            :stale="catalogStale('operadores')"
             @select="onOperadorChange"
           />
+          <button
+            v-if="catalogHasError('operadores')"
+            type="button"
+            class="mt-2 text-xs font-semibold text-primary underline underline-offset-2"
+            @click="store.retryCatalogo('operadores', form.un_id)"
+          >
+            Reintentar operadores
+          </button>
         </div>
       </SectionCard>
 
@@ -276,7 +315,15 @@
               v-else-if="mostrarSinMoviles"
               class="app-surface-muted mt-1.5 rounded-lg p-2.5 text-xs text-neutral-400"
             >
-              No hay equipos disponibles para esta unidad.
+              {{ mensajeMovilesVacios }}
+              <button
+                v-if="catalogHasError('moviles')"
+                type="button"
+                class="ml-1 font-semibold text-primary underline underline-offset-2"
+                @mousedown.prevent="store.retryCatalogo('moviles', form.un_id)"
+              >
+                Reintentar
+              </button>
             </div>
 
             <!-- Botón cancelar si ya había máquina seleccionada -->
@@ -649,7 +696,20 @@
             labelKey="detalle"
             valueKey="idLugarCarga"
             placeholder="— Buscar lugar de carga —"
+            :loading="catalogLoading('lugaresCarga')"
+            :error="catalogError('lugaresCarga')"
+            :errorMessage="catalogErrorMessage('lugares de carga')"
+            emptyMessage="Sin lugares de carga configurados para esta unidad"
+            :stale="catalogStale('lugaresCarga')"
           />
+          <button
+            v-if="catalogHasError('lugaresCarga')"
+            type="button"
+            class="mt-2 text-xs font-semibold text-primary underline underline-offset-2"
+            @click="store.retryCatalogo('lugaresCarga', form.un_id)"
+          >
+            Reintentar lugares de carga
+          </button>
         </div>
 
         <div class="mt-3">
@@ -660,8 +720,21 @@
             labelKey="numero"
             valueKey="numero"
             placeholder="— Buscar acta —"
+            :loading="catalogLoading('actas')"
+            :error="catalogError('actas')"
+            :errorMessage="catalogErrorMessage('actas')"
+            emptyMessage="Sin actas configuradas"
+            :stale="catalogStale('actas')"
             @select="item => { form.acta = item ? item.numero : '' }"
           />
+          <button
+            v-if="catalogHasError('actas')"
+            type="button"
+            class="mt-2 text-xs font-semibold text-primary underline underline-offset-2"
+            @click="store.retryCatalogo('actas')"
+          >
+            Reintentar actas
+          </button>
         </div>
 
         <div class="mt-3">
@@ -672,8 +745,21 @@
             labelKey="nombre"
             valueKey="idPredio"
             placeholder="— Buscar predio —"
+            :loading="catalogLoading('predios')"
+            :error="catalogError('predios')"
+            :errorMessage="catalogErrorMessage('predios')"
+            emptyMessage="Sin predios configurados"
+            :stale="catalogStale('predios')"
             @select="onPredioChange"
           />
+          <button
+            v-if="catalogHasError('predios')"
+            type="button"
+            class="mt-2 text-xs font-semibold text-primary underline underline-offset-2"
+            @click="store.retryCatalogo('predios')"
+          >
+            Reintentar predios
+          </button>
         </div>
 
         <div class="mt-3">
@@ -685,7 +771,22 @@
             labelKey="rodal"
             valueKey="idRodal"
             placeholder="— Buscar rodal —"
+            :loading="catalogLoading('rodales')"
+            :error="catalogError('rodales')"
+            :errorMessage="catalogErrorMessage('rodales')"
+            emptyMessage="Sin rodales configurados para este predio"
+            :stale="catalogStale('rodales')"
           />
+          <div v-else-if="catalogHasError('rodales')" class="app-surface-muted rounded-lg border p-3 text-sm text-neutral-600">
+            No se pudo cargar rodales.
+            <button
+              type="button"
+              class="font-semibold text-primary underline underline-offset-2"
+              @click="store.retryCatalogo('rodales', form.predio_id)"
+            >
+              Reintentar
+            </button>
+          </div>
           <div v-else>
             <label class="block text-sm font-medium text-neutral-700 mb-1">Rodal</label>
             <input
@@ -700,7 +801,7 @@
           v-if="mostrarErrorUbicacion"
           class="mt-3 px-3 py-2 bg-error-light/40 border border-error/30 rounded-lg text-sm text-error-dark"
         >
-          Completá Acta, Predio y Rodal cuando sean solicitados para poder guardar.
+          {{ mensajeUbicacionIncompleta }}
         </div>
       </SectionCard>
 
@@ -859,6 +960,30 @@ const totalPasos = pasos.length
 // Determina si el tipo de proceso elegido es "PROCESO"
 const esProceso = computed(() => tipoProcesoNombre.value.trim().toUpperCase() === 'PROCESO')
 
+function catalogState(name) {
+  return store.catalogStatus?.[name] || {}
+}
+
+function catalogLoading(name) {
+  return catalogState(name).state === 'loading'
+}
+
+function catalogHasError(name) {
+  return catalogState(name).state === 'error'
+}
+
+function catalogError(name) {
+  return catalogHasError(name) ? catalogState(name).lastError || true : ''
+}
+
+function catalogErrorMessage(label) {
+  return `No se pudo cargar ${label}. Reintentar`
+}
+
+function catalogStale(name) {
+  return !!catalogState(name).stale
+}
+
 const puedeAvanzar = computed(() => {
   switch (pasoActual.value) {
     case 0: return !!form.fecha && !!form.un_id
@@ -948,7 +1073,14 @@ const mostrarNoResultados = computed(() => {
 const mostrarSinMoviles = computed(() => {
   return !!form.un_id
     && listaMovilesAbierta.value
+    && !catalogLoading('moviles')
     && (store.moviles || []).length === 0
+})
+
+const mensajeMovilesVacios = computed(() => {
+  if (catalogHasError('moviles')) return 'No se pudo cargar equipos.'
+  if (catalogStale('moviles')) return 'Usando equipos guardados en este dispositivo.'
+  return 'No hay equipos disponibles para esta unidad.'
 })
 
 const movilSeleccionadoDetalle = computed(() => {
@@ -1063,6 +1195,21 @@ const ubicacionValida = computed(() => {
   return !!actaNormalizada.value && !!form.predio_id && rodalCompleto.value
 })
 
+const ubicacionCatalogosConError = computed(() => {
+  const catalogos = []
+  if (catalogHasError('actas') && store.actas.length === 0) catalogos.push('actas')
+  if (catalogHasError('predios') && store.predios.length === 0) catalogos.push('predios')
+  if (form.predio_id && catalogHasError('rodales') && store.rodales.length === 0) catalogos.push('rodales')
+  return catalogos
+})
+
+const mensajeUbicacionIncompleta = computed(() => {
+  if (ubicacionCatalogosConError.value.length > 0) {
+    return `No se pudo cargar ${ubicacionCatalogosConError.value.join(', ')}. Reintentá el catálogo para completar la ubicación.`
+  }
+  return 'Completá Acta, Predio y Rodal cuando sean solicitados para poder guardar.'
+})
+
 const mostrarErrorHoras = computed(() => {
   return pasoActual.value >= 4 && !horasValidas.value
 })
@@ -1116,7 +1263,7 @@ const mensajePasoIncompleto = computed(() => {
     return 'Completá los campos de producción con valores mayores a 0 para continuar.'
   }
   if (pasoActual.value === 7 && !ubicacionValida.value) {
-    return 'Completá Acta, Predio y Rodal para poder guardar el registro.'
+    return mensajeUbicacionIncompleta.value
   }
   return ''
 })
@@ -1504,7 +1651,7 @@ async function handleSubmit() {
       await Swal.fire({
         icon: 'warning',
         title: 'Ubicación incompleta',
-        text: 'Completá Acta, Predio y Rodal cuando sean solicitados para poder guardar.',
+        text: mensajeUbicacionIncompleta.value,
         confirmButtonColor: '#3d935d',
       })
       return

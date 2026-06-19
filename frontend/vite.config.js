@@ -36,6 +36,7 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-catalogos',
+              cacheableResponse: { statuses: [0, 200] },
               expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 }, // 24h
               networkTimeoutSeconds: 5,
             },

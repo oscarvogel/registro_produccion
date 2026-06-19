@@ -21,4 +21,18 @@ describe('toast store', () => {
 
     expect(store.items).toHaveLength(0)
   })
+
+  it('deduplicates repeated equal toasts inside the configured window', () => {
+    const store = useToastStore()
+
+    store.error('Error del servidor', 'No se pudo conectar con el servidor.')
+    store.error('Error del servidor', 'No se pudo conectar con el servidor.')
+
+    expect(store.items).toHaveLength(1)
+
+    vi.advanceTimersByTime(4000)
+    store.error('Error del servidor', 'No se pudo conectar con el servidor.')
+
+    expect(store.items).toHaveLength(2)
+  })
 })
