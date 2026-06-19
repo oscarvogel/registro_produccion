@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import OperationalError
 
 from app import main as main_module
 from app.main import app
@@ -81,3 +82,24 @@ def test_health_fails_when_expected_database_name_mismatches(monkeypatch):
     assert data["database"] == "ok"
     assert data["database_name"]["matches"] is False
     assert data["database_name"]["actual"] == "indufor"
+
+
+def test_database_errors_return_safe_message_without_sql():
+    async def broken_database_route():
+        raise OperationalError(
+            "SELECT personal.idPersonal FROM personal WHERE personal.idPersonal = %(idPersonal_1)s",
+            {"idPersonal_1": 951},
+            Exception("Lost connection to MySQL server during query"),
+        )
+
+    app.add_api_route("/__test__/database-error-safe-message", broken_database_route, methods=["GET"])
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/__test__/database-error-safe-message")
+
+    assert response.status_code == 503
+    detail = response.json()["detail"]
+    assert detail == "No se pudieron cargar los datos necesarios. Actualiza e intenta nuevamente."
+    assert "SELECT" not in detail
+    assert "personal" not in detail
+    assert "Lost connection" not in detail
