@@ -36,4 +36,19 @@ describe('AutocompleteField', () => {
     await wrapper.setProps({ error: '' })
     expect(wrapper.text()).toContain('Sin operadores configurados para esta unidad')
   })
+
+  it('shows a clear empty options message when the user opens an empty combo', async () => {
+    const wrapper = mount(AutocompleteField, {
+      props: {
+        label: 'Tipo de Proceso',
+        items: [],
+        emptyMessage: 'Sin procesos configurados para esta unidad',
+      },
+      global,
+    })
+
+    await wrapper.get('input').trigger('focus')
+
+    expect(wrapper.text()).toContain('Sin procesos configurados para esta unidad')
+  })
 })
