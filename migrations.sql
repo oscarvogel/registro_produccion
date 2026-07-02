@@ -308,6 +308,10 @@ ALTER TABLE tablero_produccion
   ADD COLUMN IF NOT EXISTS pies_12  DECIMAL(12,2) NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS pies_10  DECIMAL(12,2) NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS pulpable DECIMAL(12,2) NOT NULL DEFAULT 0;
+
+-- Migración 2026-07-02: permitir nombres visibles de equipo mas largos
+ALTER TABLE tablero_produccion
+  MODIFY COLUMN equipo VARCHAR(100) NOT NULL DEFAULT '';
 INSERT IGNORE INTO tipo_proceso_kpi (tipo_proceso_id, kpi_id, orden, es_principal) VALUES
   (11, 1,  1, 1),
   (11, 10, 2, 0),

@@ -3103,7 +3103,7 @@ CREATE TABLE `tablero_produccion` (
   `UN` varchar(50) NOT NULL DEFAULT '',
   `operacion` varchar(50) NOT NULL DEFAULT '',
   `fecha` date DEFAULT NULL,
-  `equipo` varchar(50) NOT NULL DEFAULT '',
+  `equipo` varchar(100) NOT NULL DEFAULT '',
   `operador` varchar(50) NOT NULL DEFAULT '',
   `hr_inicio` decimal(12,2) NOT NULL DEFAULT 0.00,
   `hr_fin` decimal(12,2) NOT NULL DEFAULT 0.00,
