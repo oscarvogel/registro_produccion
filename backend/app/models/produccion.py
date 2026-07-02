@@ -9,7 +9,7 @@ class TableroProduccion(Base):
     UN = Column(String(50), nullable=False, default="")
     operacion = Column(String(50), nullable=False, default="")
     fecha = Column(Date, nullable=True)
-    equipo = Column(String(50), nullable=False, default="")
+    equipo = Column(String(100), nullable=False, default="")
     operador = Column(String(50), nullable=False, default="")
     hr_inicio = Column(Numeric(12, 2), nullable=False, default=0)
     hr_fin = Column(Numeric(12, 2), nullable=False, default=0)
