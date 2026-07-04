@@ -148,9 +148,27 @@ sleep 2
 curl -fsS "$HEALTH_URL"
 echo
 
-echo "==> Verificando home publica: $PUBLIC_URL"
-curl -fsSI "$PUBLIC_URL" >/dev/null
-curl -fsS "$PUBLIC_URL" | grep -qi '<div id="app"></div>'
+if [[ "${INTERNAL_CHECK:-0}" == "1" ]]; then
+  # Modo LAN / hairpin NAT: el server no puede hablar consigo mismo a traves
+  # de la IP publica. Saltamos el curl externo y validamos el front nuevo en
+  # disco + el backend local. El operador / monitoreo validan la URL publica
+  # desde fuera de la LAN.
+  echo "==> INTERNAL_CHECK=1: saltando curl externo (hairpin NAT)"
+  frontend_index="$APP_DIR/frontend/index.html"
+  if [[ ! -f "$frontend_index" ]]; then
+    echo "ERROR: no existe $frontend_index; el deploy fallo al publicar el frontend." >&2
+    exit 1
+  fi
+  if ! grep -qi '<div id="app"></div>' "$frontend_index"; then
+    echo "ERROR: $frontend_index no contiene '#app' marker; el frontend no quedo bien." >&2
+    exit 1
+  fi
+  echo "==> Frontend dist OK: $frontend_index"
+else
+  echo "==> Verificando home publica: $PUBLIC_URL"
+  curl -fsSI "$PUBLIC_URL" >/dev/null
+  curl -fsS "$PUBLIC_URL" | grep -qi '<div id="app"></div>'
+fi
 
 rollback_needed=0
 rm -rf "$APP_DIR/frontend.previous"
