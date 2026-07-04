@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useToastStore } from '@/stores/toast'
+import { useConnectivityStore } from '@/stores/connectivity'
 
 let onUnauthorized = null
 export const SERVER_ERROR_MESSAGE = 'No se pudo conectar con el servidor. Intenta nuevamente en unos minutos.'
@@ -48,17 +49,39 @@ api.interceptors.response.use(
       }
     }
 
-    if (!suppressToast) {
-      if (!error.response) {
-        useToastStore().error('Backend no disponible', 'No se pudo conectar con el servidor.')
-      } else if (status === 403) {
-        useToastStore().error('Acceso restringido', error.response?.data?.detail || 'No tenes permisos para esta accion.')
-      } else if (status >= 500) {
-        // 5xx never leaks backend detail to the UI; only the generic message.
-        useToastStore().error('Error del servidor', SERVER_ERROR_MESSAGE)
-      } else if (status === 401 && !isAuthLogin) {
-        useToastStore().error('Sesion expirada', 'Volvé a iniciar sesion para continuar.')
+    if (suppressToast) {
+      return Promise.reject(error)
+    }
+
+    // When the operator is already offline, the global amber banner is
+    // telling them the same story — showing an additional error toast for
+    // every API request that fails because of the missing connection is just
+    // noise. We only suppress "no response" errors here (and 5xx sentinels);
+    // permission / 401 / 4xx feedback still surfaces even while offline.
+    const knownOffline = (() => {
+      try {
+        return useConnectivityStore().isOffline === true
+      } catch {
+        return false
       }
+    })()
+
+    const noResponse = !error.response
+
+    if (noResponse && knownOffline) {
+      // The amber offline banner has it covered — stay silent.
+      return Promise.reject(error)
+    }
+
+    if (noResponse) {
+      useToastStore().error('Backend no disponible', 'No se pudo conectar con el servidor.')
+    } else if (status === 403) {
+      useToastStore().error('Acceso restringido', error.response?.data?.detail || 'No tenes permisos para esta accion.')
+    } else if (status >= 500) {
+      // 5xx never leaks backend detail to the UI; only the generic message.
+      useToastStore().error('Error del servidor', SERVER_ERROR_MESSAGE)
+    } else if (status === 401 && !isAuthLogin) {
+      useToastStore().error('Sesion expirada', 'Volvé a iniciar sesion para continuar.')
     }
 
     return Promise.reject(error)
