@@ -10,6 +10,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: null, // we register the SW ourselves in main.js so we
+                            // can hook onNeedRefresh and force a reload when
+                            // a new build ships. Otherwise the operator on the
+                            // installed PWA would keep running the old bundle
+                            // until they manually hard-reload.
       devOptions: { enabled: true },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
@@ -27,6 +32,11 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // skipWaiting + clientsClaim lets the new SW take control of open
+        // clients immediately. main.js triggers window.location.reload() to
+        // make the new assets actually run.
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Cache API responses that are catalogue data (not production submissions)
         runtimeCaching: [
