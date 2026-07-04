@@ -27,17 +27,6 @@
             <p class="mt-2 text-sm text-neutral-500">Ingresa con tu DNI y contraseña para continuar con el registro de producción.</p>
 
             <form @submit.prevent="handleLogin" class="mt-8 space-y-4">
-              <div
-                v-if="offlineNow"
-                class="flex items-center gap-2 rounded-lg bg-amber-100 p-3 text-sm text-amber-900"
-                data-testid="offline-banner"
-                role="status"
-                aria-live="polite"
-              >
-                <AppIcon name="offline" class="shrink-0 text-amber-700" />
-                <span>Estás sin conexión. Si ya iniciaste sesión, podés seguir trabajando con los datos guardados.</span>
-              </div>
-
               <div>
                 <label for="desktop-dni" class="mb-1.5 block text-sm font-bold text-neutral-700">DNI</label>
                 <input
@@ -174,17 +163,6 @@
           <p class="mt-1 text-sm text-neutral-500">Ingresa con tu DNI y contraseña para continuar.</p>
 
           <form @submit.prevent="handleLogin" class="mt-6 space-y-4">
-            <div
-              v-if="offlineNow"
-              class="flex items-center gap-2 rounded-lg bg-amber-100 p-3 text-sm text-amber-900"
-              data-testid="offline-banner"
-              role="status"
-              aria-live="polite"
-            >
-              <AppIcon name="offline" class="shrink-0 text-amber-700" />
-              <span>Estás sin conexión. Si ya iniciaste sesión, podés seguir trabajando con los datos guardados.</span>
-            </div>
-
             <div>
               <label for="mobile-dni" class="mb-1.5 block text-sm font-bold text-neutral-700">DNI</label>
               <input
@@ -301,7 +279,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   useAuthStore,
@@ -309,26 +287,22 @@ import {
   LOGIN_ERROR_NO_CONNECTION,
   LOGIN_ERROR_SERVER,
 } from '@/stores/auth'
+import { useConnectivityStore } from '@/stores/connectivity'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const connectivityStore = useConnectivityStore()
 
 const dni = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const syncMessage = ref('')
 const offlineNotice = ref('')
-const offlineNow = ref(typeof navigator !== 'undefined' && navigator.onLine === false)
-
-function updateOnlineStatus() {
-  offlineNow.value =
-    typeof navigator !== 'undefined' && navigator.onLine === false
-}
 
 function isOffline() {
-  return offlineNow.value
+  return connectivityStore.isOffline
 }
 
 const errorCategory = computed(() => {
@@ -341,10 +315,6 @@ const errorCategory = computed(() => {
 })
 
 onMounted(() => {
-  updateOnlineStatus()
-  window.addEventListener('online', updateOnlineStatus)
-  window.addEventListener('offline', updateOnlineStatus)
-
   // If the operator landed on /login with a cached offline session still valid,
   // send them straight to home. They are already authenticated, just without
   // network — they should not have to retype credentials.
@@ -364,11 +334,6 @@ onMounted(() => {
     offlineNotice.value =
       'Estás sin conexión. No se puede validar contra el servidor ahora.'
   }
-})
-
-onUnmounted(() => {
-  window.removeEventListener('online', updateOnlineStatus)
-  window.removeEventListener('offline', updateOnlineStatus)
 })
 
 async function handleSync() {

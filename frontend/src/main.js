@@ -43,7 +43,12 @@ app.use(MotionPlugin, motionPluginOptions)
 
 // Restore auth header on app init
 import { useAuthStore } from '@/stores/auth'
+import { useConnectivityStore } from '@/stores/connectivity'
+
 const authStore = useAuthStore()
+const connectivityStore = useConnectivityStore()
+connectivityStore.init()
+
 const initMode = authStore.initAuth()
 
 if (initMode === 'offline') {
