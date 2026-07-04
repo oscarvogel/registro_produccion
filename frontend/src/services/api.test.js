@@ -230,6 +230,22 @@ describe('api response interceptor', () => {
     expect(toastError).not.toHaveBeenCalled()
   })
 
+  it('stays silent when navigator.onLine is false even if the connectivity store is not yet updated', async () => {
+    // Simulate the race: the periodic healthcheck has not yet flipped the
+    // store, but navigator already knows the network is gone.
+    currentConnectivityOffline = false
+    const original = navigator.onLine
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false })
+    try {
+      const handler = await getErrorHandler()
+      const error = { message: 'Network Error', config: { url: '/api/produccion' } }
+      await expect(handler(error)).rejects.toBe(error)
+      expect(toastError).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => original })
+    }
+  })
+
   it('still shows 5xx toasts even when offline (operationally important)', async () => {
     // Offline + online both warrant a generic 5xx toast: the request reached
     // a server that is sick, which deserves attention regardless of the

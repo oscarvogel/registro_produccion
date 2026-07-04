@@ -56,14 +56,17 @@ api.interceptors.response.use(
     // When the operator is already offline (or the backend healthcheck is
     // degraded), the global banner is telling them the same story — showing
     // an additional "no response" toast for every failing request is just
-    // noise. Permission / 401 / 4xx feedback still surfaces even while
-    // offline because those need action.
+    // noise. We also fall back to `navigator.onLine === false` directly to
+    // close the race window between losing the network and the next periodic
+    // healthcheck flipping isBackendUp.
     const knownDown = (() => {
       try {
-        return useConnectivityStore().isOfflineOrBackendDown === true
+        if (useConnectivityStore().isOfflineOrBackendDown === true) return true
       } catch {
-        return false
+        /* ignore */
       }
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return true
+      return false
     })()
 
     const noResponse = !error.response
