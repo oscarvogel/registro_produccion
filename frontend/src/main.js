@@ -44,7 +44,20 @@ app.use(MotionPlugin, motionPluginOptions)
 // Restore auth header on app init
 import { useAuthStore } from '@/stores/auth'
 const authStore = useAuthStore()
-authStore.initAuth()
+const initMode = authStore.initAuth()
+
+if (initMode === 'offline') {
+  // Notify the operator after mount that we booted in offline mode.
+  // Defer one tick so the toast host is mounted.
+  setTimeout(() => {
+    import('./stores/toast').then(({ useToastStore }) => {
+      useToastStore().info(
+        'Modo offline',
+        'Estás sin conexión. Tu sesión guardada te deja entrar por un tiempo limitado.',
+      )
+    })
+  }, 0)
+}
 
 setUnauthorizedHandler(() => {
   authStore.logout()
