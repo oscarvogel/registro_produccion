@@ -465,10 +465,41 @@ const lastRecordMetrics = computed(() => {
   ].filter((item) => Number(item.value) > 0).map((item) => ({ ...item, value: fmt(item.value) }))
 })
 
+const rangeShortLabel = computed(() => {
+  switch (selectedDatePreset.value) {
+    case 'today':
+      return 'hoy'
+    case 'yesterday':
+      return 'ayer'
+    case 'last7':
+      return 'ultimos 7 dias'
+    case 'lastWeek':
+      return 'semana pasada'
+    default:
+      return 'este periodo'
+  }
+})
+
+const rangeLongLabel = computed(() => {
+  if (selectedDatePreset.value !== 'custom') return rangeShortLabel.value
+  return `del ${rangeLabel.value}`
+})
+
 const operatorSummaryCards = computed(() => [
-  { label: 'Producción hoy', value: fmt(productionToday.value.value), unit: productionToday.value.unit, detail: productionToday.value.label, icon: 'production' },
+  {
+    label: 'Produccion',
+    value: fmt(productionToday.value.value),
+    unit: productionToday.value.unit,
+    detail: `${productionToday.value.label} (${rangeShortLabel.value})`,
+    icon: 'production',
+  },
   { label: 'Horas', value: fmt(recordsStore.totales.total_horas), unit: 'hs', detail: 'Tiempo trabajado', icon: 'timer' },
-  { label: 'Registros', value: fmt(recordsStore.totales.total), detail: 'Cargas del dia', icon: 'records' },
+  {
+    label: 'Registros',
+    value: fmt(recordsStore.totales.total),
+    detail: `Cargas ${rangeShortLabel.value}`,
+    icon: 'records',
+  },
   { label: 'Combustible', value: fmt(recordsStore.totales.total_combustible), unit: 'lts', detail: 'Consumo cargado', icon: 'fuel' },
 ])
 
