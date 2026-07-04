@@ -15,6 +15,10 @@ import {
   clearOfflineSessionCache,
   readOfflineSessionCache,
   readOfflineGracePeriodDays,
+  classifyLoginError,
+  LOGIN_ERROR_BAD_CREDENTIALS,
+  LOGIN_ERROR_NO_CONNECTION,
+  LOGIN_ERROR_SERVER,
 } from './auth'
 
 const CACHE_KEY = 'offline_session_cache'
@@ -191,7 +195,7 @@ describe('auth store / login error messages', () => {
     const store = useAuthStore()
     const ok = await store.login('12345678', 'wrong')
     expect(ok).toBe(false)
-    expect(store.error).toBe('DNI o contraseña incorrectos')
+    expect(store.error).toBe(LOGIN_ERROR_BAD_CREDENTIALS)
   })
 
   it('keeps generic connection error for non-401 failures', async () => {
@@ -200,7 +204,108 @@ describe('auth store / login error messages', () => {
     const ok = await store.login('12345678', 'whatever')
     expect(ok).toBe(false)
     // The store keeps its non-leaky message even when backend returns garbage.
-    expect(store.error).toBe('Error de conexión con el servidor')
+    expect(store.error).toBe(LOGIN_ERROR_SERVER)
     expect(store.error).not.toMatch(/pymysql/i)
+  })
+
+  it('uses the no-connection message when axios has no response (offline)', async () => {
+    api.post.mockRejectedValueOnce({ message: 'Network Error' })
+    const store = useAuthStore()
+    const ok = await store.login('12345678', 'whatever')
+    expect(ok).toBe(false)
+    expect(store.error).toBe(LOGIN_ERROR_NO_CONNECTION)
+  })
+
+  it('passes _suppressErrorToast: true on the login request', async () => {
+    api.post.mockResolvedValueOnce({
+      data: {
+        access_token: fakeJwt(Math.floor(Date.now() / 1000) + 3600),
+        user: { idPersonal: 1, dni: '1', nombre: 'X', is_admin: 0 },
+      },
+    })
+    const store = useAuthStore()
+    await store.login('1', 'p')
+    expect(api.post).toHaveBeenCalledWith(
+      '/api/auth/login',
+      { dni: '1', password: 'p' },
+      expect.objectContaining({ _suppressErrorToast: true }),
+    )
+  })
+
+  it('uses backend detail on 4xx only when detail is short and non-technical', async () => {
+    api.post.mockRejectedValueOnce({
+      response: { status: 400, data: { detail: 'La contrasena es muy corta' } },
+    })
+    const store = useAuthStore()
+    await store.login('1', 'x')
+    expect(store.error).toBe('La contrasena es muy corta')
+  })
+
+  it('rejects technical-looking 4xx details to avoid leaks', async () => {
+    api.post.mockRejectedValueOnce({
+      response: {
+        status: 400,
+        data: {
+          detail:
+            "pymysql.err.OperationalError: (2013, 'Lost connection to MySQL server')",
+        },
+      },
+    })
+    const store = useAuthStore()
+    await store.login('1', 'x')
+    expect(store.error).toBe(LOGIN_ERROR_SERVER)
+    expect(store.error).not.toMatch(/pymysql/i)
+  })
+})
+
+describe('classifyLoginError', () => {
+  it('returns no-connection when there is no response object', () => {
+    expect(classifyLoginError({ message: 'Network Error' })).toBe(
+      LOGIN_ERROR_NO_CONNECTION,
+    )
+    expect(classifyLoginError(null)).toBe(LOGIN_ERROR_SERVER)
+  })
+
+  it('returns bad-credentials for 401', () => {
+    expect(
+      classifyLoginError({ response: { status: 401, data: { detail: 'X' } } }),
+    ).toBe(LOGIN_ERROR_BAD_CREDENTIALS)
+  })
+
+  it('returns server for 5xx and never echoes detail', () => {
+    expect(
+      classifyLoginError({
+        response: {
+          status: 503,
+          data: { detail: "SELECT * FROM usuarios WHERE password_hash = 'x'" },
+        },
+      }),
+    ).toBe(LOGIN_ERROR_SERVER)
+  })
+
+  it('echoes backend detail on 4xx only when it looks user-friendly', () => {
+    expect(
+      classifyLoginError({
+        response: { status: 400, data: { detail: 'DNI invalido' } },
+      }),
+    ).toBe('DNI invalido')
+  })
+
+  it('ignores overly long backend detail to avoid weird UI', () => {
+    const huge = 'x'.repeat(200)
+    expect(
+      classifyLoginError({ response: { status: 400, data: { detail: huge } } }),
+    ).toBe(LOGIN_ERROR_SERVER)
+  })
+
+  it('ignores technical-looking strings even when short', () => {
+    expect(
+      classifyLoginError({
+        response: {
+          status: 400,
+          data: { detail: 'INSERT INTO foo (password_hash) VALUES (1)' },
+        },
+      }),
+    ).toBe(LOGIN_ERROR_SERVER)
   })
 })

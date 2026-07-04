@@ -5,6 +5,12 @@ const CACHE_KEY = 'offline_session_cache'
 const DEFAULT_OFFLINE_GRACE_DAYS = 14
 const MAX_OFFLINE_GRACE_DAYS = 365
 
+export const LOGIN_ERROR_NO_CONNECTION =
+  'Estás sin conexión. Necesitamos señal para validar el ingreso.'
+export const LOGIN_ERROR_BAD_CREDENTIALS = 'DNI o contraseña incorrectos'
+export const LOGIN_ERROR_SERVER =
+  'No se pudo conectar con el servidor. Intenta nuevamente en unos minutos.'
+
 function isTokenExpired(token) {
   if (!token) return true
   try {
@@ -81,6 +87,79 @@ export function clearOfflineSessionCache() {
   }
 }
 
+/**
+ * Map an axios login error to a non-leaky, operator-friendly message.
+ *
+ * Priority:
+ *  1. No HTTP response (network/DNS/CORS/aborted): operator is offline.
+ *  2. 401: wrong DNI or password.
+ *  3. 5xx: backend in trouble; never surface backend detail (sql, pymysql, etc.).
+ *  4. 4xx other than 401: try the backend `detail` only if it's a short string
+ *     (≤120 chars) that doesn't look technical. Otherwise, generic.
+ *  5. Fallback: generic "no se pudo conectar".
+ */
+export function classifyLoginError(err) {
+  if (!err || typeof err !== 'object') {
+    return LOGIN_ERROR_SERVER
+  }
+
+  const status = err.response?.status
+  const response = err.response
+
+  if (!response) {
+    return LOGIN_ERROR_NO_CONNECTION
+  }
+
+  if (status === 401) {
+    return LOGIN_ERROR_BAD_CREDENTIALS
+  }
+
+  if (status >= 500) {
+    return LOGIN_ERROR_SERVER
+  }
+
+  if (status >= 400) {
+    const detail = response.data?.detail
+    if (
+      typeof detail === 'string' &&
+      detail.length > 0 &&
+      detail.length <= 120 &&
+      !looksTechnical(detail)
+    ) {
+      return detail
+    }
+    return LOGIN_ERROR_SERVER
+  }
+
+  return LOGIN_ERROR_SERVER
+}
+
+const TECH_PATTERNS = [
+  /sqlalchemy/i,
+  /pymysql/i,
+  /mysql/i,
+  /operationalerror/i,
+  /programmingerror/i,
+  /internalerror/i,
+  /traceback/i,
+  /select\s+/i,
+  /insert\s+/i,
+  /update\s+/i,
+  /delete\s+from/i,
+  /\bstack\b/i,
+  /\btrace\b/i,
+  /exception/i,
+  /errno/i,
+  /null\s+value/i,
+  /column\s+/i,
+  /table\s+/i,
+  /password_hash/i,
+]
+
+function looksTechnical(text) {
+  return TECH_PATTERNS.some((re) => re.test(text))
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: JSON.parse(localStorage.getItem('user') || 'null'),
@@ -106,7 +185,11 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.post('/api/auth/login', { dni, password })
+        const { data } = await api.post(
+          '/api/auth/login',
+          { dni, password },
+          { _suppressErrorToast: true },
+        )
         this.token = data.access_token
         this.user = data.user
         this.offlineMode = false
@@ -116,11 +199,7 @@ export const useAuthStore = defineStore('auth', {
         await this.cacheSession(password)
         return true
       } catch (err) {
-        if (err.response?.status === 401) {
-          this.error = 'DNI o contraseña incorrectos'
-        } else {
-          this.error = 'Error de conexión con el servidor'
-        }
+        this.error = classifyLoginError(err)
         return false
       } finally {
         this.loading = false

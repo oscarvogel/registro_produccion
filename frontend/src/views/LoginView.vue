@@ -27,6 +27,17 @@
             <p class="mt-2 text-sm text-neutral-500">Ingresa con tu DNI y contraseña para continuar con el registro de producción.</p>
 
             <form @submit.prevent="handleLogin" class="mt-8 space-y-4">
+              <div
+                v-if="offlineNow"
+                class="flex items-center gap-2 rounded-lg bg-amber-100 p-3 text-sm text-amber-900"
+                data-testid="offline-banner"
+                role="status"
+                aria-live="polite"
+              >
+                <AppIcon name="offline" class="shrink-0 text-amber-700" />
+                <span>Estás sin conexión. Si ya iniciaste sesión, podés seguir trabajando con los datos guardados.</span>
+              </div>
+
               <div>
                 <label for="desktop-dni" class="mb-1.5 block text-sm font-bold text-neutral-700">DNI</label>
                 <input
@@ -69,14 +80,37 @@
 
               <div
                 v-if="authStore.error"
-                class="flex items-center gap-2 rounded-lg bg-error-light p-3 text-sm text-error-dark"
+                :class="[
+                  'flex items-start gap-2 rounded-lg p-3 text-sm',
+                  errorCategory === 'offline'
+                    ? 'bg-amber-100 text-amber-900'
+                    : errorCategory === 'credentials'
+                      ? 'bg-error-light text-error-dark'
+                      : 'bg-error-light text-error-dark',
+                ]"
+                data-testid="login-error"
+                role="alert"
               >
-                <AppIcon name="error" class="shrink-0 text-error" />
-                <span>{{ authStore.error }}</span>
+                <AppIcon
+                  :name="errorCategory === 'offline' ? 'offline' : 'error'"
+                  :class="['shrink-0', errorCategory === 'offline' ? 'text-amber-700 mt-0.5' : 'text-error mt-0.5']"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="font-bold">
+                    {{
+                      errorCategory === 'offline'
+                        ? 'Sin conexión'
+                        : errorCategory === 'credentials'
+                          ? 'Credenciales incorrectas'
+                          : 'No se pudo validar el ingreso'
+                    }}
+                  </p>
+                  <p class="mt-0.5 text-xs">{{ authStore.error }}</p>
+                </div>
               </div>
 
               <div
-                v-if="offlineNotice"
+                v-if="offlineNotice && !authStore.error"
                 class="flex items-center gap-2 rounded-lg bg-amber-100 p-3 text-sm text-amber-900"
                 role="status"
                 aria-live="polite"
@@ -140,6 +174,17 @@
           <p class="mt-1 text-sm text-neutral-500">Ingresa con tu DNI y contraseña para continuar.</p>
 
           <form @submit.prevent="handleLogin" class="mt-6 space-y-4">
+            <div
+              v-if="offlineNow"
+              class="flex items-center gap-2 rounded-lg bg-amber-100 p-3 text-sm text-amber-900"
+              data-testid="offline-banner"
+              role="status"
+              aria-live="polite"
+            >
+              <AppIcon name="offline" class="shrink-0 text-amber-700" />
+              <span>Estás sin conexión. Si ya iniciaste sesión, podés seguir trabajando con los datos guardados.</span>
+            </div>
+
             <div>
               <label for="mobile-dni" class="mb-1.5 block text-sm font-bold text-neutral-700">DNI</label>
               <input
@@ -182,14 +227,35 @@
 
             <div
               v-if="authStore.error"
-              class="flex items-center gap-2 rounded-lg bg-error-light p-3 text-sm text-error-dark"
+              :class="[
+                'flex items-start gap-2 rounded-lg p-3 text-sm',
+                errorCategory === 'offline'
+                  ? 'bg-amber-100 text-amber-900'
+                  : 'bg-error-light text-error-dark',
+              ]"
+              data-testid="login-error"
+              role="alert"
             >
-              <AppIcon name="error" class="shrink-0 text-error" />
-              <span>{{ authStore.error }}</span>
+              <AppIcon
+                :name="errorCategory === 'offline' ? 'offline' : 'error'"
+                :class="['shrink-0', errorCategory === 'offline' ? 'text-amber-700 mt-0.5' : 'text-error mt-0.5']"
+              />
+              <div class="min-w-0 flex-1">
+                <p class="font-bold">
+                  {{
+                    errorCategory === 'offline'
+                      ? 'Sin conexión'
+                      : errorCategory === 'credentials'
+                        ? 'Credenciales incorrectas'
+                        : 'No se pudo validar el ingreso'
+                  }}
+                </p>
+                <p class="mt-0.5 text-xs">{{ authStore.error }}</p>
+              </div>
             </div>
 
             <div
-              v-if="offlineNotice"
+              v-if="offlineNotice && !authStore.error"
               class="flex items-center gap-2 rounded-lg bg-amber-100 p-3 text-sm text-amber-900"
               role="status"
               aria-live="polite"
@@ -235,9 +301,14 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import {
+  useAuthStore,
+  LOGIN_ERROR_BAD_CREDENTIALS,
+  LOGIN_ERROR_NO_CONNECTION,
+  LOGIN_ERROR_SERVER,
+} from '@/stores/auth'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
 const router = useRouter()
@@ -249,12 +320,31 @@ const password = ref('')
 const showPassword = ref(false)
 const syncMessage = ref('')
 const offlineNotice = ref('')
+const offlineNow = ref(typeof navigator !== 'undefined' && navigator.onLine === false)
 
-function isOffline() {
-  return typeof navigator !== 'undefined' && navigator.onLine === false
+function updateOnlineStatus() {
+  offlineNow.value =
+    typeof navigator !== 'undefined' && navigator.onLine === false
 }
 
+function isOffline() {
+  return offlineNow.value
+}
+
+const errorCategory = computed(() => {
+  const err = authStore.error
+  if (!err) return null
+  if (err === LOGIN_ERROR_NO_CONNECTION) return 'offline'
+  if (err === LOGIN_ERROR_BAD_CREDENTIALS) return 'credentials'
+  if (err === LOGIN_ERROR_SERVER) return 'server'
+  return 'other'
+})
+
 onMounted(() => {
+  updateOnlineStatus()
+  window.addEventListener('online', updateOnlineStatus)
+  window.addEventListener('offline', updateOnlineStatus)
+
   // If the operator landed on /login with a cached offline session still valid,
   // send them straight to home. They are already authenticated, just without
   // network — they should not have to retype credentials.
@@ -276,6 +366,11 @@ onMounted(() => {
   }
 })
 
+onUnmounted(() => {
+  window.removeEventListener('online', updateOnlineStatus)
+  window.removeEventListener('offline', updateOnlineStatus)
+})
+
 async function handleSync() {
   syncMessage.value = ''
   const result = await authStore.sincronizar()
@@ -288,21 +383,12 @@ async function handleSync() {
 async function handleLogin() {
   syncMessage.value = ''
   offlineNotice.value = ''
-  if (!isOffline()) {
-    authStore.error = null
-  }
+  authStore.error = null
   const success = await authStore.login(dni.value, password.value)
   if (success) {
     authStore.clearOfflineCache()
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : null
     router.push(redirect ? { path: redirect } : { name: 'home' })
-    return
-  }
-  // If we are offline and login failed (no backend reachable), give a
-  // friendlier hint than the default toast.
-  if (isOffline() && authStore.error === 'Error de conexión con el servidor') {
-    authStore.error =
-      'Estás sin conexión. Necesitamos señal para validar el ingreso.'
   }
 }
 </script>
