@@ -11,7 +11,7 @@
       data-testid="offline-banner"
     >
       <AppIcon :name="icon" size="sm" :stroke-width="2.5" class="shrink-0" />
-      <span>{{ label }}</span>
+      <span class="truncate">{{ label }}</span>
       <span
         v-if="pendingCount > 0"
         class="ml-1 rounded bg-white/20 px-1.5"
@@ -33,6 +33,11 @@ const props = defineProps({
   message: { type: String, default: '' },
   // Optional pending count to display (used for production records).
   pendingCount: { type: Number, default: 0 },
+  // Optional flag: when true, the operator already has a valid cached session
+  // on this device, so we can drop the "first time" caveat. Pass `false` when
+  // the operator lands offline without ever having signed in here — the banner
+  // then explains why they still have to type credentials once with internet.
+  hasCachedSession: { type: Boolean, default: true },
 })
 
 const connectivity = useConnectivityStore()
@@ -53,8 +58,11 @@ const icon = computed(() => 'offline')
 const label = computed(() => {
   if (props.message) return props.message
   if (!connectivity.isOnline) {
-    return 'Sin conexión - Los registros se guardarán localmente y se sincronizarán al reconectar'
+    if (props.hasCachedSession) {
+      return 'Sin conexión - los registros se guardan localmente y se sincronizan al reconectar'
+    }
+    return 'Sin conexión - primera vez: necesitás iniciar sesión una vez con internet para guardar tu sesión hasta 14 días'
   }
-  return 'Servidor no disponible - Los registros se guardarán localmente'
+  return 'Servidor no disponible - los registros se guardarán localmente'
 })
 </script>

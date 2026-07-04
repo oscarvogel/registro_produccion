@@ -324,15 +324,19 @@ onMounted(() => {
     router.replace({ name: 'home' })
     return
   }
-  // If we are offline AND the cached session exists but is past the grace
-  // period, surface a clear message so the operator understands why they
-  // cannot enter.
-  if (isOffline() && authStore.cachedSession && !authStore.isOfflineCacheValid()) {
-    const age = authStore.offlineCacheAgeDays()
-    offlineNotice.value = `Estás sin conexión y tu sesión guardada tiene ${age} días. Necesitamos validar contra el servidor para entrar.`
-  } else if (isOffline() && authStore.initMode === 'offline-locked') {
-    offlineNotice.value =
-      'Estás sin conexión. No se puede validar contra el servidor ahora.'
+  if (isOffline()) {
+    if (!authStore.cachedSession) {
+      // Primer arranque offline en este dispositivo: explicar por que tiene que
+      // loguearse con internet la primera vez.
+      offlineNotice.value =
+        'Estás sin conexión. Esta es la primera vez que abrís la app en este dispositivo: necesitamos señal la primera vez para validar tu DNI y guardar la sesión por hasta 14 días.'
+    } else if (!authStore.isOfflineCacheValid()) {
+      const age = authStore.offlineCacheAgeDays()
+      offlineNotice.value = `Estás sin conexión y tu sesión guardada tiene ${age} días. Necesitamos validar contra el servidor para entrar.`
+    } else if (authStore.initMode === 'offline-locked') {
+      offlineNotice.value =
+        'Estás sin conexión. No se puede validar contra el servidor ahora.'
+    }
   }
 })
 

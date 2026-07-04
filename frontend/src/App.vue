@@ -1,6 +1,9 @@
 <template>
   <div id="app" class="app-shell min-h-screen">
-    <OfflineBanner :pending-count="produccionStore.pendingCount" />
+    <OfflineBanner
+      :pending-count="produccionStore.pendingCount"
+      :has-cached-session="hasCachedSession"
+    />
 
     <template v-if="authStore.isAuthenticated">
       <div :class="['min-h-screen', connectivityStore.isOffline ? 'pt-8' : '']">
@@ -266,6 +269,12 @@ const openSections = reactive({
 const isAdmin = computed(() => authStore.isAdmin)
 const isEncargado = computed(() => authStore.user?.encargado === 1)
 const canViewDashboard = computed(() => isAdmin.value || isEncargado.value)
+
+// Whether the operator has ever signed in on this device (has an offline
+// session cache, valid or not). Drives the OfflineBanner copy: when false the
+// banner explains the "first time" requirement instead of the generic cache
+// reassurance.
+const hasCachedSession = computed(() => !!authStore.cachedSession)
 
 const userRoleLabel = computed(() => {
   if (isAdmin.value) return 'Admin'
