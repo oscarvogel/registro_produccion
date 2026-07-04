@@ -2,6 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useConnectivityStore } from './connectivity'
 
+const checkBackendMock = vi.fn()
+
+vi.mock('@/services/healthCheck', () => ({
+  checkBackend: (...args) => checkBackendMock(...args),
+}))
+
 function setNavigatorOnline(value) {
   Object.defineProperty(navigator, 'onLine', {
     configurable: true,
@@ -9,74 +15,135 @@ function setNavigatorOnline(value) {
   })
 }
 
-describe('connectivity store', () => {
+describe('connectivity store (with healthcheck)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     setNavigatorOnline(true)
+    checkBackendMock.mockReset()
   })
 
   afterEach(() => {
+    // Tear down any store that was init()'ed in this test so window event
+    // listeners do not accumulate across tests.
+    const store = useConnectivityStore()
+    store.teardown()
     vi.restoreAllMocks()
   })
 
-  it('reads navigator.onLine on first init', () => {
+  it('refreshBackendHealth flips isBackendUp=true on "ok"', async () => {
+    checkBackendMock.mockResolvedValueOnce('ok')
     setNavigatorOnline(true)
     const store = useConnectivityStore()
     store.init()
-    expect(store.isOnline).toBe(true)
-    expect(store.isOffline).toBe(false)
+    const result = await store.refreshBackendHealth({ force: true })
+    expect(result).toBe(true)
+    expect(store.isBackendUp).toBe(true)
+    expect(store.lastHealthResult).toBe('ok')
+    expect(store.lastBackendCheckAt).toBeGreaterThan(0)
+    expect(store.pendingInitialHealthCheck).toBe(false)
   })
 
-  it('starts offline if the navigator reported offline', () => {
+  it('refreshBackendHealth flips isBackendUp=false on degraded / unreachable / timeout', async () => {
+    for (const state of ['degraded', 'unreachable', 'timeout']) {
+      checkBackendMock.mockResolvedValueOnce(state)
+      const store = useConnectivityStore()
+      store.init()
+      await store.refreshBackendHealth({ force: true })
+      expect(store.isBackendUp).toBe(false)
+      expect(store.lastHealthResult).toBe(state)
+    }
+  })
+
+  it('refreshBackendHealth skips the network call when offline', async () => {
     setNavigatorOnline(false)
     const store = useConnectivityStore()
     store.init()
-    expect(store.isOnline).toBe(false)
-    expect(store.isBackendUp).toBe(false) // implicit when offline
-  })
-
-  it('flips to offline when an offline event fires', () => {
-    const store = useConnectivityStore()
-    store.init()
-    expect(store.isOnline).toBe(true)
-    window.dispatchEvent(new Event('offline'))
-    expect(store.isOnline).toBe(false)
+    const ok = await store.refreshBackendHealth({ force: true })
+    expect(ok).toBe(false)
     expect(store.isBackendUp).toBe(false)
+    expect(checkBackendMock).not.toHaveBeenCalled()
   })
 
-  it('flips back to online when an online event fires', () => {
-    setNavigatorOnline(false)
+  it('caches the healthy state within TTL and skips subsequent calls', async () => {
+    checkBackendMock.mockResolvedValue('ok')
     const store = useConnectivityStore()
     store.init()
-    expect(store.isOnline).toBe(false)
+    await store.refreshBackendHealth()
+    expect(checkBackendMock).toHaveBeenCalledTimes(1)
+    // Cache is fresh — second call returns the cached value without hitting the API.
+    await store.refreshBackendHealth()
+    expect(checkBackendMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('force=true ignores the cache', async () => {
+    checkBackendMock.mockResolvedValue('ok')
+    const store = useConnectivityStore()
+    store.init()
+    await store.refreshBackendHealth()
+    await store.refreshBackendHealth({ force: true })
+    expect(checkBackendMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('flipping back to online triggers a new healthcheck', async () => {
+    checkBackendMock.mockResolvedValue('ok')
+    const store = useConnectivityStore()
+    store.init()
+    setNavigatorOnline(false)
+    window.dispatchEvent(new Event('offline'))
+    expect(checkBackendMock).not.toHaveBeenCalled()
     setNavigatorOnline(true)
     window.dispatchEvent(new Event('online'))
-    expect(store.isOnline).toBe(true)
-    // Coming back online is an optimistic assumption that the backend is up.
-    expect(store.isBackendUp).toBe(true)
-    expect(store.lastBackendCheckAt).toBeGreaterThan(0)
+    // Drain the microtasks queued by the offline → online transition.
+    for (let i = 0; i < 5; i++) await Promise.resolve()
+    expect(checkBackendMock).toHaveBeenCalledTimes(1)
   })
 
-  it('does not register listeners more than once', () => {
+  it('startPeriodicHealthChecks registers a setInterval with the requested period', async () => {
+    const setIntervalSpy = vi.spyOn(window, 'setInterval')
+    const clearIntervalSpy = vi.spyOn(window, 'clearInterval')
+    checkBackendMock.mockResolvedValue('ok')
     const store = useConnectivityStore()
     store.init()
-    store.init() // should be a no-op
-    setNavigatorOnline(false)
-    // Only one listener means the state flips once, not twice.
-    window.dispatchEvent(new Event('offline'))
-    expect(store.isOnline).toBe(false)
+    expect(store._healthInterval ?? null).toBeNull()
+    const stop = store.startPeriodicHealthChecks({ intervalMs: 500 })
+    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 500)
+    expect(store._healthInterval).not.toBeNull()
+    stop()
+    expect(clearIntervalSpy).toHaveBeenCalled()
   })
 
-  it('safely does nothing in non-browser environments', () => {
-    const originalWindow = globalThis.window
-    // simulate SSR
-    // @ts-expect-error - intentional
-    delete globalThis.window
-    try {
-      const store = useConnectivityStore()
-      expect(() => store.init()).not.toThrow()
-    } finally {
-      globalThis.window = originalWindow
-    }
+  it('startPeriodicHealthChecks is idempotent — second call returns a no-op teardown', async () => {
+    const setIntervalSpy = vi.spyOn(window, 'setInterval')
+    checkBackendMock.mockResolvedValue('ok')
+    const store = useConnectivityStore()
+    store.init()
+    const stop1 = store.startPeriodicHealthChecks({ intervalMs: 500 })
+    const stop2 = store.startPeriodicHealthChecks({ intervalMs: 500 })
+    expect(setIntervalSpy).toHaveBeenCalledTimes(1)
+    stop1()
+    stop2()
+  })
+
+  it('isOfflineOrBackendDown is true when online and backend is degraded', async () => {
+    checkBackendMock.mockResolvedValueOnce('degraded')
+    const store = useConnectivityStore()
+    store.init()
+    expect(store.isOfflineOrBackendDown).toBe(false) // before healthcheck
+    await store.refreshBackendHealth({ force: true })
+    expect(store.isOnline).toBe(true)
+    expect(store.isBackendUp).toBe(false)
+    expect(store.isOfflineOrBackendDown).toBe(true)
+  })
+
+  it('hasFreshBackendState is true right after refresh and false when the cache is older than the TTL', async () => {
+    checkBackendMock.mockResolvedValueOnce('ok')
+    const store = useConnectivityStore()
+    store.init()
+    expect(store.hasFreshBackendState).toBe(false)
+    await store.refreshBackendHealth({ force: true })
+    expect(store.hasFreshBackendState).toBe(true)
+    // Backdate the cache to simulate TTL expiry without relying on fake timers.
+    store.lastBackendCheckAt = Date.now() - 31 * 1000
+    expect(store.hasFreshBackendState).toBe(false)
   })
 })

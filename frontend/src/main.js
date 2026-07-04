@@ -49,7 +49,15 @@ const authStore = useAuthStore()
 const connectivityStore = useConnectivityStore()
 connectivityStore.init()
 
-const initMode = authStore.initAuth()
+// Kick a first healthcheck so the OfflineBanner can switch to its red
+// backend-down variant within a few seconds if the backend is down. We do
+// NOT block app mount on this — the layout renders with the optimistic
+// `isOnline` initial value.
+connectivityStore.refreshBackendHealth().catch(() => {
+  /* the store already stores the latest state */
+})
+// Then keep checking periodically.
+connectivityStore.startPeriodicHealthChecks()
 
 if (initMode === 'offline') {
   // Notify the operator after mount that we booted in offline mode.
