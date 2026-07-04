@@ -1,20 +1,9 @@
 <template>
   <div id="app" class="app-shell min-h-screen">
-    <Transition name="status-slide">
-      <div
-        v-if="!isOnline"
-        class="fixed left-0 right-0 top-0 z-50 flex items-center justify-center gap-2 bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white"
-      >
-        <AppIcon name="offline" size="sm" :stroke-width="2.5" class="shrink-0" />
-        Sin conexión - Los registros se guardarán localmente y se sincronizarán al reconectar
-        <span v-if="produccionStore.pendingCount > 0" class="ml-1 rounded bg-white/20 px-1.5">
-          {{ produccionStore.pendingCount }} pendiente{{ produccionStore.pendingCount !== 1 ? 's' : '' }}
-        </span>
-      </div>
-    </Transition>
+    <OfflineBanner :pending-count="produccionStore.pendingCount" />
 
     <template v-if="authStore.isAuthenticated">
-      <div :class="['min-h-screen', !isOnline ? 'pt-8' : '']">
+      <div :class="['min-h-screen', connectivityStore.isOffline ? 'pt-8' : '']">
         <header class="sticky top-0 z-30 border-b border-[#222D26] bg-[#090E0B] text-white md:hidden">
           <div class="flex h-14 items-center justify-between px-4">
             <button
@@ -27,7 +16,7 @@
             </button>
             <div class="min-w-0 px-3 text-center">
               <p class="truncate text-sm font-extrabold text-white">Registro Producción</p>
-              <p class="truncate text-xs font-semibold text-[#9FE1CB]">{{ userRoleLabel }} - {{ isOnline ? 'En línea' : 'Sin conexión' }}</p>
+              <p class="truncate text-xs font-semibold text-[#9FE1CB]">{{ userRoleLabel }} - {{ connectivityStore.isOnline ? 'En línea' : 'Sin conexión' }}</p>
             </div>
             <button
               type="button"
@@ -92,7 +81,7 @@
                 <p class="truncate text-sm font-extrabold uppercase text-white">{{ authStore.userName }}</p>
                 <p class="flex items-center gap-1.5 text-xs font-medium text-white">
                   <span class="app-led h-1.5 w-1.5 rounded-full bg-[#10B981] text-[#10B981]"></span>
-                  {{ userRoleLabel }} - {{ isOnline ? 'En línea' : 'Sin conexión' }}
+                  {{ userRoleLabel }} - {{ connectivityStore.isOnline ? 'En línea' : 'Sin conexión' }}
                 </p>
               </div>
             </div>
@@ -253,7 +242,9 @@ import { computed, onMounted, onUnmounted, provide, reactive, ref, watch } from 
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
+import { useConnectivityStore } from '@/stores/connectivity'
 import { useTheme } from '@/composables/useTheme'
+import OfflineBanner from '@/components/ui/OfflineBanner.vue'
 import ToastHost from '@/components/ToastHost.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
@@ -261,6 +252,7 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const produccionStore = useProduccionStore()
+const connectivityStore = useConnectivityStore()
 const { isDark, toggleTheme } = useTheme()
 const mobileMenuOpen = ref(false)
 const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === '1')
@@ -436,27 +428,24 @@ async function installApp() {
 
 provide('pwaInstall', { deferredInstallPrompt, installApp })
 
-// Offline / sync management
-const isOnline = ref(navigator.onLine)
+// Offline / sync management.
+// `isOnline` now lives in the connectivity store — it is updated by window
+// events registered in main.js via `connectivityStore.init()`.
 const SYNC_INTERVAL_MS = 5 * 60 * 1000
 let syncIntervalId = null
 
 async function handleOnline() {
-  isOnline.value = true
-  if (navigator.onLine && authStore.isAuthenticated) {
+  // The connectivity store handles the boolean; here we just kick off the
+  // sync when we come back online while authenticated.
+  if (authStore.isAuthenticated) {
     await produccionStore.syncPending()
   }
-}
-
-function handleOffline() {
-  isOnline.value = false
 }
 
 onMounted(() => {
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.addEventListener('appinstalled', handleAppInstalled)
   window.addEventListener('online', handleOnline)
-  window.addEventListener('offline', handleOffline)
   if (authStore.isAuthenticated) {
     produccionStore.refreshPendingCount()
   }
@@ -472,7 +461,6 @@ onUnmounted(() => {
   window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.removeEventListener('appinstalled', handleAppInstalled)
   window.removeEventListener('online', handleOnline)
-  window.removeEventListener('offline', handleOffline)
   if (syncIntervalId) clearInterval(syncIntervalId)
 })
 
