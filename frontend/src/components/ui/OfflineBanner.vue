@@ -42,12 +42,12 @@ const props = defineProps({
 
 const connectivity = useConnectivityStore()
 
-const visible = computed(() => connectivity.isOffline)
+const visible = computed(() => connectivity.isOfflineOrBackendDown)
 
 const bannerClasses = computed(() => {
   // Background depends on what is wrong: pure offline (amber) vs backend
   // unreachable but online (red). Both mean "no sincronization right now".
-  if (!connectivity.isOnline) {
+  if (connectivity.isOffline) {
     return 'bg-amber-500 text-white'
   }
   return 'bg-error text-white'
@@ -57,12 +57,13 @@ const icon = computed(() => 'offline')
 
 const label = computed(() => {
   if (props.message) return props.message
-  if (!connectivity.isOnline) {
+  if (connectivity.isOffline) {
     if (props.hasCachedSession) {
       return 'Sin conexión - los registros se guardan localmente y se sincronizan al reconectar'
     }
     return 'Sin conexión - primera vez: necesitás iniciar sesión una vez con internet para guardar tu sesión hasta 14 días'
   }
+  // Online but backend unhealthy — keep this short so it fits on mobile.
   return 'Servidor no disponible - los registros se guardarán localmente'
 })
 </script>

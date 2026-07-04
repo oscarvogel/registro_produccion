@@ -53,14 +53,14 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // When the operator is already offline, the global amber banner is
-    // telling them the same story — showing an additional error toast for
-    // every API request that fails because of the missing connection is just
-    // noise. We only suppress "no response" errors here (and 5xx sentinels);
-    // permission / 401 / 4xx feedback still surfaces even while offline.
-    const knownOffline = (() => {
+    // When the operator is already offline (or the backend healthcheck is
+    // degraded), the global banner is telling them the same story — showing
+    // an additional "no response" toast for every failing request is just
+    // noise. Permission / 401 / 4xx feedback still surfaces even while
+    // offline because those need action.
+    const knownDown = (() => {
       try {
-        return useConnectivityStore().isOffline === true
+        return useConnectivityStore().isOfflineOrBackendDown === true
       } catch {
         return false
       }
@@ -68,8 +68,8 @@ api.interceptors.response.use(
 
     const noResponse = !error.response
 
-    if (noResponse && knownOffline) {
-      // The amber offline banner has it covered — stay silent.
+    if (noResponse && knownDown) {
+      // The banner has it covered — stay silent.
       return Promise.reject(error)
     }
 

@@ -25,6 +25,9 @@ vi.mock('@/stores/connectivity', () => ({
     get isOnline() {
       return !currentConnectivityOffline
     },
+    get isOfflineOrBackendDown() {
+      return currentConnectivityOffline
+    },
   }),
 }))
 
