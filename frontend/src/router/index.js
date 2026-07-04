@@ -89,14 +89,16 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
+  const authenticated =
+    authStore.isAuthenticated || authStore.isAuthenticatedOffline
 
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+  if (to.meta.requiresAuth && !authenticated) {
     next({ name: 'login' })
   } else if (to.meta.requiresAdmin && authStore.user?.is_admin !== 1) {
     next({ name: 'home' })
   } else if (to.meta.requiresEncargado && authStore.user?.encargado !== 1 && authStore.user?.is_admin !== 1) {
     next({ name: 'home' })
-  } else if (to.name === 'login' && authStore.isAuthenticated) {
+  } else if (to.name === 'login' && authenticated) {
     next({ name: 'home' })
   } else {
     next()

@@ -76,6 +76,16 @@
               </div>
 
               <div
+                v-if="offlineNotice"
+                class="flex items-center gap-2 rounded-lg bg-amber-100 p-3 text-sm text-amber-900"
+                role="status"
+                aria-live="polite"
+              >
+                <AppIcon name="offline" class="shrink-0 text-amber-700" />
+                <span>{{ offlineNotice }}</span>
+              </div>
+
+              <div
                 v-if="syncMessage"
                 class="flex items-center gap-2 rounded-lg bg-success-light p-3 text-sm text-success-dark"
               >
@@ -179,6 +189,16 @@
             </div>
 
             <div
+              v-if="offlineNotice"
+              class="flex items-center gap-2 rounded-lg bg-amber-100 p-3 text-sm text-amber-900"
+              role="status"
+              aria-live="polite"
+            >
+              <AppIcon name="offline" class="shrink-0 text-amber-700" />
+              <span>{{ offlineNotice }}</span>
+            </div>
+
+            <div
               v-if="syncMessage"
               class="flex items-center gap-2 rounded-lg bg-success-light p-3 text-sm text-success-dark"
             >
@@ -215,18 +235,46 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const dni = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const syncMessage = ref('')
+const offlineNotice = ref('')
+
+function isOffline() {
+  return typeof navigator !== 'undefined' && navigator.onLine === false
+}
+
+onMounted(() => {
+  // If the operator landed on /login with a cached offline session still valid,
+  // send them straight to home. They are already authenticated, just without
+  // network — they should not have to retype credentials.
+  if (authStore.isAuthenticatedOffline) {
+    offlineNotice.value =
+      'Estás sin conexión, pero tu sesión guardada sigue activa. Entrando a la app.'
+    router.replace({ name: 'home' })
+    return
+  }
+  // If we are offline AND the cached session exists but is past the grace
+  // period, surface a clear message so the operator understands why they
+  // cannot enter.
+  if (isOffline() && authStore.cachedSession && !authStore.isOfflineCacheValid()) {
+    const age = authStore.offlineCacheAgeDays()
+    offlineNotice.value = `Estás sin conexión y tu sesión guardada tiene ${age} días. Necesitamos validar contra el servidor para entrar.`
+  } else if (isOffline() && authStore.initMode === 'offline-locked') {
+    offlineNotice.value =
+      'Estás sin conexión. No se puede validar contra el servidor ahora.'
+  }
+})
 
 async function handleSync() {
   syncMessage.value = ''
@@ -239,9 +287,22 @@ async function handleSync() {
 
 async function handleLogin() {
   syncMessage.value = ''
+  offlineNotice.value = ''
+  if (!isOffline()) {
+    authStore.error = null
+  }
   const success = await authStore.login(dni.value, password.value)
   if (success) {
-    router.push({ name: 'home' })
+    authStore.clearOfflineCache()
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : null
+    router.push(redirect ? { path: redirect } : { name: 'home' })
+    return
+  }
+  // If we are offline and login failed (no backend reachable), give a
+  // friendlier hint than the default toast.
+  if (isOffline() && authStore.error === 'Error de conexión con el servidor') {
+    authStore.error =
+      'Estás sin conexión. Necesitamos señal para validar el ingreso.'
   }
 }
 </script>
