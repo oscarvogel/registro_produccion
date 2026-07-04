@@ -16,7 +16,7 @@
               {{ isAdmin ? 'Panel operativo' : authStore.userName }}
             </h1>
             <p class="mt-1 text-sm font-medium text-neutral-500">
-              {{ isAdmin ? 'Resumen general del día y accesos de administración.' : 'Accesos diarios, estado de sincronización y actividad personal.' }}
+              {{ headerSubtitle }}
             </p>
           </div>
 
@@ -208,8 +208,8 @@
         <section v-if="!recordsStore.loading && !lastRecord" class="rounded-xl border border-dashed border-warning/40 bg-warning-light/20 p-4">
           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p class="text-xs font-extrabold uppercase tracking-wide text-neutral-400">Sin actividad hoy</p>
-              <h2 class="mt-1 text-xl font-extrabold text-neutral-900">Todavía no cargaste registros.</h2>
+              <p class="text-xs font-extrabold uppercase tracking-wide text-neutral-400">{{ emptyRangeEyebrow }}</p>
+              <h2 class="mt-1 text-xl font-extrabold text-neutral-900">{{ emptyRangeTitle }}</h2>
               <p class="mt-1 text-sm text-neutral-500">Podés iniciar una carga productiva o registrar combustible directamente.</p>
             </div>
             <div class="flex flex-col gap-2 sm:flex-row">
@@ -295,6 +295,25 @@ const todayLabel = computed(() => {
   const { from, to } = selectedDateRange.value
   if (from === to) return formatDisplayDate(from)
   return `${formatDisplayDate(from)} - ${formatDisplayDate(to)}`
+})
+
+const rangeLabel = computed(() => {
+  const { from, to } = selectedDateRange.value
+  if (from === to) return formatDisplayDate(from)
+  return `${formatDisplayDate(from)} - ${formatDisplayDate(to)}`
+})
+
+const isTodayRange = computed(() => selectedDatePreset.value === 'today')
+
+const headerSubtitle = computed(() => {
+  if (isAdmin.value) {
+    return isTodayRange.value
+      ? 'Resumen de hoy y accesos de administración. La sección de unidades muestra la última actividad registrada.'
+      : `Resumen de ${rangeLabel.value} y accesos de administración. La sección de unidades muestra la última actividad registrada.`
+  }
+  return isTodayRange.value
+    ? 'Accesos del día, estado de sincronización y actividad personal.'
+    : `Accesos de ${rangeLabel.value}, estado de sincronización y actividad personal.`
 })
 
 const roleLabel = computed(() => authStore.user?.encargado === 1 ? 'Encargado' : 'Operador')
@@ -414,7 +433,25 @@ const sortedRecords = computed(() => [...recordsStore.registros].sort((a, b) => 
 }))
 
 const lastRecord = computed(() => sortedRecords.value[0] || null)
-const lastRecordTitle = computed(() => lastRecord.value?.operacion || 'Sin actividad hoy')
+const lastRecordEyebrow = computed(() => {
+  return isTodayRange.value
+    ? 'Último registro del día'
+    : `Último registro del periodo (${rangeLabel.value})`
+})
+const lastRecordTitle = computed(() => {
+  if (lastRecord.value) return lastRecord.value.operacion
+  return isTodayRange.value ? 'Sin actividad hoy' : 'Sin registros en el periodo'
+})
+const emptyRangeEyebrow = computed(() => {
+  return isTodayRange.value
+    ? 'Sin actividad hoy'
+    : `Sin registros en ${rangeLabel.value}`
+})
+const emptyRangeTitle = computed(() => {
+  return isTodayRange.value
+    ? 'Todavía no cargaste registros.'
+    : 'No hay registros en el periodo seleccionado.'
+})
 
 const lastRecordMetrics = computed(() => {
   const record = lastRecord.value
@@ -506,7 +543,7 @@ const LastPersonalRecord = defineComponent({
     return () => h('article', { class: 'app-card rounded-xl p-4' }, [
       h('div', { class: 'mb-3 flex items-center justify-between gap-3' }, [
         h('div', [
-          h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, 'Ultimo registro'),
+          h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, lastRecordEyebrow.value),
           h('h2', { class: 'mt-1 text-lg font-extrabold text-neutral-900' }, lastRecordTitle.value),
         ]),
         h(AppIcon, { name: 'records', size: 'lg', class: 'text-info' }),
@@ -519,7 +556,7 @@ const LastPersonalRecord = defineComponent({
             h('div', { class: 'flex flex-wrap gap-2' }, lastRecordMetrics.value.map((metric) => h('span', { key: metric.label, class: 'rounded-md border px-2.5 py-1 text-xs font-bold app-state-inactive' }, `${metric.value} ${metric.unit}`))),
             h('button', { type: 'button', class: 'rounded-md border border-neutral-200 px-3 py-2 text-xs font-bold text-neutral-700 hover:border-secondary/40 hover:text-info-dark', onClick: () => router.push({ name: 'mis-registros' }) }, 'Ver mis registros'),
           ])
-          : h('p', { class: 'text-sm text-neutral-500' }, 'Todavia no hay registros cargados para hoy.'),
+          : h('p', { class: 'text-sm text-neutral-500' }, isTodayRange.value ? 'Todavia no hay registros cargados para hoy.' : 'No hay registros cargados en este periodo.'),
     ])
   },
 })
