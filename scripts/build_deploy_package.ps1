@@ -85,6 +85,7 @@ New-Item -ItemType Directory -Force -Path (Join-Path $Stage "backend") | Out-Nul
 New-Item -ItemType Directory -Force -Path (Join-Path $Stage "frontend") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $Stage "backend/app") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $Stage "frontend/dist") | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $Stage "db_migrations") | Out-Null
 
 Run-Step "Copiando backend/app" {
     Copy-Item -Recurse -Force "backend/app/*" (Join-Path $Stage "backend/app")
@@ -97,6 +98,10 @@ Run-Step "Copiando frontend/dist" {
 
 Run-Step "Copiando deploy script" {
     Copy-Item -Force "deploy_produccion_fg.sh" (Join-Path $Stage "deploy_produccion_fg.sh")
+}
+
+Run-Step "Copiando migraciones DB" {
+    Copy-Item -Force "db_migrations/20260708_personal_unidad_negocio.sql" (Join-Path $Stage "db_migrations/20260708_personal_unidad_negocio.sql")
 }
 
 $Manifest = @(
@@ -129,7 +134,7 @@ Run-Step "Generando paquete" {
     }
     Push-Location $Stage
     try {
-        tar -czf $PackagePath backend frontend deploy_produccion_fg.sh RELEASE_MANIFEST.txt
+        tar -czf $PackagePath backend frontend db_migrations deploy_produccion_fg.sh RELEASE_MANIFEST.txt
     } finally {
         Pop-Location
     }

@@ -49,6 +49,63 @@ cleanup() {
 }
 trap cleanup EXIT
 
+apply_db_migrations() {
+  local migrations_dir="$tmp_dir/db_migrations"
+  if [[ ! -d "$migrations_dir" ]] || ! compgen -G "$migrations_dir/*.sql" >/dev/null; then
+    return
+  fi
+
+  if ! command -v mysql >/dev/null 2>&1; then
+    echo "ERROR: mysql CLI no disponible; no puedo aplicar migraciones DB." >&2
+    exit 1
+  fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "ERROR: python3 no disponible; no puedo leer DATABASE_URL para migraciones DB." >&2
+    exit 1
+  fi
+
+  echo "==> Aplicando migraciones DB"
+  local mysql_defaults
+  mysql_defaults="$(mktemp)"
+  if ! python3 - "$APP_DIR/backend/.env" >"$mysql_defaults" <<'PY'
+import sys
+from pathlib import Path
+from urllib.parse import urlparse, unquote
+
+values = {}
+for raw in Path(sys.argv[1]).read_text().splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    values[key.strip()] = value.strip().strip("\"'")
+
+url = urlparse(values["DATABASE_URL"])
+print("[client]")
+print(f"host={url.hostname}")
+if url.port:
+    print(f"port={url.port}")
+print(f"user={unquote(url.username or '')}")
+print(f"password={unquote(url.password or '')}")
+print(f"database={url.path.lstrip('/')}")
+PY
+  then
+    rm -f "$mysql_defaults"
+    echo "ERROR: no pude preparar credenciales mysql desde DATABASE_URL." >&2
+    exit 1
+  fi
+  chmod 600 "$mysql_defaults"
+  for migration in "$migrations_dir"/*.sql; do
+    echo "==> DB migration: $(basename "$migration")"
+    if ! mysql --defaults-extra-file="$mysql_defaults" < "$migration"; then
+      rm -f "$mysql_defaults"
+      echo "ERROR: fallo migracion DB: $(basename "$migration")" >&2
+      exit 1
+    fi
+  done
+  rm -f "$mysql_defaults"
+}
+
 restore_backup() {
   if [[ "$rollback_needed" -ne 1 || ! -f "$backup_file" ]]; then
     return
@@ -116,6 +173,8 @@ tar -C "$APP_DIR" \
   backend/app backend/requirements.txt frontend restart.sh
 
 rollback_needed=1
+
+apply_db_migrations
 
 echo "==> Actualizando backend"
 rm -rf "$APP_DIR/backend/app"
