@@ -441,7 +441,16 @@ async def list_moviles(
 async def list_actas(db: Session = Depends(get_db)):
     if not _table_exists(db, "actas"):
         return []
-    return db.query(Acta).order_by(Acta.numero).all()
+    rows = db.query(Acta).order_by(Acta.numero).all()
+    seen_numeros: set[str] = set()
+    unique_rows = []
+    for row in rows:
+        numero = str(row.numero or "").strip()
+        if numero in seen_numeros:
+            continue
+        seen_numeros.add(numero)
+        unique_rows.append(row)
+    return unique_rows
 
 
 # ─── Predios ───
