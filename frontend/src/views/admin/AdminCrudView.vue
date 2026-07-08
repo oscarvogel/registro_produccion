@@ -174,16 +174,16 @@
                 </div>
                 <div v-if="isRelationAdding(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
                   <AutocompleteField
-                    v-if="block.key === 'personal'"
+                    v-if="usesRelationAutocomplete(block.key)"
                     v-model="relationDraft.selectedId"
                     class="min-w-0 flex-1"
                     :items="relationAddOptions(row[meta.idKey], block.key)"
                     labelKey="label"
                     valueKey="id"
-                    placeholder="Buscar personal"
+                    :placeholder="relationAutocompletePlaceholder(block.key)"
                     selectedDisplay="input"
                     dropdownMode="inline"
-                    emptyMessage="Sin personal disponible"
+                    :emptyMessage="relationAutocompleteEmptyMessage(block.key)"
                   />
                   <select
                     v-else
@@ -351,16 +351,16 @@
                         </div>
                         <div v-if="isRelationAdding(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
                           <AutocompleteField
-                            v-if="block.key === 'personal'"
+                            v-if="usesRelationAutocomplete(block.key)"
                             v-model="relationDraft.selectedId"
                             class="min-w-0 flex-1"
                             :items="relationAddOptions(row[meta.idKey], block.key)"
                             labelKey="label"
                             valueKey="id"
-                            placeholder="Buscar personal"
+                            :placeholder="relationAutocompletePlaceholder(block.key)"
                             selectedDisplay="input"
                             dropdownMode="inline"
-                            emptyMessage="Sin personal disponible"
+                            :emptyMessage="relationAutocompleteEmptyMessage(block.key)"
                           />
                           <select v-else v-model="relationDraft.selectedId" class="app-input min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm">
                             <option value="">Seleccionar</option>
@@ -1296,6 +1296,20 @@ function startRelationAdd(unidadId, type) {
   relationDraft.type = type
   relationDraft.selectedId = ''
   relationDraft.targetUnidadId = ''
+}
+
+function usesRelationAutocomplete(type) {
+  return ['personal', 'moviles'].includes(type)
+}
+
+function relationAutocompletePlaceholder(type) {
+  if (type === 'moviles') return 'Buscar movil'
+  return 'Buscar personal'
+}
+
+function relationAutocompleteEmptyMessage(type) {
+  if (type === 'moviles') return 'Sin moviles disponibles'
+  return 'Sin personal disponible'
 }
 
 async function startRelationRemove(unidadId, type, selectedId) {
