@@ -173,7 +173,20 @@
                   </div>
                 </div>
                 <div v-if="isRelationAdding(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
+                  <AutocompleteField
+                    v-if="block.key === 'personal'"
+                    v-model="relationDraft.selectedId"
+                    class="min-w-0 flex-1"
+                    :items="relationAddOptions(row[meta.idKey], block.key)"
+                    labelKey="label"
+                    valueKey="id"
+                    placeholder="Buscar personal"
+                    selectedDisplay="input"
+                    dropdownMode="inline"
+                    emptyMessage="Sin personal disponible"
+                  />
                   <select
+                    v-else
                     v-model="relationDraft.selectedId"
                     class="app-input min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm"
                   >
@@ -337,7 +350,19 @@
                           </div>
                         </div>
                         <div v-if="isRelationAdding(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
-                          <select v-model="relationDraft.selectedId" class="app-input min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm">
+                          <AutocompleteField
+                            v-if="block.key === 'personal'"
+                            v-model="relationDraft.selectedId"
+                            class="min-w-0 flex-1"
+                            :items="relationAddOptions(row[meta.idKey], block.key)"
+                            labelKey="label"
+                            valueKey="id"
+                            placeholder="Buscar personal"
+                            selectedDisplay="input"
+                            dropdownMode="inline"
+                            emptyMessage="Sin personal disponible"
+                          />
+                          <select v-else v-model="relationDraft.selectedId" class="app-input min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm">
                             <option value="">Seleccionar</option>
                             <option v-for="option in relationAddOptions(row[meta.idKey], block.key)" :key="option.id" :value="option.id">
                               {{ option.label }}
@@ -1240,12 +1265,15 @@ function unidadRelations(unidadId) {
   const personal = (referenceData.personal || [])
     .filter((item) => Array.isArray(item.unidad_ids) && item.unidad_ids.map(Number).includes(id))
     .map((item) => ({ id: item.idPersonal, label: item.nombre }))
+    .sort(compareRelationLabels)
   const moviles = (referenceData.moviles || [])
     .filter((item) => Number(item.id_unidad_negocio) === id)
     .map((item) => ({ id: item.idMovil, label: formatOptionLabel(item, { optionsEntity: 'moviles', optionLabel: 'detalle' }) }))
+    .sort(compareRelationLabels)
   const procesos = (referenceData['tipos-proceso'] || [])
     .filter((item) => Array.isArray(item.unidad_ids) && item.unidad_ids.map(Number).includes(id))
     .map((item) => ({ id: item.id, label: item.nombre }))
+    .sort(compareRelationLabels)
 
   return [
     { key: 'personal', title: 'Personal', items: personal, manageable: true },
@@ -1289,15 +1317,24 @@ function relationAddOptions(unidadId, type) {
     return (referenceData.personal || [])
       .filter((item) => !Array.isArray(item.unidad_ids) || !item.unidad_ids.map(Number).includes(id))
       .map((item) => ({ id: item.idPersonal, label: formatOptionLabel(item, { optionsEntity: 'personal', optionLabel: 'nombre' }) }))
+      .sort(compareRelationLabels)
   }
 
   if (type === 'moviles') {
     return (referenceData.moviles || [])
       .filter((item) => Number(item.id_unidad_negocio) !== id)
       .map((item) => ({ id: item.idMovil, label: formatOptionLabel(item, { optionsEntity: 'moviles', optionLabel: 'detalle' }) }))
+      .sort(compareRelationLabels)
   }
 
   return []
+}
+
+function compareRelationLabels(left, right) {
+  return String(left?.label || '').localeCompare(String(right?.label || ''), 'es', {
+    sensitivity: 'base',
+    numeric: true,
+  })
 }
 
 function relationMoveOptions(unidadId) {
