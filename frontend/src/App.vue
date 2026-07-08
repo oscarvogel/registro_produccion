@@ -325,6 +325,7 @@ const navSections = computed(() => {
         { key: 'lugares', label: 'Lugares de Carga', icon: 'location', to: { name: 'admin-crud', params: { entity: 'lugares-carga' } } },
         { key: 'predios', label: 'Predios', icon: 'field', to: { name: 'admin-crud', params: { entity: 'predios' } } },
         { key: 'rodales', label: 'Rodales', icon: 'plot', to: { name: 'admin-crud', params: { entity: 'rodales' } } },
+        { key: 'actas', label: 'Actas', icon: 'records', to: { name: 'admin-crud', params: { entity: 'actas' } } },
         { key: 'acceso', label: 'Configuración de Acceso', icon: 'settings', to: { name: 'admin-configuracion' } },
       ],
     })

@@ -15,9 +15,12 @@ from app.models.personal_unidad_negocio import PersonalUnidadNegocio
 from app.models.produccion import TableroProduccion
 from app.models.tipo_proceso import TipoDeProceso, UnidadNegocioTipoProceso
 from app.models.tipo_movil import TipoMovil
-from app.models.ubicacion import Predio, Rodal
+from app.models.ubicacion import Acta, Predio, Rodal
 from app.models.unidad_negocio import UnidadNegocio
 from app.schemas.admin import (
+    ActaAdminResponse,
+    ActaCreate,
+    ActaUpdate,
     AdminDashboardEvolutionItem,
     AdminDashboardOverviewResponse,
     AdminDashboardRankingItem,
@@ -325,6 +328,19 @@ def _to_rodal_response(row: Rodal) -> RodalResponse:
         tarifa=float(row.Tarifa or 0),
         extraccion=float(row.Extraccion or 0),
         carga=float(row.Carga or 0),
+    )
+
+
+def _to_acta_admin_response(row: Acta) -> ActaAdminResponse:
+    return ActaAdminResponse(
+        id=row.id,
+        numero=row.numero or "",
+        rodal_id=int(row.rodal_id or 0),
+        vam=float(row.vam or 0),
+        tarifa=float(row.tarifa or 0),
+        extraccion=float(row.extraccion or 0),
+        carga=float(row.carga or 0),
+        periodo=row.periodo,
     )
 
 
@@ -1520,6 +1536,96 @@ async def delete_rodal(
     row = db.query(Rodal).filter(Rodal.idRodal == idRodal).first()
     if not row:
         raise HTTPException(status_code=404, detail="Rodal no encontrado")
+
+    db.delete(row)
+    db.commit()
+    return DeleteResponse()
+
+
+@router.get("/actas", response_model=list[ActaAdminResponse])
+async def list_actas_admin(
+    skip: int = 0,
+    limit: int = 50,
+    buscar: str | None = None,
+    db: Session = Depends(get_db),
+    _: Personal = Depends(get_current_admin),
+):
+    query = db.query(Acta)
+    if buscar:
+        query = query.filter(Acta.numero.ilike(f"%{buscar.strip()}%"))
+    rows = query.order_by(Acta.numero).offset(skip).limit(limit).all()
+    return [_to_acta_admin_response(r) for r in rows]
+
+
+@router.post("/actas", response_model=ActaAdminResponse, status_code=status.HTTP_201_CREATED)
+async def create_acta(
+    payload: ActaCreate,
+    db: Session = Depends(get_db),
+    _: Personal = Depends(get_current_admin),
+):
+    numero = payload.numero.strip()
+    if not numero:
+        raise HTTPException(status_code=400, detail="Numero es obligatorio")
+
+    row = Acta(
+        numero=numero,
+        rodal_id=payload.rodal_id,
+        vam=payload.vam,
+        tarifa=payload.tarifa,
+        extraccion=payload.extraccion,
+        carga=payload.carga,
+        periodo=payload.periodo,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _to_acta_admin_response(row)
+
+
+@router.put("/actas/{acta_id}", response_model=ActaAdminResponse)
+async def update_acta(
+    acta_id: int,
+    payload: ActaUpdate,
+    db: Session = Depends(get_db),
+    _: Personal = Depends(get_current_admin),
+):
+    row = db.query(Acta).filter(Acta.id == acta_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Acta no encontrada")
+
+    data = payload.model_dump(exclude_unset=True)
+    if "numero" in data:
+        numero = (data.pop("numero") or "").strip()
+        if not numero:
+            raise HTTPException(status_code=400, detail="Numero es obligatorio")
+        row.numero = numero
+    if "rodal_id" in data:
+        row.rodal_id = data.pop("rodal_id")
+    if "vam" in data:
+        row.vam = data.pop("vam")
+    if "tarifa" in data:
+        row.tarifa = data.pop("tarifa")
+    if "extraccion" in data:
+        row.extraccion = data.pop("extraccion")
+    if "carga" in data:
+        row.carga = data.pop("carga")
+    if "periodo" in data:
+        row.periodo = data.pop("periodo")
+
+    db.commit()
+    db.refresh(row)
+    return _to_acta_admin_response(row)
+
+
+@router.delete("/actas/{acta_id}", response_model=DeleteResponse)
+async def delete_acta(
+    acta_id: int,
+    db: Session = Depends(get_db),
+    _: Personal = Depends(get_current_admin),
+):
+    row = db.query(Acta).filter(Acta.id == acta_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Acta no encontrada")
 
     db.delete(row)
     db.commit()

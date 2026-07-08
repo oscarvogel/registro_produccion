@@ -338,6 +338,37 @@ class RodalResponse(BaseModel):
     carga: float
 
 
+class ActaCreate(BaseModel):
+    numero: str = Field(min_length=1)
+    rodal_id: int
+    vam: float = 0
+    tarifa: float = 0
+    extraccion: float = 0
+    carga: float = 0
+    periodo: str | None = None
+
+
+class ActaUpdate(BaseModel):
+    numero: str | None = None
+    rodal_id: int | None = None
+    vam: float | None = None
+    tarifa: float | None = None
+    extraccion: float | None = None
+    carga: float | None = None
+    periodo: str | None = None
+
+
+class ActaAdminResponse(BaseModel):
+    id: int
+    numero: str
+    rodal_id: int
+    vam: float
+    tarifa: float
+    extraccion: float
+    carga: float
+    periodo: str | None = None
+
+
 class AsignacionOperativaCreate(BaseModel):
     idMovil: int
     idChofer: int

@@ -213,4 +213,49 @@ describe('AdminCrudView tipos de proceso', () => {
     await flushPromises()
     expect(wrapper.findAll('[role="option"]').map((option) => option.text())).toEqual(['AAA111 - Carreton Principal'])
   })
+
+  it('shows an admin CRUD form for actas used by the production combo', async () => {
+    routeState.params.entity = 'actas'
+    api.get.mockImplementation((url) => {
+      const dataByUrl = {
+        '/api/admin/actas': [
+          { id: 3, numero: '7900000099', rodal_id: 12, periodo: '202607', vam: 1, tarifa: 2, extraccion: 3, carga: 4 },
+        ],
+        '/api/admin/rodales': [
+          { idRodal: 12, rodal: 'Rodal 12', idPredio: 5, vam: 1, tarifa: 2, extraccion: 3, carga: 4 },
+        ],
+      }
+      return Promise.resolve({ data: dataByUrl[url] || [] })
+    })
+
+    const wrapper = mount(AdminCrudView, {
+      global: {
+        directives: {
+          motionPanel: {},
+          motionPop: {},
+        },
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Actas')
+    expect(wrapper.text()).toContain('7900000099')
+
+    const nuevo = wrapper.findAll('button').find((button) => button.text().includes('Nuevo'))
+    expect(nuevo).toBeTruthy()
+    await nuevo.trigger('click')
+    await flushPromises()
+
+    const labels = wrapper.findAll('label').map((label) => label.text())
+    expect(labels).toContain('Número')
+    expect(labels).toContain('Rodal')
+    expect(labels).toContain('Periodo')
+    expect(labels).toContain('VAM')
+    expect(labels).toContain('Tarifa')
+    expect(labels).toContain('Extracción')
+    expect(labels).toContain('Carga')
+  })
 })
