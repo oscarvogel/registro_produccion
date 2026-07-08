@@ -2,8 +2,12 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
+const routeState = vi.hoisted(() => ({
+  params: { entity: 'tipos-proceso' },
+}))
+
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: { entity: 'tipos-proceso' } }),
+  useRoute: () => routeState,
   useRouter: () => ({ replace: vi.fn() }),
 }))
 
@@ -22,6 +26,7 @@ import AdminCrudView from './AdminCrudView.vue'
 describe('AdminCrudView tipos de proceso', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    routeState.params.entity = 'tipos-proceso'
     vi.clearAllMocks()
     api.get.mockResolvedValue({ data: [] })
     api.post.mockResolvedValue({ data: {} })
@@ -94,5 +99,61 @@ describe('AdminCrudView tipos de proceso', () => {
     expect(wrapper.text()).not.toContain('SELECT personal')
     expect(wrapper.text()).not.toContain('OperationalError')
     expect(wrapper.text()).not.toContain('Lost connection')
+  })
+
+  it('uses a searchable sorted autocomplete when adding personal to a business unit', async () => {
+    routeState.params.entity = 'unidades-negocio'
+    api.get.mockImplementation((url) => {
+      const dataByUrl = {
+        '/api/admin/unidades-negocio': [
+          { idUnidadNegocio: 1, nombre: 'COSECHA DELTA', prefijo: 'DELTA', activo: 1 },
+          { idUnidadNegocio: 2, nombre: 'TALLER', prefijo: 'TAL', activo: 1 },
+        ],
+        '/api/admin/personal': [
+          { idPersonal: 8, nombre: 'Zulu Operador', dni: '303', unidad_ids: [] },
+          { idPersonal: 7, nombre: 'Ana Alvarez', dni: '101', unidad_ids: [] },
+          { idPersonal: 9, nombre: 'Marcado Actual', dni: '909', unidad_ids: [1] },
+        ],
+        '/api/admin/moviles': [],
+        '/api/admin/tipos-proceso': [],
+      }
+      return Promise.resolve({ data: dataByUrl[url] || [] })
+    })
+
+    const wrapper = mount(AdminCrudView, {
+      global: {
+        directives: {
+          motionPanel: {},
+          motionPop: {},
+        },
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    })
+    await flushPromises()
+
+    const relaciones = wrapper.findAll('button').find((button) => button.text().includes('Relaciones'))
+    expect(relaciones).toBeTruthy()
+    await relaciones.trigger('click')
+    await flushPromises()
+
+    const agregarPersonal = wrapper.findAll('button[title="Agregar Personal"]').at(0)
+    expect(agregarPersonal).toBeTruthy()
+    await agregarPersonal.trigger('click')
+    await flushPromises()
+
+    const input = wrapper.find('input[role="combobox"]')
+    expect(input.exists()).toBe(true)
+    expect(input.attributes('placeholder')).toBe('Buscar personal')
+
+    await input.trigger('focus')
+    await flushPromises()
+    const optionLabels = wrapper.findAll('[role="option"]').map((option) => option.text())
+    expect(optionLabels.slice(0, 2)).toEqual(['Ana Alvarez - DNI 101', 'Zulu Operador - DNI 303'])
+
+    await input.setValue('101')
+    await flushPromises()
+    expect(wrapper.findAll('[role="option"]').map((option) => option.text())).toEqual(['Ana Alvarez - DNI 101'])
   })
 })
