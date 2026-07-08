@@ -49,3 +49,31 @@ def test_windows_package_script_builds_manifested_package_without_env_files():
 
     missing = [fragment for fragment in required_fragments if fragment not in script]
     assert missing == []
+
+
+def test_production_deploy_package_applies_idempotent_db_migrations():
+    package_script = read("scripts/build_deploy_package.ps1")
+    deploy_script = read("deploy_produccion_fg.sh")
+    migration = read("db_migrations/20260708_personal_unidad_negocio.sql")
+
+    package_fragments = [
+        "db_migrations",
+        "20260708_personal_unidad_negocio.sql",
+    ]
+    deploy_fragments = [
+        "Aplicando migraciones DB",
+        "DATABASE_URL",
+        "mysql --defaults-extra-file",
+        'for migration in "$migrations_dir"/*.sql',
+    ]
+    migration_fragments = [
+        "CREATE TABLE IF NOT EXISTS personal_unidad_negocio",
+        "INSERT IGNORE INTO personal_unidad_negocio",
+        "REFERENCES personal",
+        "REFERENCES unidadnegocio",
+    ]
+
+    missing = [fragment for fragment in package_fragments if fragment not in package_script]
+    missing += [fragment for fragment in deploy_fragments if fragment not in deploy_script]
+    missing += [fragment for fragment in migration_fragments if fragment not in migration]
+    assert missing == []
