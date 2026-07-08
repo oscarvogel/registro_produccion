@@ -2,6 +2,7 @@ from fastapi import APIRouter, status
 
 from app.api.routes import admin_legacy
 from app.schemas.admin import (
+    ActaAdminResponse,
     DeleteResponse,
     LugarCargaResponse,
     MovilResponse,
@@ -45,3 +46,8 @@ router.add_api_route("/rodales", admin_legacy.list_rodales, methods=["GET"], res
 router.add_api_route("/rodales", admin_legacy.create_rodal, methods=["POST"], response_model=RodalResponse, status_code=status.HTTP_201_CREATED)
 router.add_api_route("/rodales/{idRodal}", admin_legacy.update_rodal, methods=["PUT"], response_model=RodalResponse)
 router.add_api_route("/rodales/{idRodal}", admin_legacy.delete_rodal, methods=["DELETE"], response_model=DeleteResponse)
+
+router.add_api_route("/actas", admin_legacy.list_actas_admin, methods=["GET"], response_model=list[ActaAdminResponse])
+router.add_api_route("/actas", admin_legacy.create_acta, methods=["POST"], response_model=ActaAdminResponse, status_code=status.HTTP_201_CREATED)
+router.add_api_route("/actas/{acta_id}", admin_legacy.update_acta, methods=["PUT"], response_model=ActaAdminResponse)
+router.add_api_route("/actas/{acta_id}", admin_legacy.delete_acta, methods=["DELETE"], response_model=DeleteResponse)

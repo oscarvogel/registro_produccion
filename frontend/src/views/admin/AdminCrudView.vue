@@ -812,6 +812,31 @@ const ENTITY_DEFINITIONS = {
       { key: 'carga', label: 'Carga', type: 'number', default: 0, section: 'tecnico' },
     ],
   },
+  actas: {
+    title: 'Actas',
+    singular: 'acta',
+    description: 'Catálogo de actas disponibles para la carga de producción.',
+    formHint: 'Estas actas alimentan el combo Acta de la carga de producción.',
+    idKey: 'id',
+    deleteVerb: 'Eliminar',
+    extraReferences: ['rodales'],
+    columns: [
+      { key: 'id', label: 'ID' },
+      { key: 'numero', label: 'Número' },
+      { key: 'rodal_id', label: 'Rodal', type: 'lookup', optionsEntity: 'rodales', optionValue: 'idRodal', optionLabel: 'rodal' },
+      { key: 'periodo', label: 'Periodo' },
+      { key: 'vam', label: 'VAM' },
+    ],
+    fields: [
+      { key: 'numero', label: 'Número', type: 'text', required: true, section: 'principal' },
+      { key: 'rodal_id', label: 'Rodal', type: 'autocomplete', optionsEntity: 'rodales', optionValue: 'idRodal', optionLabel: 'rodal', section: 'principal' },
+      { key: 'periodo', label: 'Periodo', type: 'text', nullable: true, section: 'principal' },
+      { key: 'vam', label: 'VAM', type: 'number', default: 0, section: 'principal' },
+      { key: 'tarifa', label: 'Tarifa', type: 'number', default: 0, section: 'principal' },
+      { key: 'extraccion', label: 'Extracción', type: 'number', default: 0, section: 'principal' },
+      { key: 'carga', label: 'Carga', type: 'number', default: 0, section: 'principal' },
+    ],
+  },
   asignaciones: {
     title: 'Asignaciones Operativas',
     singular: 'asignacion operativa',
@@ -1233,7 +1258,7 @@ async function confirmDelete() {
 
 function clearReferenceCacheFor(changedEntity) {
   referenceCache.delete(changedEntity)
-  for (const key of ['personal', 'moviles', 'tipos-proceso', 'unidades-negocio', 'predios']) {
+  for (const key of ['personal', 'moviles', 'tipos-proceso', 'unidades-negocio', 'predios', 'rodales', 'actas']) {
     if (changedEntity === key) referenceCache.delete(key)
   }
 }
@@ -1498,6 +1523,8 @@ function optionFieldForEntity(refEntity) {
     'tipos-movil': { optionsEntity: 'tipos-movil', optionLabel: 'detalle' },
     'unidades-negocio': { optionsEntity: 'unidades-negocio', optionLabel: 'nombre' },
     predios: { optionsEntity: 'predios', optionLabel: 'nombre' },
+    rodales: { optionsEntity: 'rodales', optionLabel: 'rodal' },
+    actas: { optionsEntity: 'actas', optionLabel: 'numero' },
   }
   return map[refEntity] || { optionsEntity: refEntity, optionLabel: 'nombre' }
 }
@@ -1516,7 +1543,7 @@ function formatCellValue(row, column) {
 }
 
 function mobilePrimaryLabel(row) {
-  const preferred = ['nombre', 'detalle', 'patente', 'rodal', 'descripcion']
+  const preferred = ['nombre', 'detalle', 'patente', 'rodal', 'numero', 'descripcion']
   const key = preferred.find((item) => row[item])
   if (key) return row[key]
   const firstColumn = mobileColumns.value[0]

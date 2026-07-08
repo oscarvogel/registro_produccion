@@ -77,3 +77,26 @@ def test_production_deploy_package_applies_idempotent_db_migrations():
     missing += [fragment for fragment in deploy_fragments if fragment not in deploy_script]
     missing += [fragment for fragment in migration_fragments if fragment not in migration]
     assert missing == []
+
+
+def test_admin_actas_crud_contract_is_registered():
+    schemas = read("backend/app/schemas/admin.py")
+    admin_routes = read("backend/app/api/routes/admin_legacy.py")
+    catalog_routes = read("backend/app/api/routes/admin_catalogs.py")
+
+    required_fragments = [
+        "class ActaCreate",
+        "class ActaUpdate",
+        "class ActaAdminResponse",
+        "def list_actas_admin",
+        "def create_acta",
+        "def update_acta",
+        "def delete_acta",
+        '"/actas"',
+        '"/actas/{acta_id}"',
+        "ActaAdminResponse",
+    ]
+
+    combined = "\n".join([schemas, admin_routes, catalog_routes])
+    missing = [fragment for fragment in required_fragments if fragment not in combined]
+    assert missing == []

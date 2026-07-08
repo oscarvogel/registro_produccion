@@ -7,5 +7,6 @@ export const ADMIN_ENTITY_CONFIG = {
   'lugares-carga': { endpoint: '/api/admin/lugares-carga', idKey: 'idLugarCarga', label: 'Lugares de Carga' },
   predios: { endpoint: '/api/admin/predios', idKey: 'idPredio', label: 'Predios' },
   rodales: { endpoint: '/api/admin/rodales', idKey: 'idRodal', label: 'Rodales' },
+  actas: { endpoint: '/api/admin/actas', idKey: 'id', label: 'Actas' },
   asignaciones: { endpoint: '/api/admin/asignaciones', idKey: 'idAsignacion', label: 'Asignaciones Operativas' },
 }
