@@ -608,6 +608,7 @@ async def create_produccion(
             Litros=data.combustible,
             UnidadNegocio=data.cod_un or 1,
             personal=data.cod_operador or 1,
+            tipo_mov="E",
             idtabla=str(new_id),
             tabla="tablero_produccion",
             _usuario="web",
