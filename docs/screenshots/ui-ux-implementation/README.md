@@ -5,7 +5,7 @@ Evidencia regenerada para la reorganizacion de navegacion, el centro administrat
 ## Version validada
 
 - Rama: `codex/pr72-sync-ci-evidence`
-- Commit funcional: `2ee2887`
+- Commit funcional: `96a74ff`
 - Base actualizada: `origin/main` en `fa70820`
 - Viewports: escritorio `1280x720` y movil `390x844`
 
@@ -20,12 +20,23 @@ Evidencia regenerada para la reorganizacion de navegacion, el centro administrat
 
 ## Metodo reproducible
 
-Las capturas se generan mediante:
+El smoke E2E normal guarda sus capturas en `frontend/test-results/` y no modifica la evidencia versionada:
 
 ```bash
 cd frontend
 npm run test:e2e
 ```
+
+Para regenerar deliberadamente esta carpeta desde PowerShell:
+
+```powershell
+cd frontend
+$env:VISUAL_EVIDENCE_DIR="../../docs/screenshots/ui-ux-implementation"
+npm run test:e2e
+Remove-Item Env:VISUAL_EVIDENCE_DIR
+```
+
+En Bash, usar `VISUAL_EVIDENCE_DIR=../../docs/screenshots/ui-ux-implementation npm run test:e2e`.
 
 El test usa una sesion administrativa ficticia y respuestas HTTP simuladas. No usa credenciales, servicios ni datos productivos.
 
@@ -33,7 +44,7 @@ El test usa una sesion administrativa ficticia y respuestas HTTP simuladas. No u
 
 - `python -m pytest`: 44 tests.
 - `python -m compileall -q app`.
-- `npm test`: 126 tests.
+- `npm test`: 128 tests.
 - `npm run test:e2e`: 2 pruebas, escritorio y movil.
 - `npm run build`.
 - `git diff --check`.
@@ -42,6 +53,7 @@ El test usa una sesion administrativa ficticia y respuestas HTTP simuladas. No u
 
 - La navegacion actual presenta un unico acceso administrativo.
 - Login, centro administrativo y cola de pendientes mantienen jerarquia y reflow en ambos viewports.
+- La cola compartida se filtra y sincroniza con el mismo alcance del usuario autenticado.
 - La evidencia no acredita cumplimiento WCAG completo; contraste, teclado y lectores de pantalla requieren pruebas especificas.
 
 ## Veredicto
