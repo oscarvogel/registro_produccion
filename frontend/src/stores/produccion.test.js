@@ -220,9 +220,13 @@ describe('produccion offline queue', () => {
     mockState.addPendingRecord(payload)
     api.post.mockResolvedValueOnce({ data: { id: 123 } })
 
-    const count = await store.syncPending()
+    const result = await store.syncPending()
 
-    expect(count).toBe(1)
+    expect(result).toEqual({
+      successCount: 1,
+      permanentFailureCount: 0,
+      transientFailureCount: 0,
+    })
     expect(api.post).toHaveBeenCalledWith('/api/produccion', payload)
     expect(mockState.records).toHaveLength(0)
     expect(store.pendingCount).toBe(0)
@@ -237,9 +241,13 @@ describe('produccion offline queue', () => {
       response: { status: 422, data: { detail: 'Produccion invalida' } },
     })
 
-    const count = await store.syncPending()
+    const result = await store.syncPending()
 
-    expect(count).toBe(0)
+    expect(result).toEqual({
+      successCount: 0,
+      permanentFailureCount: 1,
+      transientFailureCount: 0,
+    })
     expect(mockState.records).toHaveLength(1)
     expect(mockState.records[0]).toMatchObject({
       payload,
@@ -257,9 +265,13 @@ describe('produccion offline queue', () => {
     mockState.addPendingRecord(payload)
     api.post.mockRejectedValueOnce(new Error('Network Error'))
 
-    const count = await store.syncPending()
+    const result = await store.syncPending()
 
-    expect(count).toBe(0)
+    expect(result).toEqual({
+      successCount: 0,
+      permanentFailureCount: 0,
+      transientFailureCount: 1,
+    })
     expect(mockState.records).toHaveLength(1)
     expect(mockState.records[0]).toMatchObject({
       payload,
@@ -271,4 +283,30 @@ describe('produccion offline queue', () => {
     expect(store.error).toContain('error transitorio')
     expect(store.syncingPending).toBe(false)
   })
+
+  it.each([401, 403, 404, 408, 429])(
+    'keeps retryable HTTP %s sync errors pending',
+    async (status) => {
+      const store = useProduccionStore()
+      const payload = { fecha: '2026-06-16', cod_operador: 12, produccion: 8 }
+      mockState.addPendingRecord(payload)
+      api.post.mockRejectedValueOnce({
+        response: { status, data: { detail: `HTTP ${status}` } },
+      })
+
+      const result = await store.syncPending()
+
+      expect(result).toEqual({
+        successCount: 0,
+        permanentFailureCount: 0,
+        transientFailureCount: 1,
+      })
+      expect(mockState.records[0]).toMatchObject({
+        payload,
+        synced: 0,
+        syncStatus: 'pending',
+      })
+      expect(store.pendingCount).toBe(1)
+    },
+  )
 })

@@ -191,7 +191,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import api, { getUserSafeErrorMessage } from '@/services/api'
 import db from '@/services/db'
 import { useAuthStore } from '@/stores/auth'
-import { useProduccionStore } from '@/stores/produccion'
+import { isPermanentSyncFailure, useProduccionStore } from '@/stores/produccion'
 import { useToastStore } from '@/stores/toast'
 import AppBadge from '@/components/ui/AppBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -365,9 +365,8 @@ async function loadRecords() {
 async function syncAll() {
   syncing.value = true
   try {
-    const count = await produccionStore.syncPending()
+    await produccionStore.syncPending()
     await loadRecords()
-    toast.success('Sincronización completa', `${count || 0} registro(s) sincronizado(s).`)
   } catch {
     toast.error('No se pudo sincronizar', 'Revisá la conexión o intentá de nuevo.')
   } finally {
@@ -385,11 +384,12 @@ async function retryRecord(record) {
   } catch (err) {
     const detail = getUserSafeErrorMessage(err, 'No se pudo sincronizar este registro.')
     const status = err.response?.status
+    const permanentFailure = isPermanentSyncFailure(status)
     await db.pendingRecords.update(record.id, {
-      synced: status >= 400 && status < 500 ? 1 : 0,
-      syncStatus: status >= 400 && status < 500 ? 'failed' : 'pending',
+      synced: permanentFailure ? 1 : 0,
+      syncStatus: permanentFailure ? 'failed' : 'pending',
       syncError: detail,
-      failedAt: Date.now(),
+      failedAt: permanentFailure ? Date.now() : null,
     })
     await loadRecords()
     toast.error('Sincronización fallida', detail)

@@ -6,6 +6,7 @@ import { useToastStore } from '@/stores/toast'
 
 const ensureArray = (value) => (Array.isArray(value) ? value : [])
 const CATALOG_TTL_MS = 5 * 60 * 1000
+const PERMANENT_SYNC_FAILURE_STATUSES = new Set([400, 409, 422])
 const CATALOG_KEYS = [
   'unidadesNegocio',
   'operadores',
@@ -36,6 +37,10 @@ const errorMessage = (err) => err?.response?.data?.detail || err?.message || 'No
 
 function isValidCatalogPayload(data) {
   return Array.isArray(data)
+}
+
+export function isPermanentSyncFailure(status) {
+  return PERMANENT_SYNC_FAILURE_STATUSES.has(Number(status))
 }
 
 export const useProduccionStore = defineStore('produccion', {
@@ -301,7 +306,7 @@ export const useProduccionStore = defineStore('produccion', {
       try {
         const pending = await db.pendingRecords.where('synced').equals(0).toArray()
         if (!pending.length) {
-          return 0
+          return { successCount, permanentFailureCount, transientFailureCount }
         }
 
         for (const record of pending) {
@@ -317,7 +322,7 @@ export const useProduccionStore = defineStore('produccion', {
           } catch (err) {
             const status = err?.response?.status
 
-            if (status >= 400 && status < 500) {
+            if (isPermanentSyncFailure(status)) {
               const detail = getUserSafeErrorMessage(err, 'Error permanente al sincronizar el registro')
               await db.pendingRecords.update(record.id, {
                 synced: 1,
@@ -347,7 +352,7 @@ export const useProduccionStore = defineStore('produccion', {
         } else if (successCount > 0) {
           useToastStore().success('Pendientes sincronizados', `${successCount} registro(s) enviados.`)
         }
-        return successCount
+        return { successCount, permanentFailureCount, transientFailureCount }
       } finally {
         this.syncingPending = false
       }
