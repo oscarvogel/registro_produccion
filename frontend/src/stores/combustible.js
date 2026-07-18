@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import api from '@/services/api'
+import api, { getUserSafeErrorMessage } from '@/services/api'
 
 export const useCombustibleStore = defineStore('combustible', {
   state: () => ({
@@ -20,7 +20,7 @@ export const useCombustibleStore = defineStore('combustible', {
         const { data } = await api.get('/api/combustible/moviles', { params })
         this.moviles = data
       } catch (error) {
-        this.error = error.response?.data?.detail || 'No se pudieron cargar los moviles disponibles'
+        this.error = getUserSafeErrorMessage(error, 'No se pudieron cargar los moviles disponibles')
         this.moviles = []
       } finally {
         this.loadingMoviles = false
@@ -35,7 +35,7 @@ export const useCombustibleStore = defineStore('combustible', {
         this.lastCarga = data
         return data
       } catch (error) {
-        this.error = error.response?.data?.detail || 'No se pudo registrar la carga de combustible'
+        this.error = getUserSafeErrorMessage(error, 'No se pudo registrar la carga de combustible')
         throw error
       } finally {
         this.saving = false

@@ -126,6 +126,7 @@ import AutocompleteField from '@/components/AutocompleteField.vue'
 import SectionCard from '@/components/SectionCard.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useAuthStore } from '@/stores/auth'
+import { getUserSafeErrorMessage } from '@/services/api'
 
 const store = useAdminStore()
 const authStore = useAuthStore()
@@ -171,7 +172,7 @@ async function toggleAdmin(usuario, checked) {
     usuario.is_admin = updated.is_admin
   } catch (error) {
     usuario.is_admin = oldValue
-    alert(error.response?.data?.detail || 'No se pudo actualizar el acceso')
+    alert(getUserSafeErrorMessage(error, 'No se pudo actualizar el acceso'))
   } finally {
     savingUsers[usuario.idPersonal] = false
   }
