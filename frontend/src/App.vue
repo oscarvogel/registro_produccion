@@ -92,76 +92,84 @@
 
           <nav :class="['min-h-0 flex-1 overflow-y-auto py-3', sidebarCollapsed ? 'md:px-2 px-2' : 'px-2']">
             <div :class="sidebarCollapsed ? 'space-y-1.5' : 'space-y-2'">
-              <router-link
-                v-for="item in primaryItems"
-                :key="item.key"
-                :to="item.to"
-                :class="navItemClass(isItemActive(item))"
-                :title="sidebarCollapsed ? item.label : undefined"
-                exact-active-class="!border-[#10B981]/45 !bg-[#0F2A1E] !text-white"
-                @click="mobileMenuOpen = false"
-              >
-                <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
-                  <AppIcon :name="item.icon" size="sm" class="shrink-0" />
-                  <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ item.label }}</span>
-                </span>
-              </router-link>
-
-              <section v-for="section in navSections" :key="section.key" :class="sidebarCollapsed ? 'pt-2' : 'pt-2'">
-                <button
-                  type="button"
-                  :class="navSectionClass(section)"
-                  :title="sidebarCollapsed ? section.label : undefined"
-                  @click="toggleSection(section.key)"
+              <template v-for="area in navigationAreas" :key="area.key">
+                <router-link
+                  v-if="area.type === 'link'"
+                  :to="area.to"
+                  :class="navItemClass(isItemActive(area))"
+                  :title="sidebarCollapsed ? area.label : undefined"
+                  @click="mobileMenuOpen = false"
                 >
-                  <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-2' : 'gap-2']">
-                    <span
-                      :class="[
-                        'rounded-full transition-colors',
-                        sidebarCollapsed ? 'md:h-2 md:w-2 h-1.5 w-1.5' : 'h-1.5 w-1.5',
-                        isSectionActive(section) ? 'bg-[#10B981]' : 'bg-[#86948A]',
-                      ]"
-                    ></span>
-                    <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ section.label }}</span>
+                  <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
+                    <AppIcon :name="area.icon" size="sm" class="shrink-0" />
+                    <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ area.label }}</span>
                   </span>
-                  <AppIcon
-                    name="chevronDown"
-                    size="xs"
-                    :class="['shrink-0 transition-transform', sidebarCollapsed ? 'md:hidden' : '', openSections[section.key] ? 'rotate-180' : '']"
-                  />
-                </button>
+                </router-link>
 
-                <Transition name="nav-section">
-                  <div v-show="sidebarCollapsed || openSections[section.key]" class="mt-1 space-y-1 overflow-hidden">
-                    <router-link
-                      v-for="item in section.items"
-                      :key="item.key"
-                      :to="item.to"
-                      :class="navItemClass(isItemActive(item))"
-                      :title="sidebarCollapsed ? item.label : undefined"
-                      @click="mobileMenuOpen = false"
+                <section v-else>
+                  <button
+                    type="button"
+                    :class="navSectionClass(area)"
+                    :title="sidebarCollapsed ? area.label : undefined"
+                    :aria-expanded="openSection === area.key"
+                    :aria-controls="sectionPanelId(area.key)"
+                    @click="toggleSection(area.key)"
+                  >
+                    <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
+                      <AppIcon :name="area.icon" size="sm" class="shrink-0" />
+                      <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ area.label }}</span>
+                    </span>
+                    <AppIcon
+                      name="chevronDown"
+                      size="xs"
+                      :class="['shrink-0 transition-transform', sidebarCollapsed ? 'md:hidden' : '', openSection === area.key ? 'rotate-180' : '']"
+                    />
+                  </button>
+
+                  <Transition name="nav-section">
+                    <div
+                      v-show="openSection === area.key"
+                      :id="sectionPanelId(area.key)"
+                      :class="['mt-1 space-y-1 overflow-hidden', sidebarCollapsed ? 'md:hidden' : '']"
                     >
-                      <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
-                        <AppIcon :name="item.icon" size="sm" class="shrink-0" />
-                        <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ item.label }}</span>
-                      </span>
-                      <span
-                        v-if="Number(item.badge || 0) > 0"
-                        :class="[
-                          'rounded-full bg-warning text-[10px] font-extrabold text-white',
-                          sidebarCollapsed ? 'md:absolute md:right-2 md:top-2 md:h-2 md:w-2 md:px-0 md:py-0 md:text-transparent ml-2 px-2 py-0.5' : 'ml-2 px-2 py-0.5',
-                        ]"
+                      <router-link
+                        v-for="item in area.items"
+                        :key="item.key"
+                        :to="item.to"
+                        :class="navItemClass(isItemActive(item))"
+                        @click="mobileMenuOpen = false"
                       >
-                        {{ item.badge }}
-                      </span>
-                    </router-link>
-                  </div>
-                </Transition>
-              </section>
+                        <span class="flex min-w-0 items-center gap-3">
+                          <AppIcon :name="item.icon" size="sm" class="shrink-0" />
+                          <span class="truncate">{{ item.label }}</span>
+                        </span>
+                        <span
+                          v-if="Number(item.badge || 0) > 0"
+                          class="ml-2 rounded-full bg-warning px-2 py-0.5 text-[10px] font-extrabold text-white"
+                        >
+                          {{ item.badge }}
+                        </span>
+                      </router-link>
+                    </div>
+                  </Transition>
+                </section>
+              </template>
             </div>
           </nav>
 
           <div :class="['shrink-0 border-t border-[#222D26] p-2', sidebarCollapsed ? 'md:px-2' : '']">
+            <router-link
+              :to="{ name: 'manuales' }"
+              :class="navItemClass(route.name === 'manuales')"
+              :title="sidebarCollapsed ? 'Manuales' : undefined"
+              @click="mobileMenuOpen = false"
+            >
+              <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
+                <AppIcon name="manual" size="sm" />
+                <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">Manuales</span>
+              </span>
+            </router-link>
+
             <button
               type="button"
               :class="navItemClass(false)"
@@ -241,7 +249,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, provide, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
@@ -250,6 +258,7 @@ import { useTheme } from '@/composables/useTheme'
 import OfflineBanner from '@/components/ui/OfflineBanner.vue'
 import ToastHost from '@/components/ToastHost.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import { createNavigationAreas } from '@/config/navigation'
 
 const router = useRouter()
 const route = useRoute()
@@ -259,16 +268,10 @@ const connectivityStore = useConnectivityStore()
 const { isDark, toggleTheme } = useTheme()
 const mobileMenuOpen = ref(false)
 const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === '1')
-const openSections = reactive({
-  operacion: false,
-  catalogos: false,
-  combustible: false,
-  produccion: false,
-})
+const openSection = ref(null)
 
 const isAdmin = computed(() => authStore.isAdmin)
 const isEncargado = computed(() => authStore.user?.encargado === 1)
-const canViewDashboard = computed(() => isAdmin.value || isEncargado.value)
 
 // Whether the operator has ever signed in on this device (has an offline
 // session cache, valid or not). Drives the OfflineBanner copy: when false the
@@ -291,73 +294,20 @@ const userInitials = computed(() => {
 const themeToggleLabel = computed(() => (isDark.value ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'))
 const themeStatusLabel = computed(() => (isDark.value ? 'Modo oscuro' : 'Modo claro'))
 
-const primaryItems = computed(() => [
-  { key: 'home', label: 'Inicio', icon: 'home', to: { name: 'home' } },
-  { key: 'manuales', label: 'Manuales', icon: 'manual', to: { name: 'manuales' } },
-])
-
-const navSections = computed(() => {
-  const sections = []
-
-  if (canViewDashboard.value || isAdmin.value) {
-    const operacionItems = []
-    if (canViewDashboard.value) {
-      operacionItems.push({ key: 'dashboard', label: 'Dashboard Operativo', icon: 'dashboard', to: { name: 'dashboard' } })
-    }
-    if (isAdmin.value) {
-      operacionItems.push(
-        { key: 'admin-dashboard', label: 'Dashboard Producción', icon: 'dashboard', to: { name: 'admin-dashboard' } },
-        { key: 'personal', label: 'Personal', icon: 'personnel', to: { name: 'admin-crud', params: { entity: 'personal' } } },
-        { key: 'moviles', label: 'Moviles', icon: 'machine', to: { name: 'admin-crud', params: { entity: 'moviles' } } },
-        { key: 'asignaciones', label: 'Asignaciones Operativas', icon: 'assignment', to: { name: 'admin-crud', params: { entity: 'asignaciones' } } },
-      )
-    }
-    sections.push({ key: 'operacion', label: 'Operacion', items: operacionItems })
-  }
-
-  if (isAdmin.value) {
-    sections.push({
-      key: 'catalogos',
-      label: 'Catálogos',
-      items: [
-        { key: 'unidades', label: 'Unidades de Negocio', icon: 'unit', to: { name: 'admin-crud', params: { entity: 'unidades-negocio' } } },
-        { key: 'tipos', label: 'Tipos de Proceso', icon: 'process', to: { name: 'admin-crud', params: { entity: 'tipos-proceso' } } },
-        { key: 'lugares', label: 'Lugares de Carga', icon: 'location', to: { name: 'admin-crud', params: { entity: 'lugares-carga' } } },
-        { key: 'predios', label: 'Predios', icon: 'field', to: { name: 'admin-crud', params: { entity: 'predios' } } },
-        { key: 'rodales', label: 'Rodales', icon: 'plot', to: { name: 'admin-crud', params: { entity: 'rodales' } } },
-        { key: 'actas', label: 'Actas', icon: 'records', to: { name: 'admin-crud', params: { entity: 'actas' } } },
-        { key: 'acceso', label: 'Configuración de Acceso', icon: 'settings', to: { name: 'admin-configuracion' } },
-      ],
-    })
-  }
-
-  sections.push({
-    key: 'combustible',
-    label: 'Combustible',
-    items: [
-      { key: 'carga-combustible', label: 'Carga de Combustible', icon: 'fuel', to: { name: 'combustible' } },
-    ],
-  })
-
-  const produccionItems = [
-    { key: 'carga-produccion', label: 'Carga de Producción', icon: 'production', to: { name: 'produccion' } },
-    { key: 'pendientes', label: 'Pendientes', icon: 'pending', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
-  ]
-
-  if (!isEncargado.value || isAdmin.value) {
-    produccionItems.push({ key: 'mis-registros', label: 'Mis Registros', icon: 'records', to: { name: 'mis-registros' } })
-  }
-
-  sections.push({ key: 'produccion', label: 'Producción', items: produccionItems })
-  return sections
-})
+const navigationAreas = computed(() => createNavigationAreas({
+  isAdmin: isAdmin.value,
+  isEncargado: isEncargado.value,
+  pendingCount: produccionStore.pendingCount,
+}))
 
 function toggleSection(key) {
-  openSections[key] = !openSections[key]
+  if (sidebarCollapsed.value) sidebarCollapsed.value = false
+  openSection.value = openSection.value === key ? null : key
 }
 
 function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value
+  openSection.value = sidebarCollapsed.value ? null : activeSectionKey()
 }
 
 function navItemClass(active) {
@@ -372,7 +322,7 @@ function navItemClass(active) {
 
 function navSectionClass(section) {
   const active = isSectionActive(section)
-  const open = openSections[section.key]
+  const open = openSection.value === section.key
 
   return [
     'flex w-full items-center rounded-lg border py-2 text-left text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
@@ -390,17 +340,28 @@ function isSectionActive(section) {
 }
 
 function isItemActive(item) {
+  if (item.activeRoutes?.includes(route.name)) return true
   if (item.to.name === 'admin-crud') {
     return route.name === 'admin-crud' && route.params.entity === item.to.params.entity
   }
   return route.name === item.to.name
 }
 
+function activeSectionKey() {
+  return navigationAreas.value.find((area) => area.type === 'section' && isSectionActive(area))?.key || null
+}
+
+function sectionPanelId(key) {
+  return `sidebar-section-${key}`
+}
+
 watch(
-  () => route.fullPath,
+  [() => route.fullPath, () => isAdmin.value, () => isEncargado.value],
   () => {
     mobileMenuOpen.value = false
+    if (!sidebarCollapsed.value) openSection.value = activeSectionKey()
   },
+  { immediate: true },
 )
 
 watch(sidebarCollapsed, (value) => {

@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_admin, get_db
-from app.core.security import get_password_hash
+from app.core.security import PASSWORD_TOO_LONG_MESSAGE, get_password_hash
 from app.models.asignacion_operativa import AsignacionOperativa
 from app.models.lugar_carga import LugarCarga
 from app.models.movil import Movil
@@ -67,7 +67,7 @@ def _hash_personal_password(password: str) -> str:
     try:
         return get_password_hash(password)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=PASSWORD_TOO_LONG_MESSAGE) from exc
 
 
 def _dashboard_unit_sort_key(item: DashboardUnidadNegocioItem) -> tuple[bool, int, str]:

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const toastError = vi.fn()
 const toastInfo = vi.fn()
@@ -271,5 +271,45 @@ describe('api response interceptor', () => {
     await expect(handler(error)).rejects.toBe(error)
     expect(toastError).toHaveBeenCalledTimes(1)
     expect(toastError.mock.calls[0][0]).toBe('Sesion expirada')
+  })
+})
+
+describe('getUserSafeErrorMessage', () => {
+  it('hides backend details for 5xx responses', async () => {
+    const { getUserSafeErrorMessage } = await loadApi()
+    const error = {
+      response: {
+        status: 500,
+        data: { detail: "pymysql.err.OperationalError: SELECT password_hash FROM usuarios" },
+      },
+    }
+
+    expect(getUserSafeErrorMessage(error, 'No se pudo guardar')).toBe('No se pudo guardar')
+  })
+
+  it('hides technical SQL-looking details even when status is not 5xx', async () => {
+    const { getUserSafeErrorMessage, isUnsafeErrorDetail } = await loadApi()
+    const detail = "sqlalchemy.exc.ProgrammingError: SELECT * FROM tablero_produccion WHERE id = %s"
+    const error = {
+      response: {
+        status: 400,
+        data: { detail },
+      },
+    }
+
+    expect(isUnsafeErrorDetail(detail)).toBe(true)
+    expect(getUserSafeErrorMessage(error, 'Error de validacion')).toBe('Error de validacion')
+  })
+
+  it('keeps safe validation messages for 4xx responses', async () => {
+    const { getUserSafeErrorMessage } = await loadApi()
+    const error = {
+      response: {
+        status: 422,
+        data: { detail: 'Produccion invalida' },
+      },
+    }
+
+    expect(getUserSafeErrorMessage(error, 'No se pudo guardar')).toBe('Produccion invalida')
   })
 })
