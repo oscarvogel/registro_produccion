@@ -5,7 +5,7 @@ Evidencia regenerada para la reorganizacion de navegacion, el centro administrat
 ## Version validada
 
 - Rama: `codex/pr72-sync-ci-evidence`
-- Commit funcional: `4207067`
+- Commit funcional: `2ee2887`
 - Base actualizada: `origin/main` en `fa70820`
 - Viewports: escritorio `1280x720` y movil `390x844`
 
@@ -31,7 +31,7 @@ El test usa una sesion administrativa ficticia y respuestas HTTP simuladas. No u
 
 ## Validaciones
 
-- `python -m pytest`: 30 tests.
+- `python -m pytest`: 44 tests.
 - `python -m compileall -q app`.
 - `npm test`: 126 tests.
 - `npm run test:e2e`: 2 pruebas, escritorio y movil.
