@@ -51,6 +51,37 @@ def test_windows_package_script_builds_manifested_package_without_env_files():
     assert missing == []
 
 
+def test_github_main_docker_deploy_has_safe_contract():
+    script = read("scripts/deploy_main_fasa195.sh")
+
+    required_fragments = [
+        'EXPECTED_HOSTNAME="${EXPECTED_HOSTNAME:-fg-ubuntu}"',
+        'APP_DIR="${APP_DIR:-/srv/apps/registro_produccion}"',
+        'REMOTE="${REMOTE:-origin}"',
+        'BRANCH="${BRANCH:-main}"',
+        "--check",
+        "--deploy",
+        "--yes",
+        "flock",
+        "git status --porcelain",
+        "git fetch --prune",
+        "git merge-base --is-ancestor",
+        "git merge --ff-only",
+        "registro_produccion:${target_commit}",
+        "docker compose config",
+        "python -m compileall",
+        "import app.main",
+        "indufor produccion_fg",
+        "http://127.0.0.1:18004/health",
+        "http://127.0.0.1:18005/health",
+        ".deploy-backups",
+        "rollback",
+    ]
+
+    missing = [fragment for fragment in required_fragments if fragment not in script]
+    assert missing == []
+
+
 def test_production_deploy_package_applies_idempotent_db_migrations():
     package_script = read("scripts/build_deploy_package.ps1")
     deploy_script = read("deploy_produccion_fg.sh")
