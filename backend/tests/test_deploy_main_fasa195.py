@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -7,11 +8,17 @@ import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BASH = Path(r"C:\Program Files\Git\bin\bash.exe")
+BASH = (
+    Path(r"C:\Program Files\Git\bin\bash.exe")
+    if os.name == "nt"
+    else Path(shutil.which("bash") or "/bin/bash")
+)
 
 
 def bash_path(path: Path) -> str:
     resolved = path.resolve()
+    if os.name != "nt":
+        return resolved.as_posix()
     return f"/{resolved.drive[0].lower()}{resolved.as_posix()[2:]}"
 
 
@@ -72,7 +79,7 @@ class DeployHarness:
             [
                 str(BASH),
                 "-c",
-                'export PATH="$1:$PATH"; shift; exec "$@"',
+                'export PATH="$1:$PATH"; shift; exec bash "$@"',
                 "deploy-test",
                 bash_path(self.root / "fake-bin"),
                 bash_path(script),
