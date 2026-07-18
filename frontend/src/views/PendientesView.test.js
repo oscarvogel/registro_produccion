@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/stores/produccion', () => ({
+  canUserSyncPendingRecord: () => true,
   useProduccionStore: () => ({
     syncPending: mocks.syncPending,
     refreshPendingCount: mocks.refreshPendingCount,

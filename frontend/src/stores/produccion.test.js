@@ -5,6 +5,7 @@ const mockState = vi.hoisted(() => {
   let nextId = 1
   const catalogRows = new Map()
   const records = []
+  let currentUser = { idPersonal: 1, is_admin: 1, encargado: 0, unidad_ids: [] }
 
   const makePendingQuery = (field, value) => ({
     count: vi.fn(async () => records.filter((record) => record[field] === value).length),
@@ -32,6 +33,11 @@ const mockState = vi.hoisted(() => {
       nextId = 1
       catalogRows.clear()
       records.splice(0, records.length)
+      currentUser = { idPersonal: 1, is_admin: 1, encargado: 0, unidad_ids: [] }
+    },
+    getCurrentUser: () => currentUser,
+    setCurrentUser: (user) => {
+      currentUser = user
     },
     addPendingRecord,
     apiGet: vi.fn(),
@@ -86,6 +92,10 @@ vi.mock('@/services/pendingRecords', () => ({
 
 vi.mock('@/stores/toast', () => ({
   useToastStore: () => mockState.toast,
+}))
+
+vi.mock('@/stores/auth', () => ({
+  useAuthStore: () => ({ user: mockState.getCurrentUser() }),
 }))
 
 import api from '@/services/api'
@@ -309,4 +319,44 @@ describe('produccion offline queue', () => {
       expect(store.pendingCount).toBe(1)
     },
   )
+
+  it('only synchronizes records owned by the current operator on a shared device', async () => {
+    const store = useProduccionStore()
+    const ownPayload = { fecha: '2026-06-16', cod_operador: 20, cod_un: 3, produccion: 8 }
+    const otherPayload = { fecha: '2026-06-16', cod_operador: 19, cod_un: 3, produccion: 6 }
+    mockState.setCurrentUser({
+      idPersonal: 20,
+      is_admin: 0,
+      encargado: 0,
+      unidad_ids: [3],
+      unidad_negocio: 3,
+    })
+    mockState.addPendingRecord(otherPayload)
+    mockState.addPendingRecord(ownPayload)
+    api.post.mockResolvedValue({ data: { id: 123 } })
+
+    const result = await store.syncPending()
+
+    expect(result).toEqual({
+      successCount: 1,
+      permanentFailureCount: 0,
+      transientFailureCount: 0,
+    })
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(api.post).toHaveBeenCalledWith('/api/produccion', ownPayload)
+    expect(mockState.records).toHaveLength(1)
+    expect(mockState.records[0].payload).toEqual(otherPayload)
+  })
+
+  it('returns the sync result contract when another synchronization is active', async () => {
+    const store = useProduccionStore()
+    store.syncingPending = true
+
+    await expect(store.syncPending()).resolves.toEqual({
+      successCount: 0,
+      permanentFailureCount: 0,
+      transientFailureCount: 0,
+      alreadyRunning: true,
+    })
+  })
 })

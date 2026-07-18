@@ -3,7 +3,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
-const evidenceDir = path.resolve(currentDir, '../../docs/screenshots/ui-ux-implementation')
+const versionedEvidenceDir = process.env.VISUAL_EVIDENCE_DIR
+  ? path.resolve(currentDir, process.env.VISUAL_EVIDENCE_DIR)
+  : null
 
 const screenshotNames = {
   'desktop-chromium': {
@@ -64,10 +66,13 @@ test.beforeEach(async ({ page }) => {
 
 test('captures the current login, administration and pending-record flows', async ({ page }, testInfo) => {
   const names = screenshotNames[testInfo.project.name]
+  const screenshotPath = (name) => versionedEvidenceDir
+    ? path.join(versionedEvidenceDir, name)
+    : testInfo.outputPath(name)
 
   await page.goto('/login')
   await expect(page.getByRole('heading', { name: 'Acceso operativo' })).toBeVisible()
-  await page.screenshot({ path: path.join(evidenceDir, names.login), fullPage: true })
+  await page.screenshot({ path: screenshotPath(names.login), fullPage: true })
 
   await setAdminSession(page)
   await page.goto('/admin/gestion')
@@ -76,17 +81,17 @@ test('captures the current login, administration and pending-record flows', asyn
     await page.getByRole('button', { name: 'Abrir navegacion' }).click()
   }
   await expect(page.getByRole('link', { name: 'Administración' })).toBeVisible()
-  await page.screenshot({ path: path.join(evidenceDir, names.admin), fullPage: true })
+  await page.screenshot({ path: screenshotPath(names.admin), fullPage: true })
 
   await page.goto('/pendientes')
   await expect(page.getByRole('heading', { name: 'Registros Pendientes' })).toBeVisible()
   const emptyQueueMessage = page.getByText(
-    'No hay registros pendientes ni fallidos. Las cargas realizadas se encuentran guardadas correctamente.',
+    'No hay registros pendientes ni fallidos para tu alcance actual.',
   )
   await expect(emptyQueueMessage).toBeVisible()
   await page.waitForTimeout(500)
   await page.screenshot({
-    path: path.join(evidenceDir, names.pending),
+    path: screenshotPath(names.pending),
     fullPage: testInfo.project.name !== 'mobile-chromium',
   })
 })

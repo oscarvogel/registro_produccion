@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import api, { getUserSafeErrorMessage } from '@/services/api'
 import db from '@/services/db'
 import { queuePendingProductionRecord } from '@/services/pendingRecords'
+import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 
 const ensureArray = (value) => (Array.isArray(value) ? value : [])
@@ -41,6 +42,22 @@ function isValidCatalogPayload(data) {
 
 export function isPermanentSyncFailure(status) {
   return PERMANENT_SYNC_FAILURE_STATUSES.has(Number(status))
+}
+
+export function canUserSyncPendingRecord(record, user) {
+  if (!user) return false
+  if (user.is_admin === 1) return true
+
+  if (user.encargado === 1) {
+    const unitIds = new Set(
+      [...(Array.isArray(user.unidad_ids) ? user.unidad_ids : []), user.unidad_negocio]
+        .map((value) => Number(value))
+        .filter(Boolean),
+    )
+    return unitIds.has(Number(record?.payload?.cod_un || 0))
+  }
+
+  return Number(record?.payload?.cod_operador || 0) === Number(user.idPersonal || 0)
 }
 
 export const useProduccionStore = defineStore('produccion', {
@@ -296,7 +313,14 @@ export const useProduccionStore = defineStore('produccion', {
     },
 
     async syncPending() {
-      if (this.syncingPending) return 0
+      if (this.syncingPending) {
+        return {
+          successCount: 0,
+          permanentFailureCount: 0,
+          transientFailureCount: 0,
+          alreadyRunning: true,
+        }
+      }
       this.syncingPending = true
       this.error = null
       let successCount = 0
@@ -304,7 +328,9 @@ export const useProduccionStore = defineStore('produccion', {
       let transientFailureCount = 0
 
       try {
-        const pending = await db.pendingRecords.where('synced').equals(0).toArray()
+        const currentUser = useAuthStore().user
+        const pending = (await db.pendingRecords.where('synced').equals(0).toArray())
+          .filter((record) => canUserSyncPendingRecord(record, currentUser))
         if (!pending.length) {
           return { successCount, permanentFailureCount, transientFailureCount }
         }
