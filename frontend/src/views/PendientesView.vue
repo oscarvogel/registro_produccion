@@ -188,7 +188,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import api from '@/services/api'
+import api, { getUserSafeErrorMessage } from '@/services/api'
 import db from '@/services/db'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
@@ -383,7 +383,7 @@ async function retryRecord(record) {
     await loadRecords()
     toast.success('Registro sincronizado')
   } catch (err) {
-    const detail = err.response?.data?.detail || 'No se pudo sincronizar este registro.'
+    const detail = getUserSafeErrorMessage(err, 'No se pudo sincronizar este registro.')
     const status = err.response?.status
     await db.pendingRecords.update(record.id, {
       synced: status >= 400 && status < 500 ? 1 : 0,

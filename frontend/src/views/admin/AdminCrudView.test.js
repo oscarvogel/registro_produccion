@@ -18,6 +18,7 @@ vi.mock('@/services/api', () => ({
     put: vi.fn(),
     delete: vi.fn(),
   },
+  getUserSafeErrorMessage: vi.fn((_err, fallback) => fallback),
 }))
 
 import api from '@/services/api'
@@ -95,7 +96,7 @@ describe('AdminCrudView tipos de proceso', () => {
     await guardar.trigger('click')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('No se pudieron cargar los datos necesarios. Actualiza e intenta nuevamente.')
+    expect(wrapper.text()).toContain('No se pudo guardar el registro. Actualiza e intenta nuevamente.')
     expect(wrapper.text()).not.toContain('SELECT personal')
     expect(wrapper.text()).not.toContain('OperationalError')
     expect(wrapper.text()).not.toContain('Lost connection')
@@ -212,6 +213,87 @@ describe('AdminCrudView tipos de proceso', () => {
     await input.setValue('carreton')
     await flushPromises()
     expect(wrapper.findAll('[role="option"]').map((option) => option.text())).toEqual(['AAA111 - Carreton Principal'])
+  })
+
+  it('keeps two business units selected and sends both when saving a person', async () => {
+    routeState.params.entity = 'personal'
+    api.get.mockImplementation((url) => {
+      const dataByUrl = {
+        '/api/admin/personal': [
+          {
+            idPersonal: 5,
+            nombre: 'Ana Alvarez',
+            dni: '30111222',
+            cuit: '',
+            id_puesto: 1,
+            unidad_negocio: 1,
+            unidad_ids: [1],
+            tipo_de_proceso_id: null,
+            entrada_m: '00:00',
+            salida_m: '00:00',
+            entrada_t: '00:00',
+            salida_t: '00:00',
+            telefono: '',
+            domicilio: '',
+            activo: 1,
+            encargado: 0,
+            is_admin: 0,
+          },
+        ],
+        '/api/admin/unidades-negocio': [
+          { idUnidadNegocio: 2, nombre: 'TALLER', prefijo: 'TAL', activo: 1 },
+          { idUnidadNegocio: 1, nombre: 'COSECHA DELTA', prefijo: 'DELTA', activo: 1 },
+        ],
+        '/api/admin/tipos-proceso': [],
+      }
+      return Promise.resolve({ data: dataByUrl[url] || [] })
+    })
+
+    const wrapper = mount(AdminCrudView, {
+      global: {
+        directives: {
+          motionPanel: {},
+          motionPop: {},
+        },
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    })
+    await flushPromises()
+
+    const editar = wrapper.findAll('button').find((button) => button.text() === 'Editar')
+    expect(editar).toBeTruthy()
+    await editar.trigger('click')
+
+    const relaciones = wrapper.findAll('button').find((button) => button.text() === 'Relaciones')
+    expect(relaciones).toBeTruthy()
+    await relaciones.trigger('click')
+
+    const unitLabels = wrapper.findAll('label').filter((label) => ['COSECHA DELTA', 'TALLER'].includes(label.text()))
+    expect(unitLabels.map((label) => label.text())).toEqual(['COSECHA DELTA', 'TALLER'])
+
+    const deltaCheckbox = unitLabels[0].get('input[type="checkbox"]')
+    const tallerCheckbox = unitLabels[1].get('input[type="checkbox"]')
+    expect(deltaCheckbox.element.checked).toBe(true)
+    expect(tallerCheckbox.element.checked).toBe(false)
+
+    await tallerCheckbox.setValue(true)
+    expect(deltaCheckbox.element.checked).toBe(true)
+    expect(tallerCheckbox.element.checked).toBe(true)
+    expect(wrapper.text()).toContain('2 seleccionadas')
+
+    const guardar = wrapper.findAll('button').find((button) => button.text().includes('Guardar'))
+    await guardar.trigger('click')
+    await flushPromises()
+
+    expect(api.put).toHaveBeenCalledWith(
+      '/api/admin/personal/5',
+      expect.objectContaining({
+        unidad_negocio: 1,
+        unidad_ids: [1, 2],
+      }),
+    )
   })
 
   it('shows an admin CRUD form for actas used by the production combo', async () => {

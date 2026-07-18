@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import api from '@/services/api'
+import api, { getUserSafeErrorMessage } from '@/services/api'
 
 export const useItemsStore = defineStore('items', {
   state: () => ({
@@ -15,7 +15,7 @@ export const useItemsStore = defineStore('items', {
         const { data } = await api.get('/api/items')
         this.items = data
       } catch (err) {
-        this.error = err.message
+        this.error = getUserSafeErrorMessage(err, 'No se pudieron cargar los items')
       } finally {
         this.loading = false
       }

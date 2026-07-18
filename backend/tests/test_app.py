@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.exc import OperationalError
 
 from app import main as main_module
-from app.main import app
+from app.main import DATABASE_ERROR_DETAIL, SERVER_ERROR_DETAIL, app
 
 
 def test_root_returns_project_welcome_message():
@@ -85,21 +85,45 @@ def test_health_fails_when_expected_database_name_mismatches(monkeypatch):
 
 
 def test_database_errors_return_safe_message_without_sql():
-    async def broken_database_route():
-        raise OperationalError(
-            "SELECT personal.idPersonal FROM personal WHERE personal.idPersonal = %(idPersonal_1)s",
-            {"idPersonal_1": 951},
-            Exception("Lost connection to MySQL server during query"),
-        )
+    route_path = "/__test__/database-error-safe-message"
 
-    app.add_api_route("/__test__/database-error-safe-message", broken_database_route, methods=["GET"])
+    if not any(getattr(route, "path", None) == route_path for route in app.routes):
+        app.add_api_route(route_path, broken_database_route, methods=["GET"])
+
     client = TestClient(app, raise_server_exceptions=False)
 
-    response = client.get("/__test__/database-error-safe-message")
+    response = client.get(route_path)
 
     assert response.status_code == 503
     detail = response.json()["detail"]
-    assert detail == "No se pudieron cargar los datos necesarios. Actualiza e intenta nuevamente."
+    assert detail == DATABASE_ERROR_DETAIL
     assert "SELECT" not in detail
     assert "personal" not in detail
     assert "Lost connection" not in detail
+
+
+def test_global_exception_handler_hides_sql_details():
+    route_path = "/__test__/sql-error"
+
+    if not any(getattr(route, "path", None) == route_path for route in app.routes):
+        @app.get(route_path)
+        async def sql_error_route():
+            raise RuntimeError("pymysql.err.OperationalError: SELECT password_hash FROM usuarios")
+
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get(route_path)
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": SERVER_ERROR_DETAIL}
+    assert "pymysql" not in response.text
+    assert "SELECT" not in response.text
+    assert "password_hash" not in response.text
+
+
+async def broken_database_route():
+    raise OperationalError(
+        "SELECT personal.idPersonal FROM personal WHERE personal.idPersonal = %(idPersonal_1)s",
+        {"idPersonal_1": 951},
+        Exception("Lost connection to MySQL server during query"),
+    )
