@@ -27,12 +27,22 @@ class DeployHarness:
     def calls(self) -> str:
         return self.call_log.read_text(encoding="utf-8") if self.call_log.exists() else ""
 
+    def latest_manifest(self) -> dict[str, str]:
+        manifests = sorted((self.root / "backups").glob("deploy_*.env"))
+        assert manifests
+        return dict(
+            line.split("=", 1)
+            for line in manifests[-1].read_text(encoding="utf-8").splitlines()
+            if "=" in line
+        )
+
     def run(
         self,
         *arguments: str,
         git_status: str = "",
         merge_base_exit: int = 0,
         target_commit: str = "target-commit",
+        fail_health: str = "",
     ) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
         env.update(
@@ -47,6 +57,7 @@ class DeployHarness:
                 "FAKE_MERGE_BASE_EXIT": str(merge_base_exit),
                 "FAKE_TARGET_COMMIT": target_commit,
                 "FAKE_STATE_DIR": str(self.root),
+                "FAKE_FAIL_HEALTH": fail_health,
             }
         )
         script = REPO_ROOT / "scripts/deploy_main_fasa195.sh"
@@ -114,6 +125,7 @@ case "$*" in
     fi
     ;;
   "rev-parse main") printf '%s\\n' current-main ;;
+  "branch --show-current") printf '%s\\n' old-branch ;;
   "merge-base --is-ancestor"*) exit "${FAKE_MERGE_BASE_EXIT:-0}" ;;
   "show-ref --verify --quiet refs/heads/main") exit 0 ;;
   "merge --ff-only origin/main") touch "$FAKE_STATE_DIR/merged" ;;
@@ -126,7 +138,29 @@ esac
 printf 'docker %s\\n' "$*" >>"$CALL_LOG"
 case "$*" in
   "compose config --services") printf '%s\\n' indufor produccion_fg ;;
-  "inspect -f {{.State.Health.Status}}"*) printf '%s\\n' healthy ;;
+  "inspect -f {{.Image}} registro_produccion_indufor")
+    printf '%s\\n' old-indufor-image
+    ;;
+  "inspect -f {{.Image}} registro_produccion_produccion_fg")
+    printf '%s\\n' old-produccion-image
+    ;;
+  "inspect -f {{.State.Health.Status}}"*)
+    container="${*: -1}"
+    if [[ -n "${FAKE_FAIL_HEALTH:-}" && "$container" == "$FAKE_FAIL_HEALTH" ]]; then
+      count_file="$FAKE_STATE_DIR/health-fail-count"
+      count=0
+      [[ -f "$count_file" ]] && count="$(cat "$count_file")"
+      count=$((count + 1))
+      printf '%s' "$count" >"$count_file"
+      if [[ "$count" -le 30 ]]; then
+        printf '%s\\n' unhealthy
+      else
+        printf '%s\\n' healthy
+      fi
+    else
+      printf '%s\\n' healthy
+    fi
+    ;;
 esac
 """,
     )
@@ -191,3 +225,41 @@ def test_deploy_requires_yes_when_not_interactive(deploy_harness: DeployHarness)
     assert result.returncode != 0
     assert "interactive terminal or --yes" in result.stderr
     assert "docker build" not in deploy_harness.calls
+
+
+def test_indufor_failure_restores_only_indufor(deploy_harness: DeployHarness):
+    result = deploy_harness.run(
+        "--deploy", "--yes", fail_health="registro_produccion_indufor"
+    )
+
+    assert result.returncode != 0
+    assert "rollback_service indufor old-indufor-image" in result.stdout
+    assert "rollback_service produccion_fg" not in result.stdout
+    assert not any(
+        "up -d --no-build --force-recreate produccion_fg" in call
+        for call in deploy_harness.calls.splitlines()
+    )
+
+
+def test_produccion_failure_restores_both_services(deploy_harness: DeployHarness):
+    result = deploy_harness.run(
+        "--deploy",
+        "--yes",
+        fail_health="registro_produccion_produccion_fg",
+    )
+
+    assert result.returncode != 0
+    assert "rollback_service produccion_fg old-produccion-image" in result.stdout
+    assert "rollback_service indufor old-indufor-image" in result.stdout
+    assert deploy_harness.calls.count("http://127.0.0.1:18004/health") >= 2
+    assert "http://127.0.0.1:18005/health" in deploy_harness.calls
+
+
+def test_manifest_records_previous_and_target_state(deploy_harness: DeployHarness):
+    result = deploy_harness.run("--deploy", "--yes", target_commit="abc123")
+
+    assert result.returncode == 0, result.stderr
+    manifest = deploy_harness.latest_manifest()
+    assert manifest["target_commit"] == "abc123"
+    assert manifest["previous_indufor_image"] == "old-indufor-image"
+    assert manifest["previous_produccion_fg_image"] == "old-produccion-image"

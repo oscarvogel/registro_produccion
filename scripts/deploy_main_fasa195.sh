@@ -44,8 +44,15 @@ require_command() {
 }
 
 rollback() {
-  printf 'ERROR: rollback requested before implementation\n' >&2
-  return 1
+  local service="$1"
+  local image="$2"
+  local container="$3"
+  local health_url="$4"
+
+  log "rollback_service $service $image"
+  write_service_override "$service" "$image"
+  compose_target up -d --no-build --force-recreate "$service"
+  wait_healthy "$container" "$health_url"
 }
 
 override_file=""
@@ -124,6 +131,20 @@ services:
 YAML
 }
 
+write_service_override() {
+  local service="$1"
+  local image="$2"
+
+  if [[ -z "$override_file" ]]; then
+    override_file="$(mktemp)"
+  fi
+  cat >"$override_file" <<YAML
+services:
+  ${service}:
+    image: ${image}
+YAML
+}
+
 compose_target() {
   docker compose -f docker-compose.yml -f "$override_file" "$@"
 }
@@ -141,16 +162,71 @@ wait_healthy() {
     fi
     sleep 2
   done
-  fail "$container did not become healthy"
+  printf 'ERROR: %s did not become healthy\n' "$container" >&2
+  return 1
 }
 
 confirm_deploy
+
+previous_branch="$(git branch --show-current)"
+previous_commit="$(git rev-parse HEAD)"
+previous_indufor_image="$(
+  docker inspect -f '{{.Image}}' registro_produccion_indufor
+)"
+previous_produccion_image="$(
+  docker inspect -f '{{.Image}}' registro_produccion_produccion_fg
+)"
+indufor_updated=false
+produccion_updated=false
+manifest=""
+
+restore_after_error() {
+  local exit_code=$?
+  trap - ERR
+  set +e
+
+  printf 'ERROR: deploy failed; starting rollback\n' >&2
+  if [[ "$produccion_updated" == true ]]; then
+    rollback \
+      produccion_fg \
+      "$previous_produccion_image" \
+      registro_produccion_produccion_fg \
+      "$HEALTH_PRODUCCION_FG"
+  fi
+  if [[ "$indufor_updated" == true ]]; then
+    rollback \
+      indufor \
+      "$previous_indufor_image" \
+      registro_produccion_indufor \
+      "$HEALTH_INDUFOR"
+  fi
+
+  git switch "$previous_branch"
+  git reset --keep "$previous_commit"
+  if [[ -n "$manifest" && -f "$manifest" ]]; then
+    printf 'status=rolled_back\n' >>"$manifest"
+  fi
+  exit "$exit_code"
+}
+trap restore_after_error ERR
 
 log "Updating local $BRANCH from $REMOTE/$BRANCH"
 git switch "$BRANCH"
 git merge --ff-only "$REMOTE/$BRANCH"
 target_commit="$(git rev-parse HEAD)"
 target_image="registro_produccion:${target_commit}"
+
+timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$BACKUP_DIR"
+manifest="$BACKUP_DIR/deploy_${timestamp}_${target_commit}.env"
+printf '%s\n' \
+  "previous_branch=$previous_branch" \
+  "previous_commit=$previous_commit" \
+  "previous_indufor_image=$previous_indufor_image" \
+  "previous_produccion_fg_image=$previous_produccion_image" \
+  "target_commit=$target_commit" \
+  "target_image=$target_image" >"$manifest"
+chmod 600 "$manifest"
 
 log "Building immutable image $target_image"
 docker build --tag "$target_image" .
@@ -161,13 +237,17 @@ write_override
 
 log "Updating indufor"
 compose_target up -d --no-build --force-recreate indufor
+indufor_updated=true
 wait_healthy registro_produccion_indufor "$HEALTH_INDUFOR"
 
 log "Updating produccion_fg"
 compose_target up -d --no-build --force-recreate produccion_fg
+produccion_updated=true
 wait_healthy registro_produccion_produccion_fg "$HEALTH_PRODUCCION_FG"
 
 docker tag "$target_image" registro_produccion:latest
+printf 'status=success\n' >>"$manifest"
+trap - ERR
 
 log "Deploy successful"
 printf 'target_commit=%s\n' "$target_commit"
