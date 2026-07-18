@@ -51,8 +51,15 @@ rollback() {
 
   log "rollback_service $service $image"
   write_service_override "$service" "$image"
-  compose_target up -d --no-build --force-recreate "$service"
-  wait_healthy "$container" "$health_url"
+  if ! compose_target up -d --no-build --force-recreate "$service"; then
+    printf 'ERROR: rollback compose failed for %s\n' "$service" >&2
+    return 1
+  fi
+  if ! wait_healthy "$container" "$health_url"; then
+    printf 'ERROR: rollback healthcheck failed for %s\n' "$service" >&2
+    return 1
+  fi
+  return 0
 }
 
 override_file=""
@@ -158,7 +165,7 @@ wait_healthy() {
     status="$(docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null || true)"
     if [[ "$status" == "healthy" ]]; then
       curl -fsS "$health_url" >/dev/null
-      return
+      return 0
     fi
     sleep 2
   done
@@ -200,6 +207,7 @@ recover_and_exit() {
       "$previous_produccion_image" \
       registro_produccion_produccion_fg \
       "$HEALTH_PRODUCCION_FG"; then
+      printf 'ERROR: failed to restore produccion_fg\n' >&2
       recovery_failed=true
     fi
   fi
@@ -209,12 +217,19 @@ recover_and_exit() {
       "$previous_indufor_image" \
       registro_produccion_indufor \
       "$HEALTH_INDUFOR"; then
+      printf 'ERROR: failed to restore indufor\n' >&2
       recovery_failed=true
     fi
   fi
 
-  git switch "$previous_branch" || recovery_failed=true
-  git reset --keep "$previous_commit" || recovery_failed=true
+  if ! git switch "$previous_branch"; then
+    printf 'ERROR: failed to restore Git branch %s\n' "$previous_branch" >&2
+    recovery_failed=true
+  fi
+  if ! git reset --keep "$previous_commit"; then
+    printf 'ERROR: failed to restore Git commit %s\n' "$previous_commit" >&2
+    recovery_failed=true
+  fi
   if [[ -n "$manifest" && -f "$manifest" ]]; then
     if [[ "$recovery_failed" == true ]]; then
       printf 'status=rollback_failed\n' >>"$manifest"
@@ -273,13 +288,13 @@ resolved_target_count="$(
   fail "compose override did not resolve both services to $target_image"
 
 log "Updating indufor"
-compose_target up -d --no-build --force-recreate indufor
 indufor_updated=true
+compose_target up -d --no-build --force-recreate indufor
 wait_healthy registro_produccion_indufor "$HEALTH_INDUFOR"
 
 log "Updating produccion_fg"
-compose_target up -d --no-build --force-recreate produccion_fg
 produccion_updated=true
+compose_target up -d --no-build --force-recreate produccion_fg
 wait_healthy registro_produccion_produccion_fg "$HEALTH_PRODUCCION_FG"
 
 docker tag "$target_image" registro_produccion:latest

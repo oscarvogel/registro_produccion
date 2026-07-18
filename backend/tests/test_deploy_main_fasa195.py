@@ -44,6 +44,7 @@ class DeployHarness:
         target_commit: str = "target-commit",
         fail_health: str = "",
         fail_rollback_service: str = "",
+        fail_update_service: str = "",
         extra_env: dict[str, str] | None = None,
     ) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
@@ -61,6 +62,7 @@ class DeployHarness:
                 "FAKE_STATE_DIR": str(self.root),
                 "FAKE_FAIL_HEALTH": fail_health,
                 "FAKE_FAIL_ROLLBACK_SERVICE": fail_rollback_service,
+                "FAKE_FAIL_UPDATE_SERVICE": fail_update_service,
             }
         )
         if extra_env:
@@ -149,11 +151,19 @@ case "$*" in
     ;;
   "compose -f docker-compose.yml -f "*" up -d --no-build --force-recreate "*)
     service="${*: -1}"
+    update_fail_marker="$FAKE_STATE_DIR/update-failed-$service"
+    if [[ -n "${FAKE_FAIL_UPDATE_SERVICE:-}" &&
+          "$service" == "$FAKE_FAIL_UPDATE_SERVICE" &&
+          ! -f "$update_fail_marker" ]]; then
+      touch "$update_fail_marker"
+      exit 1
+    fi
     if [[ -n "${FAKE_FAIL_ROLLBACK_SERVICE:-}" &&
           "$service" == "$FAKE_FAIL_ROLLBACK_SERVICE" &&
           -f "$FAKE_STATE_DIR/health-fail-count" ]]; then
       exit 1
     fi
+    exit 0
     ;;
   "inspect -f {{.Image}} registro_produccion_indufor")
     printf '%s\\n' old-indufor-image
@@ -293,6 +303,20 @@ def test_failed_rollback_is_reported_truthfully(deploy_harness: DeployHarness):
     assert result.returncode != 0
     assert "rollback failed" in result.stderr
     assert deploy_harness.latest_manifest()["status"] == "rollback_failed"
+
+
+def test_partial_compose_failure_restores_attempted_service(
+    deploy_harness: DeployHarness,
+):
+    result = deploy_harness.run(
+        "--deploy",
+        "--yes",
+        fail_update_service="indufor",
+    )
+
+    assert result.returncode != 0
+    assert "rollback_service indufor old-indufor-image" in result.stdout
+    assert deploy_harness.latest_manifest()["status"] == "rolled_back", result.stderr
 
 
 def test_origin_main_cannot_be_overridden_from_environment(
