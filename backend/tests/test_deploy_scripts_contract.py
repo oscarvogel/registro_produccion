@@ -82,6 +82,24 @@ def test_github_main_docker_deploy_has_safe_contract():
     assert missing == []
 
 
+def test_github_main_runbook_documents_safe_operator_flow():
+    runbook = read("docs/DEPLOY_GITHUB_MAIN_RUNBOOK.md")
+    required = [
+        "--check",
+        "--deploy",
+        "--yes",
+        "indufor",
+        "produccion_fg",
+        "indufor_demo",
+        "Nginx",
+        ".env",
+        "rollback",
+    ]
+
+    missing = [fragment for fragment in required if fragment not in runbook]
+    assert missing == []
+
+
 def test_production_deploy_package_applies_idempotent_db_migrations():
     package_script = read("scripts/build_deploy_package.ps1")
     deploy_script = read("deploy_produccion_fg.sh")

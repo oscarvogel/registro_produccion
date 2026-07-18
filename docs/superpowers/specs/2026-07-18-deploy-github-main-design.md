@@ -69,7 +69,7 @@ tiempo.
 ## Rollback
 
 Antes de publicar, el script guardará un manifiesto bajo
-`/srv/apps/registro_produccion/.deploy-backups/` con:
+`~/.deploy-backups/registro_produccion/` con:
 
 - commit anterior;
 - rama anterior;
@@ -93,8 +93,9 @@ files, pero utilizará una sobreescritura temporal de imagen para seleccionar la
 etiqueta inmutable del commit. No editará el Compose ni los env files en el
 servidor.
 
-El lock, el override temporal y el manifiesto se limpiarán mediante traps. Los
-errores incluirán la fase que falló sin mostrar secretos.
+El lock bajo `/tmp` y el override temporal se limpiarán mediante traps. El
+manifiesto se conservará como evidencia. Los errores incluirán la fase que
+falló sin mostrar secretos.
 
 ## Pruebas y aceptación
 
