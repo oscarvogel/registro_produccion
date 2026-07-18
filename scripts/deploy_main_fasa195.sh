@@ -48,6 +48,15 @@ rollback() {
   return 1
 }
 
+override_file=""
+
+cleanup() {
+  if [[ -n "$override_file" && -f "$override_file" ]]; then
+    rm -f "$override_file"
+  fi
+}
+trap cleanup EXIT
+
 preflight() {
   [[ "$(hostname)" == "$EXPECTED_HOSTNAME" ]] ||
     fail "hostname must be $EXPECTED_HOSTNAME"
@@ -95,11 +104,71 @@ if [[ "$mode" == "--check" ]]; then
   exit 0
 fi
 
-# Contract markers implemented in later TDD cycles:
-# git merge --ff-only
-# registro_produccion:${target_commit}
-# python -m compileall
-# import app.main
-# indufor produccion_fg
-printf '%s\n' "$HEALTH_INDUFOR" "$HEALTH_PRODUCCION_FG" "$BACKUP_DIR" >/dev/null
-command -v flock >/dev/null
+confirm_deploy() {
+  if [[ "$assume_yes" == true ]]; then
+    return
+  fi
+  [[ -t 0 ]] || fail "--deploy requires an interactive terminal or --yes"
+  read -r -p "Type DEPLOY to continue: " answer
+  [[ "$answer" == "DEPLOY" ]] || fail "deployment cancelled"
+}
+
+write_override() {
+  override_file="$(mktemp)"
+  cat >"$override_file" <<YAML
+services:
+  indufor:
+    image: registro_produccion:${target_commit}
+  produccion_fg:
+    image: registro_produccion:${target_commit}
+YAML
+}
+
+compose_target() {
+  docker compose -f docker-compose.yml -f "$override_file" "$@"
+}
+
+wait_healthy() {
+  local container="$1"
+  local health_url="$2"
+  local status
+
+  for _ in {1..30}; do
+    status="$(docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null || true)"
+    if [[ "$status" == "healthy" ]]; then
+      curl -fsS "$health_url" >/dev/null
+      return
+    fi
+    sleep 2
+  done
+  fail "$container did not become healthy"
+}
+
+confirm_deploy
+
+log "Updating local $BRANCH from $REMOTE/$BRANCH"
+git switch "$BRANCH"
+git merge --ff-only "$REMOTE/$BRANCH"
+target_commit="$(git rev-parse HEAD)"
+target_image="registro_produccion:${target_commit}"
+
+log "Building immutable image $target_image"
+docker build --tag "$target_image" .
+docker run --rm "$target_image" python -m compileall -q /app
+docker run --rm "$target_image" python -c "import app.main"
+
+write_override
+
+log "Updating indufor"
+compose_target up -d --no-build --force-recreate indufor
+wait_healthy registro_produccion_indufor "$HEALTH_INDUFOR"
+
+log "Updating produccion_fg"
+compose_target up -d --no-build --force-recreate produccion_fg
+wait_healthy registro_produccion_produccion_fg "$HEALTH_PRODUCCION_FG"
+
+docker tag "$target_image" registro_produccion:latest
+
+log "Deploy successful"
+printf 'target_commit=%s\n' "$target_commit"
+printf 'target_image=%s\n' "$target_image"

@@ -32,6 +32,7 @@ class DeployHarness:
         *arguments: str,
         git_status: str = "",
         merge_base_exit: int = 0,
+        target_commit: str = "target-commit",
     ) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
         env.update(
@@ -44,6 +45,8 @@ class DeployHarness:
                 "CALL_LOG": str(self.call_log),
                 "FAKE_GIT_STATUS": git_status,
                 "FAKE_MERGE_BASE_EXIT": str(merge_base_exit),
+                "FAKE_TARGET_COMMIT": target_commit,
+                "FAKE_STATE_DIR": str(self.root),
             }
         )
         script = REPO_ROOT / "scripts/deploy_main_fasa195.sh"
@@ -102,11 +105,18 @@ printf 'flock %s\\n' "$*" >>"$CALL_LOG"
 printf 'git %s\\n' "$*" >>"$CALL_LOG"
 case "$*" in
   "status --porcelain") printf '%s' "${FAKE_GIT_STATUS:-}" ;;
-  "rev-parse origin/main") printf '%s\\n' target-commit ;;
-  "rev-parse HEAD") printf '%s\\n' current-commit ;;
+  "rev-parse origin/main") printf '%s\\n' "${FAKE_TARGET_COMMIT:-target-commit}" ;;
+  "rev-parse HEAD")
+    if [[ -f "$FAKE_STATE_DIR/merged" ]]; then
+      printf '%s\\n' "${FAKE_TARGET_COMMIT:-target-commit}"
+    else
+      printf '%s\\n' current-commit
+    fi
+    ;;
   "rev-parse main") printf '%s\\n' current-main ;;
   "merge-base --is-ancestor"*) exit "${FAKE_MERGE_BASE_EXIT:-0}" ;;
   "show-ref --verify --quiet refs/heads/main") exit 0 ;;
+  "merge --ff-only origin/main") touch "$FAKE_STATE_DIR/merged" ;;
 esac
 """,
     )
@@ -116,6 +126,7 @@ esac
 printf 'docker %s\\n' "$*" >>"$CALL_LOG"
 case "$*" in
   "compose config --services") printf '%s\\n' indufor produccion_fg ;;
+  "inspect -f {{.State.Health.Status}}"*) printf '%s\\n' healthy ;;
 esac
 """,
     )
@@ -147,3 +158,36 @@ def test_check_is_read_only(deploy_harness: DeployHarness):
     assert "git merge --ff-only" not in deploy_harness.calls
     assert "docker compose build" not in deploy_harness.calls
     assert "docker compose up" not in deploy_harness.calls
+
+
+def test_deploy_builds_commit_image_and_updates_services_in_order(
+    deploy_harness: DeployHarness,
+):
+    result = deploy_harness.run("--deploy", "--yes", target_commit="abc123")
+
+    assert result.returncode == 0, result.stderr
+    calls = deploy_harness.calls.splitlines()
+    assert "git switch main" in calls
+    assert "git merge --ff-only origin/main" in calls
+    assert "docker build --tag registro_produccion:abc123 ." in calls
+    indufor_call = next(
+        index
+        for index, call in enumerate(calls)
+        if "up -d --no-build --force-recreate indufor" in call
+    )
+    produccion_call = next(
+        index
+        for index, call in enumerate(calls)
+        if "up -d --no-build --force-recreate produccion_fg" in call
+    )
+    assert indufor_call < produccion_call
+    assert any("http://127.0.0.1:18004/health" in call for call in calls)
+    assert any("http://127.0.0.1:18005/health" in call for call in calls)
+
+
+def test_deploy_requires_yes_when_not_interactive(deploy_harness: DeployHarness):
+    result = deploy_harness.run("--deploy")
+
+    assert result.returncode != 0
+    assert "interactive terminal or --yes" in result.stderr
+    assert "docker build" not in deploy_harness.calls
