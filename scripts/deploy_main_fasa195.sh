@@ -3,8 +3,8 @@ set -Eeuo pipefail
 
 EXPECTED_HOSTNAME="${EXPECTED_HOSTNAME:-fg-ubuntu}"
 APP_DIR="${APP_DIR:-/srv/apps/registro_produccion}"
-REMOTE="${REMOTE:-origin}"
-BRANCH="${BRANCH:-main}"
+REMOTE="origin"
+BRANCH="main"
 ENV_DIR="${ENV_DIR:-/srv/env/registro_produccion}"
 BACKUP_DIR="${BACKUP_DIR:-${HOME}/.deploy-backups/registro_produccion}"
 LOCK_FILE="${LOCK_FILE:-${TMPDIR:-/tmp}/registro_produccion-deploy-main.lock}"
@@ -179,36 +179,67 @@ previous_produccion_image="$(
 indufor_updated=false
 produccion_updated=false
 manifest=""
+recovery_started=false
 
-restore_after_error() {
-  local exit_code=$?
-  trap - ERR
+recover_and_exit() {
+  local exit_code="$1"
+  local reason="$2"
+  local recovery_failed=false
+
+  if [[ "$recovery_started" == true ]]; then
+    exit "$exit_code"
+  fi
+  recovery_started=true
+  trap - ERR INT TERM
   set +e
 
-  printf 'ERROR: deploy failed; starting rollback\n' >&2
+  printf 'ERROR: %s; starting rollback\n' "$reason" >&2
   if [[ "$produccion_updated" == true ]]; then
-    rollback \
+    if ! rollback \
       produccion_fg \
       "$previous_produccion_image" \
       registro_produccion_produccion_fg \
-      "$HEALTH_PRODUCCION_FG"
+      "$HEALTH_PRODUCCION_FG"; then
+      recovery_failed=true
+    fi
   fi
   if [[ "$indufor_updated" == true ]]; then
-    rollback \
+    if ! rollback \
       indufor \
       "$previous_indufor_image" \
       registro_produccion_indufor \
-      "$HEALTH_INDUFOR"
+      "$HEALTH_INDUFOR"; then
+      recovery_failed=true
+    fi
   fi
 
-  git switch "$previous_branch"
-  git reset --keep "$previous_commit"
+  git switch "$previous_branch" || recovery_failed=true
+  git reset --keep "$previous_commit" || recovery_failed=true
   if [[ -n "$manifest" && -f "$manifest" ]]; then
-    printf 'status=rolled_back\n' >>"$manifest"
+    if [[ "$recovery_failed" == true ]]; then
+      printf 'status=rollback_failed\n' >>"$manifest"
+    else
+      printf 'status=rolled_back\n' >>"$manifest"
+    fi
+  fi
+  if [[ "$recovery_failed" == true ]]; then
+    printf 'ERROR: rollback failed; inspect containers and manifest: %s\n' \
+      "$manifest" >&2
   fi
   exit "$exit_code"
 }
-trap restore_after_error ERR
+
+handle_error() {
+  local exit_code=$?
+  recover_and_exit "$exit_code" "deploy failed"
+}
+
+handle_signal() {
+  recover_and_exit 130 "deployment interrupted"
+}
+
+trap handle_error ERR
+trap handle_signal INT TERM
 
 log "Updating local $BRANCH from $REMOTE/$BRANCH"
 git switch "$BRANCH"
@@ -234,6 +265,12 @@ docker run --rm "$target_image" python -m compileall -q /app
 docker run --rm "$target_image" python -c "import app.main"
 
 write_override
+resolved_target_count="$(
+  compose_target config --images |
+    grep -Fxc "$target_image"
+)"
+[[ "$resolved_target_count" -eq 2 ]] ||
+  fail "compose override did not resolve both services to $target_image"
 
 log "Updating indufor"
 compose_target up -d --no-build --force-recreate indufor
@@ -247,8 +284,27 @@ wait_healthy registro_produccion_produccion_fg "$HEALTH_PRODUCCION_FG"
 
 docker tag "$target_image" registro_produccion:latest
 printf 'status=success\n' >>"$manifest"
-trap - ERR
+trap - ERR INT TERM
+
+indufor_image="$(
+  docker inspect -f '{{.Image}}' registro_produccion_indufor
+)"
+produccion_fg_image="$(
+  docker inspect -f '{{.Image}}' registro_produccion_produccion_fg
+)"
+indufor_health="$(
+  docker inspect -f '{{.State.Health.Status}}' registro_produccion_indufor
+)"
+produccion_fg_health="$(
+  docker inspect -f '{{.State.Health.Status}}' registro_produccion_produccion_fg
+)"
 
 log "Deploy successful"
 printf 'target_commit=%s\n' "$target_commit"
 printf 'target_image=%s\n' "$target_image"
+printf 'indufor_image=%s\n' "$indufor_image"
+printf 'indufor_health=%s\n' "$indufor_health"
+printf 'indufor_health_url=%s\n' "$HEALTH_INDUFOR"
+printf 'produccion_fg_image=%s\n' "$produccion_fg_image"
+printf 'produccion_fg_health=%s\n' "$produccion_fg_health"
+printf 'produccion_fg_health_url=%s\n' "$HEALTH_PRODUCCION_FG"

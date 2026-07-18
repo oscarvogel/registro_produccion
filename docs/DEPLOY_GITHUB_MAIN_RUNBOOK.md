@@ -3,7 +3,8 @@
 ## Alcance
 
 `scripts/deploy_main_fasa195.sh` actualiza exclusivamente los servicios Docker
-`indufor` y `produccion_fg` en `fasa_195`.
+`indufor` y `produccion_fg` en `fasa_195`. La fuente está fijada dentro del
+script en `origin/main`; variables de entorno no pueden cambiar la rama.
 
 El script:
 
@@ -95,6 +96,8 @@ El rollback es automático:
   revisiones diferentes;
 - restaura el checkout anterior y vuelve a comprobar los healthchecks.
 
-El manifiesto se conserva con `status=rolled_back`. Si el rollback automático
-también falla, no improvisar cambios sobre Nginx, `.env` o la base: inspeccionar
-el manifiesto y los IDs de imagen antes de intervenir manualmente.
+El manifiesto se conserva con `status=rolled_back`. Si cualquier recreación,
+healthcheck o restauración Git del rollback falla, queda
+`status=rollback_failed` y el script lo informa como error. En ese caso no
+improvisar cambios sobre Nginx, `.env` o la base: inspeccionar el manifiesto y
+los IDs de imagen antes de intervenir manualmente.

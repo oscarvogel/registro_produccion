@@ -43,6 +43,8 @@ class DeployHarness:
         merge_base_exit: int = 0,
         target_commit: str = "target-commit",
         fail_health: str = "",
+        fail_rollback_service: str = "",
+        extra_env: dict[str, str] | None = None,
     ) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
         env.update(
@@ -58,8 +60,11 @@ class DeployHarness:
                 "FAKE_TARGET_COMMIT": target_commit,
                 "FAKE_STATE_DIR": str(self.root),
                 "FAKE_FAIL_HEALTH": fail_health,
+                "FAKE_FAIL_ROLLBACK_SERVICE": fail_rollback_service,
             }
         )
+        if extra_env:
+            env.update(extra_env)
         script = REPO_ROOT / "scripts/deploy_main_fasa195.sh"
         return subprocess.run(
             [
@@ -138,6 +143,18 @@ esac
 printf 'docker %s\\n' "$*" >>"$CALL_LOG"
 case "$*" in
   "compose config --services") printf '%s\\n' indufor produccion_fg ;;
+  "compose -f docker-compose.yml -f "*" config --images")
+    override_file="$5"
+    awk '/image:/ {print $2}' "$override_file"
+    ;;
+  "compose -f docker-compose.yml -f "*" up -d --no-build --force-recreate "*)
+    service="${*: -1}"
+    if [[ -n "${FAKE_FAIL_ROLLBACK_SERVICE:-}" &&
+          "$service" == "$FAKE_FAIL_ROLLBACK_SERVICE" &&
+          -f "$FAKE_STATE_DIR/health-fail-count" ]]; then
+      exit 1
+    fi
+    ;;
   "inspect -f {{.Image}} registro_produccion_indufor")
     printf '%s\\n' old-indufor-image
     ;;
@@ -263,3 +280,43 @@ def test_manifest_records_previous_and_target_state(deploy_harness: DeployHarnes
     assert manifest["target_commit"] == "abc123"
     assert manifest["previous_indufor_image"] == "old-indufor-image"
     assert manifest["previous_produccion_fg_image"] == "old-produccion-image"
+
+
+def test_failed_rollback_is_reported_truthfully(deploy_harness: DeployHarness):
+    result = deploy_harness.run(
+        "--deploy",
+        "--yes",
+        fail_health="registro_produccion_indufor",
+        fail_rollback_service="indufor",
+    )
+
+    assert result.returncode != 0
+    assert "rollback failed" in result.stderr
+    assert deploy_harness.latest_manifest()["status"] == "rollback_failed"
+
+
+def test_origin_main_cannot_be_overridden_from_environment(
+    deploy_harness: DeployHarness,
+):
+    result = deploy_harness.run(
+        "--check",
+        extra_env={"REMOTE": "attacker", "BRANCH": "unsafe"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "git fetch --prune origin" in deploy_harness.calls
+    assert "git rev-parse origin/main" in deploy_harness.calls
+    assert "attacker" not in deploy_harness.calls
+    assert "unsafe" not in deploy_harness.calls
+
+
+def test_success_output_contains_live_evidence(deploy_harness: DeployHarness):
+    result = deploy_harness.run("--deploy", "--yes", target_commit="abc123")
+
+    assert result.returncode == 0, result.stderr
+    assert "indufor_image=" in result.stdout
+    assert "produccion_fg_image=" in result.stdout
+    assert "indufor_health_url=http://127.0.0.1:18004/health" in result.stdout
+    assert (
+        "produccion_fg_health_url=http://127.0.0.1:18005/health" in result.stdout
+    )

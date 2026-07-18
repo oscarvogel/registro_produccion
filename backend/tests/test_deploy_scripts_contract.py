@@ -57,8 +57,8 @@ def test_github_main_docker_deploy_has_safe_contract():
     required_fragments = [
         'EXPECTED_HOSTNAME="${EXPECTED_HOSTNAME:-fg-ubuntu}"',
         'APP_DIR="${APP_DIR:-/srv/apps/registro_produccion}"',
-        'REMOTE="${REMOTE:-origin}"',
-        'BRANCH="${BRANCH:-main}"',
+        'REMOTE="origin"',
+        'BRANCH="main"',
         "--check",
         "--deploy",
         "--yes",
@@ -76,6 +76,8 @@ def test_github_main_docker_deploy_has_safe_contract():
         "http://127.0.0.1:18005/health",
         ".deploy-backups",
         "rollback",
+        "trap handle_signal INT TERM",
+        "rollback_failed",
     ]
 
     missing = [fragment for fragment in required_fragments if fragment not in script]
