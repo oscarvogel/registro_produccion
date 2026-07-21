@@ -6,7 +6,7 @@ from app.core.config import settings
 ALGORITHM = "HS256"
 PASSWORD_MAX_BYTES = 72
 PASSWORD_TOO_LONG_MESSAGE = "La contrasena es demasiado larga. Usa hasta 72 caracteres o una clave mas corta."
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__truncate_error=False)
 
 
 def validate_password_length(password: str) -> None:
