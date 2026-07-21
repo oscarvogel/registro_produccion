@@ -26,7 +26,7 @@ class Personal(Base):
     domicilio = Column(String(50), nullable=False, default="")
     concepto_sueldo = Column(Integer, nullable=False, default=0)
     codigo_kobo = Column(String(50), nullable=False, default="")
-    porcentaje = Column(Float, nullable=False)
+    porcentaje = Column(Float, nullable=False, default=0.0)
     activo = Column(SmallInteger, nullable=False)
     encargado = Column(SmallInteger, nullable=False, default=0)
     is_admin = Column(SmallInteger, nullable=False, default=0)

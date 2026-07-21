@@ -864,6 +864,7 @@ async def create_personal(
         activo=_normalize_binary(payload.activo),
         encargado=_normalize_binary(payload.encargado),
         is_admin=_normalize_binary(payload.is_admin),
+        porcentaje=0.0,
     )
 
     if payload.password:
