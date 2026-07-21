@@ -1408,6 +1408,12 @@ async function unlinkPersonalFromUnidad(personalId, unidadId) {
   if (!person) return
   const unidadIds = (Array.isArray(person.unidad_ids) ? person.unidad_ids.map(Number) : [])
     .filter((id) => id !== Number(unidadId))
+
+  if (unidadIds.length === 0) {
+    error.value = 'No se puede desvincular al personal de su ultima unidad asignada. Asigna otra unidad antes de quitar esta.'
+    return
+  }
+
   await updateRelationEntity('personal', personalId, { unidad_ids: unidadIds })
 }
 
