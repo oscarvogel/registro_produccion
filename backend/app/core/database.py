@@ -40,9 +40,9 @@ elif "mysql" in settings.DATABASE_URL or "pymysql" in settings.DATABASE_URL:
     custom_conv[FIELD_TYPE.NEWDATE] = convert_date
     
     connect_args["conv"] = custom_conv
-    connect_args["connect_timeout"] = 5
-    connect_args["read_timeout"] = 10
-    connect_args["write_timeout"] = 10
+    connect_args["connect_timeout"] = 10
+    connect_args["read_timeout"] = 30
+    connect_args["write_timeout"] = 30
 
 engine = create_engine(
     settings.DATABASE_URL,
