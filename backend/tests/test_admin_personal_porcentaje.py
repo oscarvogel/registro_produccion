@@ -46,3 +46,22 @@ def test_create_personal_sets_porcentaje_so_insert_does_not_raise_integrity_erro
         select(Personal).where(Personal.idPersonal == response.idPersonal)
     ).scalar_one()
     assert persisted.porcentaje == 0.0
+
+
+def test_personal_model_concepto_sueldo_column_is_not_null_with_valid_default():
+    column = Personal.__table__.c.concepto_sueldo
+    assert column.nullable is False
+    assert column.default is not None
+    assert column.default.arg == 1
+
+
+def test_create_personal_sets_concepto_sueldo_to_valid_id_not_zero():
+    db = _make_session()
+    payload = PersonalCreate(nombre="Operario Concepto", dni="87654321")
+
+    response = asyncio.run(admin_legacy.create_personal(payload, db, _admin_user()))
+
+    persisted = db.execute(
+        select(Personal).where(Personal.idPersonal == response.idPersonal)
+    ).scalar_one()
+    assert persisted.concepto_sueldo == 1
