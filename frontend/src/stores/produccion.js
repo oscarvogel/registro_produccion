@@ -100,7 +100,9 @@ export const useProduccionStore = defineStore('produccion', {
       })
 
       try {
-        const { data } = await api.get(url, params ? { params } : undefined)
+        const config = params ? { params } : {}
+        config._suppressErrorToast = true
+        const { data } = await api.get(url, config)
         if (!isValidCatalogPayload(data)) {
           throw new Error('Respuesta invalida del servidor')
         }

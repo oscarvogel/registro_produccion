@@ -106,4 +106,28 @@ describe('produccion catalogos offline', () => {
     expect(store.catalogStatus.tiposProceso.state).toBe('empty')
     expect(store.catalogStatus.tiposProceso.stale).toBe(false)
   })
+
+  it('passes _suppressErrorToast so the global toast stays silent when the catalog shows its own fallback', async () => {
+    api.get.mockRejectedValueOnce(new Error('boom'))
+    const store = useProduccionStore()
+
+    await store.fetchOperadores(7)
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/produccion/operadores',
+      expect.objectContaining({ _suppressErrorToast: true, params: { un_id: 7 } }),
+    )
+  })
+
+  it('passes _suppressErrorToast on catalog fetches without params', async () => {
+    api.get.mockResolvedValueOnce({ data: [{ id: 1 }] })
+    const store = useProduccionStore()
+
+    await store.fetchUnidadesNegocio()
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/produccion/unidades-negocio',
+      expect.objectContaining({ _suppressErrorToast: true }),
+    )
+  })
 })

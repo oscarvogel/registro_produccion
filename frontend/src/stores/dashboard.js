@@ -59,7 +59,7 @@ export const useDashboardStore = defineStore('dashboard', {
 
     async loadUnidadesNegocio() {
       try {
-        const { data } = await api.get('/api/produccion/unidades-negocio')
+        const { data } = await api.get('/api/produccion/unidades-negocio', { _suppressErrorToast: true })
         this.unidadesNegocio = Array.isArray(data) ? data : []
       } catch (err) {
         console.error('Error cargando unidades de negocio:', err)
@@ -71,6 +71,7 @@ export const useDashboardStore = defineStore('dashboard', {
       try {
         const { data } = await api.get('/api/dashboard/tipos-proceso-disponibles', {
           params: { un_id: unId },
+          _suppressErrorToast: true,
         })
         this.tiposProceso = data
       } catch (err) {
@@ -83,7 +84,7 @@ export const useDashboardStore = defineStore('dashboard', {
       try {
         const params = { un_id: unId }
         if (tipoProcesoKey) params.tipo_proceso_key = tipoProcesoKey
-        const { data } = await api.get('/api/dashboard/moviles-disponibles', { params })
+        const { data } = await api.get('/api/dashboard/moviles-disponibles', { params, _suppressErrorToast: true })
         this.movilesDisponibles = data
       } catch (err) {
         console.error('Error cargando móviles:', err)
@@ -96,7 +97,7 @@ export const useDashboardStore = defineStore('dashboard', {
       this.loading.kpis = true
       this.error = null
       try {
-        const { data } = await api.get('/api/dashboard/kpis', { params: this._buildParams() })
+        const { data } = await api.get('/api/dashboard/kpis', { params: this._buildParams(), _suppressErrorToast: true })
         this.kpis = data.kpis
         this.filtrosAplicados = data.filtros_aplicados
       } catch (err) {
@@ -117,6 +118,7 @@ export const useDashboardStore = defineStore('dashboard', {
             tipoProcesoKey: this.filtros.evolucion_tipo_proceso_key || this.filtros.tipo_proceso_key,
             metric: 'produccion',
           }),
+          _suppressErrorToast: true,
         })
         this.evolucion = data
       } catch (err) {
@@ -136,6 +138,7 @@ export const useDashboardStore = defineStore('dashboard', {
             tipoProcesoKey: this.filtros.evolucion_tipo_proceso_key || this.filtros.tipo_proceso_key,
             metric: 'combustible',
           }),
+          _suppressErrorToast: true,
         })
         this.evolucionCombustible = data
       } catch (err) {
@@ -155,6 +158,7 @@ export const useDashboardStore = defineStore('dashboard', {
             tipoProcesoKey: this.filtros.ranking_tipo_proceso_key || this.filtros.tipo_proceso_key,
             metric: this.filtros.ranking_metric,
           }),
+          _suppressErrorToast: true,
         })
         this.rankingMaquinas = data
       } catch (err) {

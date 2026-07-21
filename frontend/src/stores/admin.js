@@ -65,7 +65,7 @@ export const useAdminStore = defineStore('admin', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.get('/api/admin/dashboard', { params: filters })
+        const { data } = await api.get('/api/admin/dashboard', { params: filters, _suppressErrorToast: true })
         this.dashboard = data
       } catch (error) {
         this.error = error.response?.data?.detail || 'No se pudo cargar el dashboard de administracion'
@@ -79,7 +79,7 @@ export const useAdminStore = defineStore('admin', {
       this.loadingDashboardOverview = true
       this.dashboardOverviewError = null
       try {
-        const { data } = await api.get('/api/admin/dashboard/overview', { params: filters })
+        const { data } = await api.get('/api/admin/dashboard/overview', { params: filters, _suppressErrorToast: true })
         this.dashboardOverview = data
       } catch (error) {
         this.dashboardOverviewError = error.response?.data?.detail || 'No se pudo cargar el resumen ejecutivo'
@@ -94,7 +94,7 @@ export const useAdminStore = defineStore('admin', {
       try {
         const params = { limit }
         if (fecha) params.fecha = fecha
-        const { data } = await api.get('/api/admin/dashboard/recent-records', { params })
+        const { data } = await api.get('/api/admin/dashboard/recent-records', { params, _suppressErrorToast: true })
         this.recentRecords = data
       } catch {
         this.recentRecords = []
@@ -109,7 +109,7 @@ export const useAdminStore = defineStore('admin', {
       try {
         const params = {}
         if (buscar?.trim()) params.buscar = buscar.trim()
-        const { data } = await api.get('/api/admin/configuracion/usuarios', { params })
+        const { data } = await api.get('/api/admin/configuracion/usuarios', { params, _suppressErrorToast: true })
         this.usuariosConfiguracion = data
       } catch (error) {
         this.error = error.response?.data?.detail || 'No se pudo cargar la configuracion de acceso'

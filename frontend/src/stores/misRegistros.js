@@ -50,7 +50,7 @@ export const useMisRegistrosStore = defineStore('misRegistros', {
         if (this.filtros.fecha_desde) params.fecha_desde = this.filtros.fecha_desde
         if (this.filtros.fecha_hasta) params.fecha_hasta = this.filtros.fecha_hasta
 
-        const { data } = await api.get('/api/produccion/mis-registros', { params })
+        const { data } = await api.get('/api/produccion/mis-registros', { params, _suppressErrorToast: true })
         this.registros = data.registros
         this.totales = {
           total: data.total,
