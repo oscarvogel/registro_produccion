@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 vi.mock('@/services/api', () => ({
   default: {
+    get: vi.fn(),
     post: vi.fn(),
     put: vi.fn(),
   },
@@ -49,5 +50,65 @@ describe('admin store tipos de proceso requirements', () => {
     await store.updateEntity('tipos-proceso', 12, payload)
 
     expect(api.put).toHaveBeenCalledWith('/api/admin/tipos-proceso/12', payload)
+  })
+})
+
+describe('admin store - toast suppression on local fallback', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  it('fetchDashboard passes _suppressErrorToast when falling back to empty list', async () => {
+    api.get.mockRejectedValueOnce(new Error('boom'))
+    const store = useAdminStore()
+
+    await store.fetchDashboard({ un_id: 1 })
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/admin/dashboard',
+      expect.objectContaining({ _suppressErrorToast: true, params: { un_id: 1 } }),
+    )
+    expect(store.dashboard).toEqual([])
+  })
+
+  it('fetchDashboardOverview passes _suppressErrorToast when falling back to null', async () => {
+    api.get.mockRejectedValueOnce(new Error('boom'))
+    const store = useAdminStore()
+
+    await store.fetchDashboardOverview({ un_id: 1 })
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/admin/dashboard/overview',
+      expect.objectContaining({ _suppressErrorToast: true, params: { un_id: 1 } }),
+    )
+    expect(store.dashboardOverview).toBeNull()
+  })
+
+  it('fetchRecentRecords passes _suppressErrorToast when falling back to empty list', async () => {
+    api.get.mockRejectedValueOnce(new Error('boom'))
+    const store = useAdminStore()
+
+    await store.fetchRecentRecords({ limit: 5 })
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/admin/dashboard/recent-records',
+      expect.objectContaining({ _suppressErrorToast: true, params: { limit: 5 } }),
+    )
+    expect(store.recentRecords).toEqual([])
+  })
+
+  it('fetchUsuariosConfiguracion passes _suppressErrorToast when falling back to empty list', async () => {
+    api.get.mockRejectedValueOnce(new Error('boom'))
+    const store = useAdminStore()
+
+    await store.fetchUsuariosConfiguracion('')
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/admin/configuracion/usuarios',
+      expect.objectContaining({ _suppressErrorToast: true, params: {} }),
+    )
+    expect(store.usuariosConfiguracion).toEqual([])
   })
 })
