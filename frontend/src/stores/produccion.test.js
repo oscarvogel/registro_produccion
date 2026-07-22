@@ -167,7 +167,7 @@ describe('produccion sync offline', () => {
 
     const result = await store.syncPending()
 
-    expect(api.post).toHaveBeenCalledWith('/api/produccion', expect.objectContaining({
+    expect(api.post).toHaveBeenCalledWith('/api/produccion/', expect.objectContaining({
       fecha: '2026-07-21',
       form_uuid: 'offline-uuid-7',
     }), expect.objectContaining({ _suppressErrorToast: true }))
@@ -228,6 +228,7 @@ describe('produccion sync offline', () => {
     const result = await store.submitProduccion({ fecha: '2026-07-21' })
 
     const postedPayload = api.post.mock.calls[0][1]
+    expect(api.post.mock.calls[0][0]).toBe('/api/produccion/')
     expect(postedPayload.form_uuid).toBeTruthy()
     expect(queuePendingProductionRecord).toHaveBeenCalledWith(postedPayload)
     expect(result).toEqual({ offline: true })
