@@ -277,7 +277,7 @@
                 @focus="abrirListaMoviles"
                 @click="abrirListaMoviles"
                 @input="abrirListaMoviles"
-                @blur="cerrarListaMovilesDiferido"
+                @blur="onInputBlur"
                 :class="fieldClass"
                 placeholder="Ej: 1470, JOHN DEERE, N° 3..."
               />
@@ -292,12 +292,14 @@
             </div>
             <div
               v-if="mostrarListaMoviles"
+              data-moviles-dropdown
               class="app-table mt-1.5 max-h-52 overflow-y-auto rounded-xl"
             >
               <button
                 v-for="movil in movilesFiltrados"
                 :key="movil.idMovil"
                 type="button"
+                data-moviles-item
                 @mousedown.prevent="seleccionarMovil(movil)"
                 class="app-table-row w-full border-b border-neutral-100 px-3 py-2 text-left last:border-b-0"
               >
@@ -941,6 +943,7 @@ import AutocompleteField from '@/components/AutocompleteField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
 import { cleanLocationValues, getLocationRequirements, shouldShowActaPredioFields } from '@/services/actaPredioRules'
+import { focusInside } from '@/utils/focusInside'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1574,10 +1577,13 @@ function abrirListaMoviles() {
   listaMovilesAbierta.value = true
 }
 
-function cerrarListaMovilesDiferido() {
-  setTimeout(() => {
-    listaMovilesAbierta.value = false
-  }, 200)
+// iOS / mobile: mousedown.prevent no previene el blur con timing
+// suficiente. Usamos relatedTarget del blur: si el focus va a un item
+// del propio dropdown, NO cerramos. Patron equivalente al que usa
+// AutocompleteField para el campo de operador.
+function onInputBlur(event) {
+  if (focusInside(event, '[data-moviles-dropdown]')) return
+  listaMovilesAbierta.value = false
 }
 
 function limpiarBusquedaMovil() {
