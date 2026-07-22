@@ -6,8 +6,8 @@
         :description="scopeDescription"
       >
         <template #kicker>
-          <AppBadge :tone="navigatorOnline ? 'success' : 'warning'">
-            {{ navigatorOnline ? 'En línea' : 'Sin conexión' }}
+          <AppBadge :tone="backendReachable ? 'success' : navigatorOnline ? 'error' : 'warning'">
+            {{ backendReachable ? 'Servidor disponible' : navigatorOnline ? 'Servidor no disponible' : 'Sin conexión' }}
           </AppBadge>
           <AppBadge v-if="scopedFailedRecords.length > 0" tone="error">
             {{ scopedFailedRecords.length }} fallido{{ scopedFailedRecords.length !== 1 ? 's' : '' }}
@@ -18,7 +18,7 @@
             <AppIcon name="refresh" size="sm" />
             Refrescar
           </AppButton>
-          <AppButton :loading="syncing" :disabled="!navigatorOnline || scopedPendingRecords.length === 0" @click="syncAll">
+          <AppButton :loading="syncing" :disabled="!backendReachable || scopedPendingRecords.length === 0" @click="syncAll">
             <AppIcon name="sync" size="sm" />
             Sincronizar
           </AppButton>
@@ -31,7 +31,7 @@
             <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Estado de sincronización</p>
             <h2 class="mt-1 text-xl font-extrabold text-neutral-950">{{ syncStatusTitle }}</h2>
             <p class="mt-1 text-sm text-on-surface-variant">
-              {{ navigatorOnline ? 'Sistema en línea' : 'Sistema sin conexión' }} · {{ healthMessage }} · Última revisión: {{ lastCheckLabel }}
+              {{ backendReachable ? 'Servidor disponible' : navigatorOnline ? 'Wi-Fi conectado, servidor inaccesible' : 'Sistema sin conexión' }} · {{ healthMessage }} · Última revisión: {{ lastCheckLabel }}
             </p>
           </div>
           <div class="flex h-12 w-12 items-center justify-center rounded-full bg-info-light text-info-dark">
@@ -102,8 +102,8 @@
 
         <div v-else-if="visibleRecords.length === 0" class="mt-3">
           <EmptyState
-            title="Todo sincronizado"
-            description="No hay registros pendientes ni fallidos. Las cargas realizadas se encuentran guardadas correctamente."
+            :title="emptyStateTitle"
+            :description="emptyStateDescription"
             icon="sync"
           >
             <p class="mt-3 text-xs font-semibold text-outline">Última verificación: {{ lastCheckFullLabel }}</p>
@@ -189,9 +189,11 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import api from '@/services/api'
+import { ensurePendingIdentity } from '@/services/pendingRecords'
 import db from '@/services/db'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
+import { useConnectivityStore } from '@/stores/connectivity'
 import { useToastStore } from '@/stores/toast'
 import AppBadge from '@/components/ui/AppBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -203,6 +205,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 
 const authStore = useAuthStore()
 const produccionStore = useProduccionStore()
+const connectivityStore = useConnectivityStore()
 const toast = useToastStore()
 
 const records = ref([])
@@ -212,6 +215,7 @@ const retryingId = ref(null)
 const showDetail = ref(false)
 const selectedRecord = ref(null)
 const navigatorOnline = ref(navigator.onLine)
+const backendReachable = computed(() => navigatorOnline.value && connectivityStore.isBackendUp)
 const lastCheckAt = ref(null)
 const activeFilter = ref('all')
 
@@ -252,6 +256,21 @@ const visibleRecords = computed(() => {
   return scopedRecords.value
 })
 
+const emptyStateTitle = computed(() => {
+  if (activeFilter.value === 'recent') return 'Sin confirmaciones recientes'
+  if (scopedRecords.value.length > 0) return 'No hay registros en este filtro'
+  return 'Todo sincronizado'
+})
+
+const emptyStateDescription = computed(() => {
+  if (activeFilter.value === 'recent' && scopedRecords.value.length > 0) {
+    return `No hay confirmaciones recientes; todavía existen ${scopedRecords.value.length} registro(s) que requieren atención.`
+  }
+  if (activeFilter.value === 'recent') return 'Esta pantalla no conserva registros después de que el servidor los confirma.'
+  if (scopedRecords.value.length > 0) return 'Cambiá el filtro para ver los registros que todavía requieren atención.'
+  return 'No hay registros pendientes ni fallidos en este teléfono.'
+})
+
 const scopeDescription = computed(() => {
   if (isAdmin.value) return 'Vista global de la cola disponible en este dispositivo y estado general de sincronización.'
   if (isEncargado.value) return 'Vista de registros pendientes o fallidos para tus unidades de negocio asignadas.'
@@ -282,9 +301,10 @@ const systemFailedDescription = computed(() => {
   return 'Errores de tus cargas locales'
 })
 
-const isHealthy = computed(() => navigatorOnline.value && scopedRecords.value.length === 0)
+const isHealthy = computed(() => backendReachable.value && scopedRecords.value.length === 0)
 const syncStatusTitle = computed(() => {
   if (!navigatorOnline.value) return 'Sin conexión'
+  if (!connectivityStore.isBackendUp) return 'Servidor no disponible'
   if (scopedFailedRecords.value.length > 0) return 'Requiere revisión'
   if (scopedPendingRecords.value.length > 0) return 'Con registros pendientes'
   return 'Todo sincronizado'
@@ -292,6 +312,7 @@ const syncStatusTitle = computed(() => {
 
 const healthMessage = computed(() => {
   if (!navigatorOnline.value) return 'Las nuevas cargas quedaran guardadas en este equipo'
+  if (!connectivityStore.isBackendUp) return 'El Wi-Fi funciona, pero el servidor no responde'
   if (scopedFailedRecords.value.length > 0) return `${scopedFailedRecords.value.length} registro(s) fallidos`
   if (scopedPendingRecords.value.length > 0) return `${scopedPendingRecords.value.length} registro(s) esperando envio`
   return 'Sin conflictos detectados'
@@ -304,11 +325,18 @@ const queueTitle = computed(() => {
 })
 
 const recentActivityTitle = computed(() => {
+  const transientAttempts = scopedPendingRecords.value.filter((record) => Number(record.retryCount || 0) > 0 || record.syncError)
+  if (transientAttempts.length > 0) return `${transientAttempts.length} envío(s) intentado(s) sin confirmación.`
   if (scopedFailedRecords.value.length === 0) return 'No hubo intentos fallidos de sincronización.'
   return `${scopedFailedRecords.value.length} intento(s) fallidos detectados.`
 })
 
 const recentActivityDescription = computed(() => {
+  const transientAttempts = scopedPendingRecords.value.filter((record) => Number(record.retryCount || 0) > 0 || record.syncError)
+  if (transientAttempts.length > 0) {
+    const lastAttempt = [...transientAttempts].sort((a, b) => Number(b.lastAttemptAt || b.timestamp || 0) - Number(a.lastAttemptAt || a.timestamp || 0))[0]
+    return `Último intento sin confirmar: ${lastAttempt?.syncError || 'el servidor no respondió'}.`
+  }
   if (scopedFailedRecords.value.length === 0) return 'La cola offline no registra errores para el alcance actual.'
   const lastFailed = [...scopedFailedRecords.value].sort((a, b) => Number(b.failedAt || b.timestamp || 0) - Number(a.failedAt || a.timestamp || 0))[0]
   return `Ultimo error: ${lastFailed?.syncError || 'sin detalle disponible'}.`
@@ -365,9 +393,21 @@ async function loadRecords() {
 async function syncAll() {
   syncing.value = true
   try {
-    const count = await produccionStore.syncPending()
+    const result = await produccionStore.syncPending()
     await loadRecords()
-    toast.success('Sincronización completa', `${count || 0} registro(s) sincronizado(s).`)
+    if (result.permanentFailureCount > 0) {
+      toast.error(
+        'Sincronización parcial',
+        `${result.permanentFailureCount} registro(s) fueron rechazados por el servidor y requieren revisión.`,
+      )
+    } else if (result.pendingCount > 0) {
+      toast.error(
+        'Sincronización pendiente',
+        `Se enviaron ${result.successCount} registro(s); ${result.pendingCount} siguen guardados solo en este teléfono.`,
+      )
+    } else {
+      toast.success('Sincronización completa', `${result.successCount} registro(s) confirmados por el servidor.`)
+    }
   } catch {
     toast.error('No se pudo sincronizar', 'Revisá la conexión o intentá de nuevo.')
   } finally {
@@ -378,19 +418,31 @@ async function syncAll() {
 async function retryRecord(record) {
   retryingId.value = record.id
   try {
-    await api.post('/api/produccion', record.payload)
+    await db.pendingRecords.update(record.id, {
+      syncStatus: 'syncing',
+      lastAttemptAt: Date.now(),
+      retryCount: Number(record.retryCount || 0) + 1,
+    })
+    const submissionPayload = await ensurePendingIdentity(record)
+    await api.post('/api/produccion', submissionPayload, {
+      _suppressErrorToast: true,
+    })
     await db.pendingRecords.delete(record.id)
     await loadRecords()
     toast.success('Registro sincronizado')
   } catch (err) {
     const detail = err.response?.data?.detail || 'No se pudo sincronizar este registro.'
     const status = err.response?.status
-    await db.pendingRecords.update(record.id, {
-      synced: status >= 400 && status < 500 ? 1 : 0,
-      syncStatus: status >= 400 && status < 500 ? 'failed' : 'pending',
-      syncError: detail,
-      failedAt: Date.now(),
-    })
+    const permanent = status >= 400 && status < 500 && ![401, 403, 408, 429].includes(status)
+    const update = {
+      synced: permanent ? 1 : 0,
+      syncStatus: permanent ? 'failed' : 'pending',
+      syncError: [401, 403].includes(status)
+        ? 'La sesión debe validarse nuevamente antes de enviar.'
+        : detail,
+    }
+    if (permanent) update.failedAt = Date.now()
+    await db.pendingRecords.update(record.id, update)
     await loadRecords()
     toast.error('Sincronización fallida', detail)
   } finally {

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import api from '@/services/api'
 import db from '@/services/db'
-import { queuePendingProductionRecord } from '@/services/pendingRecords'
+import { ensurePendingIdentity, queuePendingProductionRecord } from '@/services/pendingRecords'
 import { useToastStore } from '@/stores/toast'
 
 const ensureArray = (value) => (Array.isArray(value) ? value : [])
@@ -33,6 +33,14 @@ const createCatalogStatus = () => Object.fromEntries(
 const catalogCacheKey = (catalog, scope = '') => `${catalog}:${scope || 'all'}`
 
 const errorMessage = (err) => err?.response?.data?.detail || err?.message || 'No se pudo cargar el catalogo'
+
+const createFormUuid = () => (
+  globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`
+)
+
+const isPermanentSyncError = (status) => (
+  status >= 400 && status < 500 && ![401, 403, 408, 429].includes(status)
+)
 
 function isValidCatalogPayload(data) {
   return Array.isArray(data)
@@ -260,24 +268,34 @@ export const useProduccionStore = defineStore('produccion', {
     async submitProduccion(formData) {
       this.submitting = true
       this.error = null
+      const submissionPayload = {
+        ...formData,
+        form_uuid: formData.form_uuid || createFormUuid(),
+      }
       try {
         // If offline, queue locally instead of posting
         if (!navigator.onLine) {
-          await queuePendingProductionRecord(formData)
+          await queuePendingProductionRecord(submissionPayload)
           await this.refreshPendingCount()
-          useToastStore().info('Registro guardado offline', 'Se sincronizara cuando vuelva la conexion.')
+          useToastStore().info(
+            'Guardado solo en este teléfono',
+            'Todavía no está confirmado por el servidor. Podés verificarlo en Pendientes.',
+          )
           return { offline: true }
         }
 
-        const { data } = await api.post('/api/produccion', formData)
+        const { data } = await api.post('/api/produccion', submissionPayload)
         useToastStore().success('Registro guardado')
         return data
       } catch (err) {
         // Network error → queue for later
         if (!err.response) {
-          await queuePendingProductionRecord(formData)
+          await queuePendingProductionRecord(submissionPayload)
           await this.refreshPendingCount()
-          useToastStore().info('Registro guardado offline', 'No hubo conexion con el servidor; quedo en cola.')
+          useToastStore().info(
+            'Guardado solo en este teléfono',
+            'El servidor no confirmó la recepción. El registro permanece en Pendientes.',
+          )
           return { offline: true }
         }
         this.error = err.response?.data?.detail || 'Error al guardar el registro'
@@ -289,16 +307,18 @@ export const useProduccionStore = defineStore('produccion', {
     },
 
     async refreshPendingCount() {
-      this.pendingCount = await db.pendingRecords.where('synced').equals(0).count()
+      this.pendingCount = await db.pendingRecords.count()
     },
 
     async syncPending() {
-      if (this.syncingPending) return 0
+      if (this.syncingPending) {
+        return { successCount: 0, pendingCount: this.pendingCount, permanentFailureCount: 0 }
+      }
       this.syncingPending = true
       const pending = await db.pendingRecords.where('synced').equals(0).toArray()
       if (!pending.length) {
         this.syncingPending = false
-        return 0
+        return { successCount: 0, pendingCount: 0, permanentFailureCount: 0 }
       }
 
       this.error = null
@@ -313,13 +333,16 @@ export const useProduccionStore = defineStore('produccion', {
               lastAttemptAt: Date.now(),
               retryCount: Number(record.retryCount || 0) + 1,
             })
-            await api.post('/api/produccion', record.payload)
+            const submissionPayload = await ensurePendingIdentity(record)
+            await api.post('/api/produccion', submissionPayload, {
+              _suppressErrorToast: true,
+            })
             await db.pendingRecords.delete(record.id)
             successCount++
           } catch (err) {
             const status = err?.response?.status
 
-            if (status >= 400 && status < 500) {
+            if (isPermanentSyncError(status)) {
               const detail = err.response?.data?.detail || 'Error permanente al sincronizar el registro'
               await db.pendingRecords.update(record.id, {
                 synced: 1,
@@ -332,8 +355,11 @@ export const useProduccionStore = defineStore('produccion', {
             }
 
             await db.pendingRecords.update(record.id, {
+              synced: 0,
               syncStatus: 'pending',
-              syncError: err.response?.data?.detail || 'Error transitorio. Se reintentara automaticamente.',
+              syncError: [401, 403].includes(status)
+                ? 'La sesión debe validarse nuevamente antes de enviar.'
+                : err.response?.data?.detail || 'Error transitorio. Se reintentará automáticamente.',
             })
           }
         }
@@ -345,7 +371,11 @@ export const useProduccionStore = defineStore('produccion', {
         } else if (successCount > 0) {
           useToastStore().success('Pendientes sincronizados', `${successCount} registro(s) enviados.`)
         }
-        return successCount
+        return {
+          successCount,
+          pendingCount: this.pendingCount,
+          permanentFailureCount,
+        }
       } finally {
         this.syncingPending = false
       }

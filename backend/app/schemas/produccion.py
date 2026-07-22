@@ -105,6 +105,7 @@ class LugarCargaResponse(BaseModel):
 
 # --- Tablero Produccion ---
 class TableroProduccionCreate(BaseModel):
+    form_uuid: str = Field(default="", max_length=36)
     UN: str = ""
     operacion: str = ""
     fecha: date

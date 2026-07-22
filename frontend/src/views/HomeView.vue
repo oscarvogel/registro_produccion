@@ -5,9 +5,9 @@
         <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div class="min-w-0">
             <div class="mb-2 flex flex-wrap items-center gap-2">
-              <span :class="['inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-extrabold uppercase', isOnline ? 'app-chip-success' : 'app-chip-warning']">
-                <span :class="['app-led h-2 w-2 rounded-full', isOnline ? 'bg-primary text-primary' : 'bg-warning text-warning']"></span>
-                {{ isOnline ? 'En línea' : 'Sin conexión' }}
+              <span :class="['inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-extrabold uppercase', backendReachable ? 'app-chip-success' : 'app-chip-warning']">
+                <span :class="['app-led h-2 w-2 rounded-full', backendReachable ? 'bg-primary text-primary' : 'bg-warning text-warning']"></span>
+                {{ backendConnectionLabel }}
               </span>
               <span class="rounded-full border px-3 py-1 text-xs font-bold app-chip-info">{{ isAdmin ? 'Administrador' : roleLabel }}</span>
               <span class="rounded-full border px-3 py-1 text-xs font-bold app-state-inactive">{{ todayLabel }}</span>
@@ -242,21 +242,29 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, inject, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, defineComponent, h, inject, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
 import { useMisRegistrosStore } from '@/stores/misRegistros'
 import { useAdminStore } from '@/stores/admin'
+import { useConnectivityStore } from '@/stores/connectivity'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
 const authStore = useAuthStore()
 const produccionStore = useProduccionStore()
 const recordsStore = useMisRegistrosStore()
 const adminStore = useAdminStore()
+const connectivityStore = useConnectivityStore()
 const router = useRouter()
 const pwaInstall = inject('pwaInstall', null)
-const isOnline = ref(navigator.onLine)
+const isOnline = computed(() => connectivityStore.isOnline)
+const backendReachable = computed(() => connectivityStore.isOnline && connectivityStore.isBackendUp)
+const backendConnectionLabel = computed(() => {
+  if (!connectivityStore.isOnline) return 'Sin conexión'
+  if (connectivityStore.pendingInitialHealthCheck) return 'Verificando servidor'
+  return connectivityStore.isBackendUp ? 'Servidor disponible' : 'Servidor no disponible'
+})
 const selectedDatePreset = ref('today')
 const selectedDate = ref(formatDateInput(new Date()))
 const unitSearch = ref('')
@@ -505,6 +513,7 @@ const operatorSummaryCards = computed(() => [
 
 const syncText = computed(() => {
   if (!isOnline.value) return 'Sin conexión'
+  if (!connectivityStore.isBackendUp) return 'Servidor no disponible'
   if (produccionStore.syncingPending) return 'Sincronizando'
   if (produccionStore.pendingCount > 0) return 'Con pendientes'
   return 'Todo sincronizado'
@@ -779,21 +788,11 @@ function formatDisplayDate(value) {
   }).format(new Date(y, m - 1, d))
 }
 
-function updateOnline() {
-  isOnline.value = navigator.onLine
-}
-
 onMounted(async () => {
   await Promise.all([
     produccionStore.refreshPendingCount(),
     reloadSummary(),
   ])
-  window.addEventListener('online', updateOnline)
-  window.addEventListener('offline', updateOnline)
 })
 
-onUnmounted(() => {
-  window.removeEventListener('online', updateOnline)
-  window.removeEventListener('offline', updateOnline)
-})
 </script>
