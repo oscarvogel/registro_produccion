@@ -4,10 +4,24 @@ import { useConnectivityStore } from '@/stores/connectivity'
 
 let onUnauthorized = null
 export const SERVER_ERROR_MESSAGE = 'No se pudo conectar con el servidor. Intenta nuevamente en unos minutos.'
+const TECHNICAL_ERROR_PATTERN = /sql|mysql|pymysql|sqlalchemy|operationalerror|integrityerror|programmingerror|databaseerror|traceback|select\s+|insert\s+|update\s+|delete\s+|from\s+[`"\w]+|where\s+|password_hash|usuarios/i
 
 export function normalizeBaseURL(value) {
   const baseURL = value || ''
   return baseURL.replace(/\/api\/?$/, '')
+}
+
+export function isUnsafeErrorDetail(detail) {
+  return typeof detail === 'string' && TECHNICAL_ERROR_PATTERN.test(detail)
+}
+
+export function getUserSafeErrorMessage(error, fallback = SERVER_ERROR_MESSAGE) {
+  const status = error?.response?.status
+  const detail = error?.response?.data?.detail
+  if (status >= 500 || isUnsafeErrorDetail(detail)) {
+    return fallback
+  }
+  return detail || fallback
 }
 
 const api = axios.create({
@@ -79,7 +93,7 @@ api.interceptors.response.use(
     if (noResponse) {
       useToastStore().error('Backend no disponible', 'No se pudo conectar con el servidor.')
     } else if (status === 403) {
-      useToastStore().error('Acceso restringido', error.response?.data?.detail || 'No tenes permisos para esta accion.')
+      useToastStore().error('Acceso restringido', getUserSafeErrorMessage(error, 'No tenes permisos para esta accion.'))
     } else if (status >= 500) {
       // 5xx never leaks backend detail to the UI; only the generic message.
       useToastStore().error('Error del servidor', SERVER_ERROR_MESSAGE)

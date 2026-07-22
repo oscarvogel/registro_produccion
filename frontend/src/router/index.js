@@ -58,12 +58,18 @@ const routes = [
     children: [
       {
         path: '',
-        redirect: { name: 'admin-dashboard' },
+        redirect: { name: 'admin-center' },
       },
       {
         path: 'dashboard',
         name: 'admin-dashboard',
         component: () => import('../views/admin/AdminDashboardView.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true },
+      },
+      {
+        path: 'gestion',
+        name: 'admin-center',
+        component: () => import('../views/admin/AdminCenterView.vue'),
         meta: { requiresAuth: true, requiresAdmin: true },
       },
       {
@@ -87,22 +93,27 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore()
+export function authorizeRoute(to, authStore) {
   const authenticated =
     authStore.isAuthenticated || authStore.isAuthenticatedOffline
 
   if (to.meta.requiresAuth && !authenticated) {
-    next({ name: 'login' })
+    return { name: 'login' }
   } else if (to.meta.requiresAdmin && authStore.user?.is_admin !== 1) {
-    next({ name: 'home' })
+    return { name: 'home' }
   } else if (to.meta.requiresEncargado && authStore.user?.encargado !== 1 && authStore.user?.is_admin !== 1) {
-    next({ name: 'home' })
+    return { name: 'home' }
   } else if (to.name === 'login' && authenticated) {
-    next({ name: 'home' })
-  } else {
-    next()
+    return { name: 'home' }
   }
+
+  return true
+}
+
+router.beforeEach((to, from, next) => {
+  const result = authorizeRoute(to, useAuthStore())
+  if (result === true) next()
+  else next(result)
 })
 
 export default router

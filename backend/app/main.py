@@ -15,8 +15,10 @@ import pymysql
 pymysql.install_as_MySQLdb()
 app = FastAPI(title=settings.PROJECT_NAME)
 logger = logging.getLogger(__name__)
-SAFE_DATABASE_ERROR_DETAIL = "No se pudieron cargar los datos necesarios. Actualiza e intenta nuevamente."
-SAFE_SERVER_ERROR_DETAIL = "No se pudo completar la operacion. Intenta nuevamente en unos minutos."
+DATABASE_ERROR_DETAIL = "No se pudieron cargar los datos necesarios. Actualiza e intenta nuevamente."
+SERVER_ERROR_DETAIL = "No se pudo completar la operacion. Intenta nuevamente en unos minutos."
+SAFE_DATABASE_ERROR_DETAIL = DATABASE_ERROR_DETAIL
+SAFE_SERVER_ERROR_DETAIL = SERVER_ERROR_DETAIL
 
 # CORS
 app.add_middleware(
@@ -47,7 +49,7 @@ async def database_exception_handler(request: Request, exc: SQLAlchemyError):
     logger.exception("Unhandled database error while processing %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=503,
-        content={"detail": SAFE_DATABASE_ERROR_DETAIL},
+        content={"detail": DATABASE_ERROR_DETAIL},
         headers=_cors_headers_for_request(request),
     )
 
@@ -57,7 +59,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled application error while processing %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=500,
-        content={"detail": SAFE_SERVER_ERROR_DETAIL},
+        content={"detail": SERVER_ERROR_DETAIL},
         headers=_cors_headers_for_request(request),
     )
 

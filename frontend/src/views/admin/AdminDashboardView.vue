@@ -3,10 +3,10 @@
     <section class="rounded-lg border border-neutral-200 bg-primary-dark p-4 text-white shadow-sm">
       <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_34rem] xl:items-end">
         <div>
-          <p class="text-xs font-bold uppercase tracking-wide text-primary-fixed-dim">Resumen ejecutivo</p>
-          <h2 class="mt-1 text-2xl font-extrabold md:text-3xl">Dashboard de producción</h2>
+          <p class="text-xs font-bold uppercase tracking-wide text-primary-fixed-dim">Vista ejecutiva</p>
+          <h2 class="mt-1 text-2xl font-extrabold md:text-3xl">Resumen ejecutivo</h2>
           <p class="mt-2 max-w-2xl text-sm text-primary-fixed-dim">
-            Producción total, toneladas, combustible y actividad operativa para el rango seleccionado.
+            Indicadores globales, comparativa contra periodo anterior y actividad reciente para decisión administrativa.
           </p>
           <p class="mt-3 text-xs font-semibold text-primary-fixed-dim">
             Última actualización: {{ lastUpdatedLabel }} - Rango: {{ rangeLabel }}

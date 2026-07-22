@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import api from '@/services/api'
+import api, { getUserSafeErrorMessage } from '@/services/api'
 import { ADMIN_ENTITY_CONFIG } from '@/config/adminEntityConfig'
 
 export { ADMIN_ENTITY_CONFIG }
@@ -68,7 +68,7 @@ export const useAdminStore = defineStore('admin', {
         const { data } = await api.get('/api/admin/dashboard', { params: filters, _suppressErrorToast: true })
         this.dashboard = data
       } catch (error) {
-        this.error = error.response?.data?.detail || 'No se pudo cargar el dashboard de administracion'
+        this.error = getUserSafeErrorMessage(error, 'No se pudo cargar el dashboard de administracion')
         this.dashboard = []
       } finally {
         this.loading = false
@@ -82,7 +82,7 @@ export const useAdminStore = defineStore('admin', {
         const { data } = await api.get('/api/admin/dashboard/overview', { params: filters, _suppressErrorToast: true })
         this.dashboardOverview = data
       } catch (error) {
-        this.dashboardOverviewError = error.response?.data?.detail || 'No se pudo cargar el resumen ejecutivo'
+        this.dashboardOverviewError = getUserSafeErrorMessage(error, 'No se pudo cargar el resumen ejecutivo')
         this.dashboardOverview = null
       } finally {
         this.loadingDashboardOverview = false
@@ -112,7 +112,7 @@ export const useAdminStore = defineStore('admin', {
         const { data } = await api.get('/api/admin/configuracion/usuarios', { params, _suppressErrorToast: true })
         this.usuariosConfiguracion = data
       } catch (error) {
-        this.error = error.response?.data?.detail || 'No se pudo cargar la configuracion de acceso'
+        this.error = getUserSafeErrorMessage(error, 'No se pudo cargar la configuracion de acceso')
         this.usuariosConfiguracion = []
       } finally {
         this.loading = false

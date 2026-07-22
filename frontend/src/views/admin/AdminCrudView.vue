@@ -142,12 +142,14 @@
                 Editar
               </button>
               <button
-                @click="removeRow(row[meta.idKey])"
-                class="inline-flex items-center justify-center gap-2 rounded-lg border border-error/35 px-3 py-2 text-xs font-semibold text-error-dark"
+                @click="removeRow(row)"
+                :disabled="isProtectedRow(row)"
+                :title="protectedRowReason(row) || `${deleteLabel} ${recordDisplayLabel(row)}`"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-error/35 px-3 py-2 text-xs font-semibold text-error-dark disabled:cursor-not-allowed disabled:opacity-50"
                 type="button"
               >
                 <AppIcon name="delete" size="sm" />
-                {{ deleteLabel }}
+                {{ isProtectedRow(row) ? 'Protegido' : deleteLabel }}
               </button>
             </div>
 
@@ -316,12 +318,14 @@
                       Editar
                     </button>
                     <button
-                      @click="removeRow(row[meta.idKey])"
-                      class="inline-flex items-center gap-1.5 rounded-lg border border-error/35 px-3 py-1.5 text-xs font-semibold text-error-dark hover:bg-error-light/30"
+                      @click="removeRow(row)"
+                      :disabled="isProtectedRow(row)"
+                      :title="protectedRowReason(row) || `${deleteLabel} ${recordDisplayLabel(row)}`"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-error/35 px-3 py-1.5 text-xs font-semibold text-error-dark hover:bg-error-light/30 disabled:cursor-not-allowed disabled:opacity-50"
                       type="button"
                     >
                       <AppIcon name="delete" size="sm" />
-                      {{ deleteLabel }}
+                      {{ isProtectedRow(row) ? 'Protegido' : deleteLabel }}
                     </button>
                   </td>
                 </tr>
@@ -525,24 +529,29 @@
                 </button>
               </div>
 
-              <div v-else-if="field.type === 'multiselect'" class="md:col-span-2">
-                <label class="mb-1 block text-sm font-semibold text-neutral-600">{{ field.label }}</label>
+              <fieldset v-else-if="field.type === 'multiselect'" class="min-w-0 md:col-span-2">
+                <div class="mb-1 flex items-center justify-between gap-3">
+                  <legend class="text-sm font-semibold text-neutral-600">{{ field.label }}</legend>
+                  <span class="text-xs font-semibold text-neutral-400">
+                    {{ multiSelectionCount(field.key) }} seleccionada{{ multiSelectionCount(field.key) === 1 ? '' : 's' }}
+                  </span>
+                </div>
                 <div class="app-surface-muted grid grid-cols-1 gap-2 rounded-lg border p-3 md:grid-cols-2">
                   <label
-                    v-for="option in referenceData[field.optionsEntity] || []"
+                    v-for="option in multiselectOptions(field)"
                     :key="option[field.optionValue]"
-                    class="flex items-center gap-2 text-sm text-neutral-700"
+                    class="flex min-h-8 cursor-pointer items-start gap-2 rounded-md px-1.5 py-1 text-sm text-neutral-700 transition-colors hover:bg-primary-light/20"
                   >
                     <input
                       type="checkbox"
-                      class="w-4 h-4 accent-primary"
+                      class="mt-0.5 h-4 w-4 shrink-0 accent-primary"
                       :checked="isMultiSelected(field.key, option[field.optionValue])"
                       @change="toggleMultiValue(field.key, option[field.optionValue], $event.target.checked)"
                     />
                     <span>{{ formatOptionLabel(option, field) }}</span>
                   </label>
                 </div>
-              </div>
+              </fieldset>
 
               <div v-else-if="field.type === 'checkbox'" class="flex items-center gap-3 py-2.5">
                 <input :id="field.key" v-model="form[field.key]" type="checkbox" class="w-4 h-4 accent-primary" />
@@ -582,12 +591,15 @@
 
     <AppModal
       v-model="showDeleteConfirm"
-      title="Confirmar acción"
-      :description="`Vas a ${deleteLabel.toLowerCase()} este registro. Esta acción puede afectar datos vinculados.`"
+      title="Confirmar acción sensible"
+      :description="deleteConfirmationDescription"
     >
       <div class="flex flex-col gap-4">
-        <p class="text-sm text-neutral-700">
-          Confirmá que querés continuar con <strong>{{ pendingDeleteLabel }}</strong>.
+        <p class="rounded-lg border border-error-light bg-error-light/30 px-3 py-2 text-sm font-semibold text-error-dark">
+          {{ pendingDeleteLabel }}
+        </p>
+        <p class="text-sm text-neutral-600">
+          Revisá nombre, DNI o ID antes de continuar. Esta acción puede afectar permisos, catálogos o datos vinculados.
         </p>
         <div class="flex justify-end gap-2">
           <AppButton variant="secondary" @click="cancelDelete">Cancelar</AppButton>
@@ -611,6 +623,8 @@ import FilterBar from '@/components/ui/FilterBar.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AdminQuickAssignment from '@/components/admin/AdminQuickAssignment.vue'
 import { useAdminStore } from '@/stores/admin'
+import { useAuthStore } from '@/stores/auth'
+import { getUserSafeErrorMessage } from '@/services/api'
 import { validateAdminPassword } from '@/services/passwordValidation'
 
 const SAFE_LOAD_ERROR_MESSAGE = 'No se pudieron cargar los datos necesarios. Actualiza e intenta nuevamente.'
@@ -862,6 +876,7 @@ const ENTITY_DEFINITIONS = {
 const route = useRoute()
 const router = useRouter()
 const adminStore = useAdminStore()
+const authStore = useAuthStore()
 
 const rows = ref([])
 const loading = ref(false)
@@ -903,6 +918,10 @@ let searchTimer = null
 const entity = computed(() => String(route.params.entity || ''))
 const meta = computed(() => ENTITY_DEFINITIONS[entity.value] || null)
 const deleteLabel = computed(() => meta.value?.deleteVerb || 'Eliminar')
+const deleteConfirmationDescription = computed(() => {
+  const verb = deleteLabel.value.toLowerCase()
+  return `Vas a ${verb} un registro de ${meta.value?.singular || 'administración'}. Confirmá solo si identificaste correctamente el registro.`
+})
 
 const formSections = computed(() => {
   const fields = meta.value?.fields || []
@@ -1049,7 +1068,7 @@ async function loadRows() {
     })
   } catch (err) {
     rows.value = []
-    error.value = safeAdminErrorMessage(err, `No se pudo cargar ${meta.value.title.toLowerCase()}`)
+    error.value = getUserSafeErrorMessage(err, SAFE_LOAD_ERROR_MESSAGE)
   } finally {
     loading.value = false
   }
@@ -1192,7 +1211,7 @@ async function submitForm() {
     await Promise.all([loadRows(), loadReferences()])
     closeForm()
   } catch (err) {
-    formError.value = safeAdminErrorMessage(err, SAFE_SAVE_ERROR_MESSAGE)
+    formError.value = getUserSafeErrorMessage(err, SAFE_SAVE_ERROR_MESSAGE)
   } finally {
     submitting.value = false
   }
@@ -1220,15 +1239,17 @@ async function submitQuickAssignment() {
     resetQuickAssignment()
     await loadRows()
   } catch (err) {
-    error.value = safeAdminErrorMessage(err, 'No se pudo crear la asignacion')
+    error.value = getUserSafeErrorMessage(err, 'No se pudo crear la asignacion')
   } finally {
     submitting.value = false
   }
 }
 
-async function removeRow(id) {
+async function removeRow(row) {
+  if (isProtectedRow(row)) return
+  const id = recordId(row)
   pendingDeleteId.value = id
-  pendingDeleteLabel.value = `${deleteLabel.value.toLowerCase()} registro #${id}`
+  pendingDeleteLabel.value = `${deleteLabel.value} ${recordDisplayLabel(row)}`
   showDeleteConfirm.value = true
 }
 
@@ -1249,7 +1270,7 @@ async function confirmDelete() {
     clearReferenceCacheFor(entity.value)
     await loadRows()
   } catch (err) {
-    error.value = safeAdminErrorMessage(err, `No se pudo ${verb} el registro`)
+    error.value = getUserSafeErrorMessage(err, `No se pudo ${verb} el registro`)
   } finally {
     submitting.value = false
     cancelDelete()
@@ -1430,21 +1451,10 @@ async function updateRelationEntity(refEntity, id, payload) {
     await loadReferences()
     cancelRelationDraft()
   } catch (err) {
-    error.value = safeAdminErrorMessage(err, 'No se pudo actualizar la vinculacion')
+    error.value = getUserSafeErrorMessage(err, 'No se pudo actualizar la vinculacion')
   } finally {
     submitting.value = false
   }
-}
-
-function safeAdminErrorMessage(err, fallback) {
-  const detail = err?.response?.data?.detail
-  if (typeof detail !== 'string' || !detail.trim()) return fallback
-  if (err?.response?.status >= 500 || containsTechnicalError(detail)) return SAFE_LOAD_ERROR_MESSAGE
-  return detail
-}
-
-function containsTechnicalError(message) {
-  return /\b(SQL|SELECT|INSERT|UPDATE|DELETE|Traceback|OperationalError|ProgrammingError|SQLAlchemy|pymysql|MySQL|parameters?:|Background on this error)\b/i.test(message)
 }
 
 function fieldClass(field) {
@@ -1456,14 +1466,29 @@ function isMultiSelected(key, value) {
 }
 
 function toggleMultiValue(key, value, checked) {
-  if (!Array.isArray(form[key])) form[key] = []
   const parsed = Number(value)
-  if (checked && !form[key].map(Number).includes(parsed)) form[key].push(parsed)
-  if (!checked) form[key] = form[key].filter((item) => Number(item) !== parsed)
+  const current = Array.isArray(form[key]) ? form[key].map(Number) : []
+
+  form[key] = checked
+    ? [...new Set([...current, parsed])]
+    : current.filter((item) => item !== parsed)
 
   if (key === 'unidad_ids' && entity.value === 'personal') {
     form.unidad_negocio = form[key][0] || form.unidad_negocio || 1
   }
+}
+
+function multiSelectionCount(key) {
+  return Array.isArray(form[key]) ? form[key].length : 0
+}
+
+function multiselectOptions(field) {
+  return [...(referenceData[field.optionsEntity] || [])].sort((left, right) => (
+    String(formatOptionLabel(left, field)).localeCompare(String(formatOptionLabel(right, field)), 'es', {
+      sensitivity: 'base',
+      numeric: true,
+    })
+  ))
 }
 
 function findReference(refEntity, value, key) {
@@ -1544,8 +1569,31 @@ function formatCellValue(row, column) {
   }
   if (value === null || value === undefined || value === '') return '-'
   if (Array.isArray(value)) return value.length ? value.join(', ') : '-'
-  if (value === 1 || value === 0) return value === 1 ? 'Si' : 'No'
+  if (column.type === 'boolean') return Number(value) === 1 || value === true ? 'Sí' : 'No'
   return value
+}
+
+function recordId(row) {
+  return row?.[meta.value.idKey]
+}
+
+function recordDisplayLabel(row) {
+  const id = recordId(row)
+  const label = row?.nombre || row?.Nombre || row?.detalle || row?.patente || row?.rodal || row?.descripcion || ''
+  const parts = []
+  if (label) parts.push(label)
+  if (row?.dni) parts.push(`DNI ${row.dni}`)
+  if (id !== undefined && id !== null && id !== '') parts.push(`ID ${id}`)
+  return parts.length ? parts.join(' - ') : `registro #${id}`
+}
+
+function isProtectedRow(row) {
+  return entity.value === 'personal' && Number(recordId(row)) === Number(authStore.user?.idPersonal)
+}
+
+function protectedRowReason(row) {
+  if (isProtectedRow(row)) return 'No podés desactivar tu propio usuario desde esta pantalla.'
+  return ''
 }
 
 function mobilePrimaryLabel(row) {

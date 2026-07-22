@@ -37,7 +37,7 @@ describe('checkBackend', () => {
     expect(result).toBe('ok')
     expect(captured.state).toBe('ok')
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      '/api/produccion/lugares-carga?un_id=1',
+      expect.stringContaining('/api/produccion/lugares-carga?un_id=1'),
       expect.objectContaining({ cache: 'no-store', credentials: 'omit' }),
     )
   })

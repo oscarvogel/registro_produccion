@@ -15,8 +15,8 @@
               Actualizando
             </span>
           </div>
-          <h1 class="text-xl font-extrabold text-neutral-950 md:text-2xl">Dashboard de Producción</h1>
-          <p class="mt-0.5 text-sm text-neutral-500">{{ authStore.userName }} · Lectura operativa y comparativa</p>
+          <h1 class="text-xl font-extrabold text-neutral-950 md:text-2xl">Dashboard operativo</h1>
+          <p class="mt-0.5 text-sm text-neutral-500">{{ authStore.userName }} · Análisis por unidad, proceso y equipo</p>
         </div>
 
         <div class="flex flex-wrap gap-2">
@@ -159,7 +159,7 @@
               </div>
             </div>
             <div class="app-surface-muted max-w-md rounded-lg border p-3">
-              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Resumen ejecutivo</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Lectura operativa</p>
               <p class="mt-2 text-sm font-semibold leading-6 text-neutral-800">{{ executiveSummary }}</p>
             </div>
           </div>
@@ -681,7 +681,7 @@ function addDays(date, days) {
 
 function exportCsv() {
   const rows = [
-    ['Dashboard de Producción'],
+    ['Dashboard operativo'],
     ['Unidad', selectedUnitName.value],
     ['Periodo', dateRangeLabel.value],
     [],

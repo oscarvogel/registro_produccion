@@ -9,7 +9,7 @@
 
           <div class="absolute bottom-10 left-10 right-10 max-w-md">
             <h1 class="text-5xl font-extrabold leading-none text-white">
-              PRODUCCION FORESTAL EN TIEMPO REAL
+              PRODUCCION FORESTAL
             </h1>
             <p class="mt-5 text-sm font-semibold leading-relaxed text-white/85">
               Registra cargas, controla equipos y mantiene la información operativa sincronizada desde el campo.

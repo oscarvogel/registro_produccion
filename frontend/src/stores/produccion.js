@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
-import api from '@/services/api'
+import api, { getUserSafeErrorMessage } from '@/services/api'
 import db from '@/services/db'
 import { queuePendingProductionRecord } from '@/services/pendingRecords'
+import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 
 const ensureArray = (value) => (Array.isArray(value) ? value : [])
 const CATALOG_TTL_MS = 5 * 60 * 1000
+const PERMANENT_SYNC_FAILURE_STATUSES = new Set([400, 409, 422])
 const CATALOG_KEYS = [
   'unidadesNegocio',
   'operadores',
@@ -36,6 +38,26 @@ const errorMessage = (err) => err?.response?.data?.detail || err?.message || 'No
 
 function isValidCatalogPayload(data) {
   return Array.isArray(data)
+}
+
+export function isPermanentSyncFailure(status) {
+  return PERMANENT_SYNC_FAILURE_STATUSES.has(Number(status))
+}
+
+export function canUserSyncPendingRecord(record, user) {
+  if (!user) return false
+  if (user.is_admin === 1) return true
+
+  if (user.encargado === 1) {
+    const unitIds = new Set(
+      [...(Array.isArray(user.unidad_ids) ? user.unidad_ids : []), user.unidad_negocio]
+        .map((value) => Number(value))
+        .filter(Boolean),
+    )
+    return unitIds.has(Number(record?.payload?.cod_un || 0))
+  }
+
+  return Number(record?.payload?.cod_operador || 0) === Number(user.idPersonal || 0)
 }
 
 export const useProduccionStore = defineStore('produccion', {
@@ -280,7 +302,7 @@ export const useProduccionStore = defineStore('produccion', {
           useToastStore().info('Registro guardado offline', 'No hubo conexion con el servidor; quedo en cola.')
           return { offline: true }
         }
-        this.error = err.response?.data?.detail || 'Error al guardar el registro'
+        this.error = getUserSafeErrorMessage(err, 'Error al guardar el registro')
         useToastStore().error('No se pudo guardar', this.error)
         throw err
       } finally {
@@ -293,19 +315,28 @@ export const useProduccionStore = defineStore('produccion', {
     },
 
     async syncPending() {
-      if (this.syncingPending) return 0
-      this.syncingPending = true
-      const pending = await db.pendingRecords.where('synced').equals(0).toArray()
-      if (!pending.length) {
-        this.syncingPending = false
-        return 0
+      if (this.syncingPending) {
+        return {
+          successCount: 0,
+          permanentFailureCount: 0,
+          transientFailureCount: 0,
+          alreadyRunning: true,
+        }
       }
-
+      this.syncingPending = true
       this.error = null
       let successCount = 0
       let permanentFailureCount = 0
+      let transientFailureCount = 0
 
       try {
+        const currentUser = useAuthStore().user
+        const pending = (await db.pendingRecords.where('synced').equals(0).toArray())
+          .filter((record) => canUserSyncPendingRecord(record, currentUser))
+        if (!pending.length) {
+          return { successCount, permanentFailureCount, transientFailureCount }
+        }
+
         for (const record of pending) {
           try {
             await db.pendingRecords.update(record.id, {
@@ -319,8 +350,8 @@ export const useProduccionStore = defineStore('produccion', {
           } catch (err) {
             const status = err?.response?.status
 
-            if (status >= 400 && status < 500) {
-              const detail = err.response?.data?.detail || 'Error permanente al sincronizar el registro'
+            if (isPermanentSyncFailure(status)) {
+              const detail = getUserSafeErrorMessage(err, 'Error permanente al sincronizar el registro')
               await db.pendingRecords.update(record.id, {
                 synced: 1,
                 syncStatus: 'failed',
@@ -333,8 +364,9 @@ export const useProduccionStore = defineStore('produccion', {
 
             await db.pendingRecords.update(record.id, {
               syncStatus: 'pending',
-              syncError: err.response?.data?.detail || 'Error transitorio. Se reintentara automaticamente.',
+              syncError: getUserSafeErrorMessage(err, 'Error transitorio. Se reintentara automaticamente.'),
             })
+            transientFailureCount++
           }
         }
 
@@ -342,10 +374,13 @@ export const useProduccionStore = defineStore('produccion', {
         if (permanentFailureCount > 0) {
           this.error = `No se pudieron sincronizar ${permanentFailureCount} registro(s) por un error permanente.`
           useToastStore().error('Sincronizacion parcial', this.error)
+        } else if (transientFailureCount > 0) {
+          this.error = `No se pudieron sincronizar ${transientFailureCount} registro(s) por un error transitorio.`
+          useToastStore().error('Sincronizacion pendiente', this.error)
         } else if (successCount > 0) {
           useToastStore().success('Pendientes sincronizados', `${successCount} registro(s) enviados.`)
         }
-        return successCount
+        return { successCount, permanentFailureCount, transientFailureCount }
       } finally {
         this.syncingPending = false
       }

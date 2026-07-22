@@ -75,7 +75,9 @@
         <div class="mb-2.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Carga en curso</p>
-            <p class="text-lg font-extrabold text-primary-dark">Estado: Sin guardar</p>
+            <p class="text-lg font-extrabold text-primary-dark">
+              {{ puedeAvanzar ? 'Estado: paso listo' : 'Estado: requiere datos' }}
+            </p>
           </div>
           <span class="w-fit rounded-full bg-warning-light px-3 py-1 text-xs font-bold text-warning-dark">Borrador local</span>
         </div>
@@ -86,6 +88,12 @@
           <div class="truncate"><span class="font-bold text-neutral-900">Equipo:</span> {{ movilSeleccionadoDetalle || 'Pendiente' }}</div>
           <div class="truncate"><span class="font-bold text-neutral-900">Proceso:</span> {{ tipoProcesoNombre || 'Pendiente' }}</div>
         </div>
+        <p
+          v-if="mensajePasoIncompleto"
+          class="mt-3 rounded-lg border border-warning/35 bg-warning-light/20 px-3 py-2 text-sm font-semibold text-warning-dark"
+        >
+          {{ mensajePasoIncompleto }}
+        </p>
       </div>
 
       <!-- ═══ 1. FECHA ═══ -->
@@ -846,8 +854,14 @@
         <span>{{ store.error }}</span>
       </div>
       <div class="app-card hidden items-center justify-between gap-3 rounded-xl p-3.5 md:flex">
-        <p class="max-w-md text-sm font-semibold text-error-dark">
+        <p
+          v-if="mensajePasoIncompleto"
+          class="max-w-md text-sm font-semibold text-warning-dark"
+        >
           {{ mensajePasoIncompleto }}
+        </p>
+        <p v-else class="max-w-md text-sm font-semibold text-success-dark">
+          Paso listo. Podés continuar o guardar el borrador.
         </p>
         <div class="flex items-center justify-end gap-3">
         <button
@@ -870,6 +884,7 @@
           type="button"
           @click="avanzar"
           :disabled="!puedeAvanzar"
+          :title="mensajePasoIncompleto || 'Avanzar al siguiente paso'"
           class="rounded-xl bg-primary px-5 py-2.5 text-sm font-extrabold text-on-primary disabled:cursor-not-allowed disabled:opacity-40"
         >
           Siguiente
@@ -905,6 +920,7 @@
             type="button"
             @click="avanzar"
             :disabled="!puedeAvanzar"
+            :title="mensajePasoIncompleto || 'Avanzar al siguiente paso'"
             class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 font-bold text-on-primary shadow-[0_4px_14px_rgba(20,61,35,0.25)] transition-colors active:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
           >
             Siguiente
@@ -1272,12 +1288,28 @@ const revisionItems = computed(() => [
 ])
 
 function stepStatus(index) {
+  if (index === pasoActual.value && !stepComplete.value[index]) return 'Falta'
   if (index === pasoActual.value) return 'Actual'
   if (index < pasoActual.value && stepComplete.value[index]) return 'Validado'
   return 'Pendiente'
 }
 
 const mensajePasoIncompleto = computed(() => {
+  if (pasoActual.value === 0) {
+    if (!form.fecha) return 'Elegí la fecha de la carga para continuar.'
+    if (!form.un_id) return 'Seleccioná la unidad de negocio para continuar.'
+  }
+  if (pasoActual.value === 1 && !form.operador_id) {
+    return canSelectOperador.value
+      ? 'Seleccioná el operador responsable de la carga.'
+      : 'No se pudo preparar el operador logueado. Reintentá la carga de catálogos.'
+  }
+  if (pasoActual.value === 2 && !(Number(form.cod_equipo) > 0)) {
+    return 'Seleccioná el equipo o maquinaria antes de avanzar.'
+  }
+  if (pasoActual.value === 3 && !form.tipo_de_proceso_id) {
+    return 'Seleccioná el tipo de proceso para mostrar los campos de producción correctos.'
+  }
   if (pasoActual.value === 4 && !horasValidas.value) {
     const inicio = Number(form.hr_inicio)
     if (ultimaHoraFinRef.value > 0 && inicio > 0 && inicio < ultimaHoraFinRef.value) {

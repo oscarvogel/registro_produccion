@@ -172,7 +172,7 @@
             <AlertPanel
               :alerts="adminAlerts"
               :unit-labels="inactiveUnitLabels"
-              action-label="Abrir Dashboard Operativo"
+              action-label="Abrir resumen ejecutivo"
               @action="router.push({ name: 'admin-dashboard' })"
             />
             <RecentRecordsPanel />
@@ -308,8 +308,8 @@ const isTodayRange = computed(() => selectedDatePreset.value === 'today')
 const headerSubtitle = computed(() => {
   if (isAdmin.value) {
     return isTodayRange.value
-      ? 'Resumen de hoy y accesos de administración. La sección de unidades muestra la última actividad registrada.'
-      : `Resumen de ${rangeLabel.value} y accesos de administración. La sección de unidades muestra la última actividad registrada.`
+      ? 'Inicio operativo: estado de hoy, alertas y accesos rápidos. Para análisis ejecutivo usá Resumen ejecutivo.'
+      : `Inicio operativo de ${rangeLabel.value}: estado, alertas y accesos rápidos. Para análisis ejecutivo usá Resumen ejecutivo.`
   }
   return isTodayRange.value
     ? 'Accesos del día, estado de sincronización y actividad personal.'
@@ -320,7 +320,7 @@ const roleLabel = computed(() => authStore.user?.encargado === 1 ? 'Encargado' :
 
 const topActions = computed(() => isAdmin.value
   ? [
-      { name: 'admin-dashboard', label: 'Abrir Dashboard', icon: 'dashboard', to: { name: 'admin-dashboard' } },
+      { name: 'admin-dashboard', label: 'Resumen ejecutivo', icon: 'dashboard', to: { name: 'admin-dashboard' } },
       { name: 'produccion', label: 'Carga Producción', icon: 'production', to: { name: 'produccion' } },
       { name: 'combustible', label: 'Carga Combustible', icon: 'fuel', to: { name: 'combustible' } },
     ]
@@ -331,14 +331,14 @@ const operatorMainActions = computed(() => [
   { name: 'combustible', label: 'Ir a Carga de Combustible', description: 'Abre el formulario de combustible.', icon: 'fuel', to: { name: 'combustible' } },
   { name: 'pendientes', label: 'Ver Pendientes', description: 'Abre cola offline y reintentos.', icon: 'pending', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
   authStore.user?.encargado === 1
-    ? { name: 'dashboard', label: 'Abrir Dashboard Operativo', description: 'Abre resumen por unidad y proceso.', icon: 'dashboard', to: { name: 'dashboard' } }
+    ? { name: 'dashboard', label: 'Abrir Dashboard operativo', description: 'Abre análisis por unidad, proceso y equipo.', icon: 'dashboard', to: { name: 'dashboard' } }
     : { name: 'mis-registros', label: 'Abrir Mis Registros', description: 'Abre historial y totales personales.', icon: 'records', to: { name: 'mis-registros' } },
 ])
 
 const operatorSecondaryActions = computed(() => [
   { name: 'pendientes', label: 'Abrir Pendientes', description: 'Cola offline y reintentos.', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
   authStore.user?.encargado === 1
-    ? { name: 'dashboard', label: 'Abrir Dashboard Operativo', description: 'Resumen por unidad y proceso.', to: { name: 'dashboard' }, badge: null }
+    ? { name: 'dashboard', label: 'Abrir Dashboard operativo', description: 'Análisis por unidad, proceso y equipo.', to: { name: 'dashboard' }, badge: null }
     : { name: 'mis-registros', label: 'Abrir Mis Registros', description: 'Historial y totales personales.', to: { name: 'mis-registros' }, badge: null },
 ])
 
@@ -346,7 +346,7 @@ const adminActions = computed(() => [
   { name: 'produccion', label: 'Ir a Carga de Producción', description: 'Abre el formulario de producción.', to: { name: 'produccion' }, badge: null },
   { name: 'combustible', label: 'Ir a Carga de Combustible', description: 'Abre el formulario de combustible.', to: { name: 'combustible' }, badge: null },
   { name: 'pendientes', label: 'Abrir Pendientes', description: 'Cola offline y reintentos.', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
-  { name: 'admin', label: 'Abrir Panel Admin', description: 'Catálogos, permisos y relaciones.', to: { name: 'admin-dashboard' }, badge: null },
+  { name: 'admin', label: 'Resumen ejecutivo', description: 'Indicadores globales y comparativa del periodo.', to: { name: 'admin-dashboard' }, badge: null },
 ])
 
 const adminTotals = computed(() => adminStore.dashboard.reduce((acc, unidad) => {

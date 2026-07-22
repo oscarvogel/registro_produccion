@@ -103,7 +103,7 @@
         <div v-else-if="visibleRecords.length === 0" class="mt-3">
           <EmptyState
             title="Todo sincronizado"
-            description="No hay registros pendientes ni fallidos. Las cargas realizadas se encuentran guardadas correctamente."
+            description="No hay registros pendientes ni fallidos para tu alcance actual."
             icon="sync"
           >
             <p class="mt-3 text-xs font-semibold text-outline">Última verificación: {{ lastCheckFullLabel }}</p>
@@ -188,10 +188,14 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import api from '@/services/api'
+import api, { getUserSafeErrorMessage } from '@/services/api'
 import db from '@/services/db'
 import { useAuthStore } from '@/stores/auth'
-import { useProduccionStore } from '@/stores/produccion'
+import {
+  canUserSyncPendingRecord,
+  isPermanentSyncFailure,
+  useProduccionStore,
+} from '@/stores/produccion'
 import { useToastStore } from '@/stores/toast'
 import AppBadge from '@/components/ui/AppBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -217,19 +221,9 @@ const activeFilter = ref('all')
 
 const isAdmin = computed(() => authStore.isAdmin)
 const isEncargado = computed(() => authStore.user?.encargado === 1)
-const currentUserId = computed(() => Number(authStore.user?.idPersonal || 0))
-const userUnitIds = computed(() => {
-  const ids = Array.isArray(authStore.user?.unidad_ids) ? authStore.user.unidad_ids : []
-  const mainUnit = authStore.user?.unidad_negocio
-  return new Set([...ids, mainUnit].map((value) => Number(value)).filter(Boolean))
-})
 
 const scopedRecords = computed(() => {
-  if (isAdmin.value) return records.value
-  if (isEncargado.value) {
-    return records.value.filter((record) => userUnitIds.value.has(Number(record.payload?.cod_un || 0)))
-  }
-  return records.value.filter((record) => Number(record.payload?.cod_operador || 0) === currentUserId.value)
+  return records.value.filter((record) => canUserSyncPendingRecord(record, authStore.user))
 })
 
 const localPendingRecords = computed(() => records.value.filter(isPendingRecord))
@@ -365,9 +359,8 @@ async function loadRecords() {
 async function syncAll() {
   syncing.value = true
   try {
-    const count = await produccionStore.syncPending()
+    await produccionStore.syncPending()
     await loadRecords()
-    toast.success('Sincronización completa', `${count || 0} registro(s) sincronizado(s).`)
   } catch {
     toast.error('No se pudo sincronizar', 'Revisá la conexión o intentá de nuevo.')
   } finally {
@@ -383,13 +376,14 @@ async function retryRecord(record) {
     await loadRecords()
     toast.success('Registro sincronizado')
   } catch (err) {
-    const detail = err.response?.data?.detail || 'No se pudo sincronizar este registro.'
+    const detail = getUserSafeErrorMessage(err, 'No se pudo sincronizar este registro.')
     const status = err.response?.status
+    const permanentFailure = isPermanentSyncFailure(status)
     await db.pendingRecords.update(record.id, {
-      synced: status >= 400 && status < 500 ? 1 : 0,
-      syncStatus: status >= 400 && status < 500 ? 'failed' : 'pending',
+      synced: permanentFailure ? 1 : 0,
+      syncStatus: permanentFailure ? 'failed' : 'pending',
       syncError: detail,
-      failedAt: Date.now(),
+      failedAt: permanentFailure ? Date.now() : null,
     })
     await loadRecords()
     toast.error('Sincronización fallida', detail)
