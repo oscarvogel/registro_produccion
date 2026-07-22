@@ -567,6 +567,7 @@ async def get_ultima_hora_fin(
 
 # ─── Crear registro en tablero_produccion ───
 @router.post("/", response_model=TableroProduccionResponse, status_code=201)
+@router.post("", response_model=TableroProduccionResponse, status_code=201, include_in_schema=False)
 async def create_produccion(
     data: TableroProduccionCreate,
     db: Session = Depends(get_db),

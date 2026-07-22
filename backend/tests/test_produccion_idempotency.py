@@ -10,6 +10,17 @@ from app.api.routes import produccion
 from app.schemas.produccion import TableroProduccionCreate
 
 
+def test_create_accepts_legacy_path_without_redirect():
+    create_paths = {
+        route.path
+        for route in produccion.router.routes
+        if "POST" in getattr(route, "methods", set())
+    }
+
+    assert "/produccion" in create_paths
+    assert "/produccion/" in create_paths
+
+
 def test_create_schema_accepts_form_uuid_for_idempotent_retries():
     payload = TableroProduccionCreate(
         fecha=date(2026, 7, 21),
