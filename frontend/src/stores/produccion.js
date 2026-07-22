@@ -284,7 +284,7 @@ export const useProduccionStore = defineStore('produccion', {
           return { offline: true }
         }
 
-        const { data } = await api.post('/api/produccion', submissionPayload)
+        const { data } = await api.post('/api/produccion/', submissionPayload)
         useToastStore().success('Registro guardado')
         return data
       } catch (err) {
@@ -334,7 +334,7 @@ export const useProduccionStore = defineStore('produccion', {
               retryCount: Number(record.retryCount || 0) + 1,
             })
             const submissionPayload = await ensurePendingIdentity(record)
-            await api.post('/api/produccion', submissionPayload, {
+            await api.post('/api/produccion/', submissionPayload, {
               _suppressErrorToast: true,
             })
             await db.pendingRecords.delete(record.id)
