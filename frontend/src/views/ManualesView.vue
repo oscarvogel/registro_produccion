@@ -98,6 +98,7 @@ import { useAuthStore } from '@/stores/auth'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import { renderManualMarkdown } from '@/services/manualRenderer'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -143,7 +144,7 @@ const currentRoleLabel = computed(() => {
   return 'Tu rol: Operador'
 })
 
-const renderedManual = computed(() => renderMarkdown(manualMarkdown.value))
+const renderedManual = computed(() => renderManualMarkdown(manualMarkdown.value))
 
 onMounted(() => {
   activeManualId.value = defaultManualId()
@@ -189,162 +190,6 @@ function manualButtonClass(manual) {
       ? 'border-primary/45 bg-primary-light text-primary-dark shadow-[0_0_18px_rgba(16,185,129,0.10)]'
       : 'app-button-soft border',
   ]
-}
-
-function renderMarkdown(markdown) {
-  const normalized = markdown
-    .replaceAll('../../frontend/public/logo-forestal.png', '/logo-forestal.png')
-    .replace(/\r\n/g, '\n')
-
-  const lines = normalized.split('\n')
-  const html = []
-  let paragraph = []
-  let listType = ''
-  let tableRows = []
-
-  function flushParagraph() {
-    if (paragraph.length === 0) return
-    html.push(`<p>${inline(paragraph.join(' '))}</p>`)
-    paragraph = []
-  }
-
-  function flushList() {
-    if (!listType) return
-    html.push(`</${listType}>`)
-    listType = ''
-  }
-
-  function flushTable() {
-    if (tableRows.length === 0) return
-    const rows = tableRows.filter((row) => !/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(row))
-    if (rows.length > 0) {
-      html.push('<table>')
-      rows.forEach((row, index) => {
-        const cells = row.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((cell) => cell.trim())
-        const tag = index === 0 ? 'th' : 'td'
-        html.push(`<tr>${cells.map((cell) => `<${tag}>${inline(cell)}</${tag}>`).join('')}</tr>`)
-      })
-      html.push('</table>')
-    }
-    tableRows = []
-  }
-
-  lines.forEach((line) => {
-    const trimmed = line.trim()
-
-    if (trimmed.includes('|') && /^\|?[^|]+\|/.test(trimmed)) {
-      flushParagraph()
-      flushList()
-      tableRows.push(trimmed)
-      return
-    }
-
-    flushTable()
-
-    if (!trimmed) {
-      flushParagraph()
-      flushList()
-      return
-    }
-
-    const allowedHtml = renderAllowedHtmlLine(trimmed)
-    if (allowedHtml) {
-      flushParagraph()
-      flushList()
-      html.push(allowedHtml)
-      return
-    }
-
-    const heading = trimmed.match(/^(#{1,4})\s+(.+)$/)
-    if (heading) {
-      flushParagraph()
-      flushList()
-      const level = heading[1].length
-      html.push(`<h${level}>${inline(heading[2])}</h${level}>`)
-      return
-    }
-
-    const unordered = trimmed.match(/^-\s+(.+)$/)
-    if (unordered) {
-      flushParagraph()
-      if (listType !== 'ul') {
-        flushList()
-        html.push('<ul>')
-        listType = 'ul'
-      }
-      html.push(`<li>${inline(unordered[1])}</li>`)
-      return
-    }
-
-    const ordered = trimmed.match(/^\d+\.\s+(.+)$/)
-    if (ordered) {
-      flushParagraph()
-      if (listType !== 'ol') {
-        flushList()
-        html.push('<ol>')
-        listType = 'ol'
-      }
-      html.push(`<li>${inline(ordered[1])}</li>`)
-      return
-    }
-
-    paragraph.push(trimmed)
-  })
-
-  flushParagraph()
-  flushList()
-  flushTable()
-
-  return html.join('\n')
-}
-
-function inline(value) {
-  return escapeHtml(value)
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-}
-
-function renderAllowedHtmlLine(value) {
-  if (value === '</div>') return '</div>'
-
-  const pageBreak = value.match(/^<div\s+class="page-break"\s*>\s*<\/div>$/)
-  if (pageBreak) return '<div class="page-break"></div>'
-
-  const div = value.match(/^<div\s+class="(cover|page-break|warning|note)">$/)
-  if (div) return `<div class="${div[1]}">`
-
-  const subtitle = value.match(/^<div\s+class="subtitle"\s*>(.+)<\/div>$/)
-  if (subtitle) return `<div class="subtitle">${inline(subtitle[1])}</div>`
-
-  const heading = value.match(/^<h([1-4])>(.+)<\/h\1>$/)
-  if (heading) return `<h${heading[1]}>${inline(heading[2])}</h${heading[1]}>`
-
-  const meta = value.match(/^<p\s+class="meta"\s*>(.+)<\/p>$/)
-  if (meta) {
-    const parts = meta[1].split(/<br\s*\/?>/i).map((part) => inline(part))
-    return `<p class="meta">${parts.join('<br>')}</p>`
-  }
-
-  const img = value.match(/^<img\s+src="([^"]+)"\s+alt="([^"]*)"\s*\/?>$/)
-  if (!img) return ''
-
-  const normalizedSrc = img[1].replace('../../frontend/public/logo-forestal.png', '/logo-forestal.png')
-  if (!isSafeImageSrc(normalizedSrc)) return ''
-
-  return `<img src="${escapeHtml(normalizedSrc)}" alt="${escapeHtml(img[2])}">`
-}
-
-function isSafeImageSrc(value) {
-  return value.startsWith('/') && !value.startsWith('//') && !/[<>"']/g.test(value)
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
 }
 </script>
 
