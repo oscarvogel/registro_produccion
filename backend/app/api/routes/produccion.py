@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_, func, inspect
+from sqlalchemy import or_, and_, func, inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List
 from datetime import date, datetime
+from contextlib import contextmanager
 
 from app.api.deps import get_db, get_current_user
 from app.models.personal import Personal
@@ -35,6 +36,40 @@ from app.schemas.produccion import (
 )
 
 router = APIRouter(prefix="/produccion", tags=["produccion"])
+
+
+def _acquire_form_submission_lock(db: Session, lock_name: str) -> bool:
+    result = db.execute(
+        text("SELECT GET_LOCK(:lock_name, 10)"),
+        {"lock_name": lock_name},
+    ).scalar()
+    return result == 1
+
+
+def _release_form_submission_lock(db: Session, lock_name: str) -> None:
+    db.execute(
+        text("SELECT RELEASE_LOCK(:lock_name)"),
+        {"lock_name": lock_name},
+    )
+
+
+@contextmanager
+def _form_submission_lock(db: Session, lock_name: str):
+    # Named locks belong to a MySQL connection, not a transaction. Keep this
+    # dedicated connection checked out until RELEASE_LOCK has completed.
+    connection = db.get_bind().connect()
+    try:
+        if not _acquire_form_submission_lock(connection, lock_name):
+            raise HTTPException(
+                status_code=503,
+                detail="No se pudo reservar el envío. Se reintentará automáticamente.",
+            )
+        yield
+    finally:
+        try:
+            _release_form_submission_lock(connection, lock_name)
+        finally:
+            connection.close()
 
 
 def _table_exists(db: Session, table_name: str) -> bool:
@@ -539,86 +574,103 @@ async def create_produccion(
 ):
     _validate_restricted_payload(data, user, db)
 
-    # Get next ID (tablero_produccion doesn't have auto_increment)
-    max_id = db.query(func.max(TableroProduccion.id)).scalar() or 0
-    new_id = max_id + 1
+    # This table assigns IDs with MAX(id)+1, so serialize all creations. The
+    # same lock also makes the idempotency lookup + insert atomic.
+    with _form_submission_lock(db, "registro_produccion:create"):
+        # The named MySQL lock makes the lookup + insert atomic across workers.
+        if data.form_uuid:
+            existing = (
+                db.query(TableroProduccion)
+                .filter(
+                    TableroProduccion.form_uuid == data.form_uuid,
+                    TableroProduccion.cod_operador == data.cod_operador,
+                )
+                .first()
+            )
+            if existing:
+                return existing
 
-    registro = TableroProduccion(
-        id=new_id,
-        UN=data.UN,
-        operacion=data.operacion,
-        fecha=data.fecha,
-        equipo=data.equipo,
-        operador=data.operador,
-        cod_operador=data.cod_operador,
-        cod_equipo=data.cod_equipo,
-        cod_un=data.cod_un,
-        hr_inicio=data.hr_inicio,
-        hr_fin=data.hr_fin,
-        combustible=data.combustible,
-        aceite_cadena=data.aceite_cadena,
-        aceite_hidraulico=data.aceite_hidraulico,
-        aceite_motor=data.aceite_motor,
-        aceite_transmision=data.aceite_transmision,
-        aceite_embrague=data.aceite_embrague,
-        acta=data.acta,
-        rodal=data.rodal,
-        predio=data.predio,
-        m3=data.m3,
-        carros=data.carros,
-        tn_despachadas=data.tn_despachadas,
-        has=data.has,
-        produccion=data.produccion,
-        plantas=data.plantas,
-        mtrs_recorridos=data.mtrs_recorridos,
-        km_carreteo=data.km_carreteo,
-        km_perfilado=data.km_perfilado,
-        hr_disposicion=data.hr_disposicion,
-        hrs_no_op=data.hrs_no_op,
-        motivo_no_op=data.motivo_no_op,
-        observaciones=data.observaciones,
-        unidad_produccion=data.unidad_produccion,
-        espada=data.espada,
-        puntera=data.puntera,
-        cadena=data.cadena,
-        pinon=data.pinon,
-        cantidad_cadenas=data.cantidad_cadenas,
-        pies_16=data.pies_16,
-        pies_14=data.pies_14,
-        pies_12=data.pies_12,
-        pies_10=data.pies_10,
-        pulpable=data.pulpable,
-        lugar_carga=data.lugar_carga,
-        tabla=data.tabla,
-        codigo_tabla=data.codigo_tabla,
-        fecha_hora=datetime.now(),
-        origen="web",
-    )
-    db.add(registro)
-    db.flush()
+        # Get next ID (tablero_produccion doesn't have auto_increment)
+        max_id = db.query(func.max(TableroProduccion.id)).scalar() or 0
+        new_id = max_id + 1
 
-    # Si se cargó combustible, crear registro en cargacomb
-    if data.combustible and data.combustible > 0:
-        now = datetime.now()
-        carga = CargaComb(
-            idMovil=data.cod_equipo or 0,
-            idTipoComb=1,  # Gasoil por defecto
-            Fecha=data.fecha,
-            KM=0,
-            Litros=data.combustible,
-            UnidadNegocio=data.cod_un or 1,
-            personal=data.cod_operador or 1,
-            idtabla=str(new_id),
-            tabla="tablero_produccion",
-            _usuario="web",
-            _fecha=now.date(),
-            _hora=now.strftime("%H:%M:%S"),
+        registro = TableroProduccion(
+            id=new_id,
+            form_uuid=data.form_uuid,
+            UN=data.UN,
+            operacion=data.operacion,
+            fecha=data.fecha,
+            equipo=data.equipo,
+            operador=data.operador,
+            cod_operador=data.cod_operador,
+            cod_equipo=data.cod_equipo,
+            cod_un=data.cod_un,
+            hr_inicio=data.hr_inicio,
+            hr_fin=data.hr_fin,
+            combustible=data.combustible,
+            aceite_cadena=data.aceite_cadena,
+            aceite_hidraulico=data.aceite_hidraulico,
+            aceite_motor=data.aceite_motor,
+            aceite_transmision=data.aceite_transmision,
+            aceite_embrague=data.aceite_embrague,
+            acta=data.acta,
+            rodal=data.rodal,
+            predio=data.predio,
+            m3=data.m3,
+            carros=data.carros,
+            tn_despachadas=data.tn_despachadas,
+            has=data.has,
+            produccion=data.produccion,
+            plantas=data.plantas,
+            mtrs_recorridos=data.mtrs_recorridos,
+            km_carreteo=data.km_carreteo,
+            km_perfilado=data.km_perfilado,
+            hr_disposicion=data.hr_disposicion,
+            hrs_no_op=data.hrs_no_op,
+            motivo_no_op=data.motivo_no_op,
+            observaciones=data.observaciones,
+            unidad_produccion=data.unidad_produccion,
+            espada=data.espada,
+            puntera=data.puntera,
+            cadena=data.cadena,
+            pinon=data.pinon,
+            cantidad_cadenas=data.cantidad_cadenas,
+            pies_16=data.pies_16,
+            pies_14=data.pies_14,
+            pies_12=data.pies_12,
+            pies_10=data.pies_10,
+            pulpable=data.pulpable,
+            lugar_carga=data.lugar_carga,
+            tabla=data.tabla,
+            codigo_tabla=data.codigo_tabla,
+            fecha_hora=datetime.now(),
+            origen="web",
         )
-        db.add(carga)
+        db.add(registro)
+        db.flush()
 
-    db.commit()
-    db.refresh(registro)
-    return registro
+        # Si se cargó combustible, crear registro en cargacomb
+        if data.combustible and data.combustible > 0:
+            now = datetime.now()
+            carga = CargaComb(
+                idMovil=data.cod_equipo or 0,
+                idTipoComb=1,  # Gasoil por defecto
+                Fecha=data.fecha,
+                KM=0,
+                Litros=data.combustible,
+                UnidadNegocio=data.cod_un or 1,
+                personal=data.cod_operador or 1,
+                idtabla=str(new_id),
+                tabla="tablero_produccion",
+                _usuario="web",
+                _fecha=now.date(),
+                _hora=now.strftime("%H:%M:%S"),
+            )
+            db.add(carga)
+
+        db.commit()
+        db.refresh(registro)
+        return registro
 
 
 @router.get("/mis-registros", response_model=MisRegistrosResponse)

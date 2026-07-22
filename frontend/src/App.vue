@@ -19,7 +19,7 @@
             </button>
             <div class="min-w-0 px-3 text-center">
               <p class="truncate text-sm font-extrabold text-white">Registro Producción</p>
-              <p class="truncate text-xs font-semibold text-[#9FE1CB]">{{ userRoleLabel }} - {{ connectivityStore.isOnline ? 'En línea' : 'Sin conexión' }}</p>
+              <p class="truncate text-xs font-semibold text-[#9FE1CB]">{{ userRoleLabel }} - {{ backendConnectionLabel }}</p>
             </div>
             <button
               type="button"
@@ -84,7 +84,7 @@
                 <p class="truncate text-sm font-extrabold uppercase text-white">{{ authStore.userName }}</p>
                 <p class="flex items-center gap-1.5 text-xs font-medium text-white">
                   <span class="app-led h-1.5 w-1.5 rounded-full bg-[#10B981] text-[#10B981]"></span>
-                  {{ userRoleLabel }} - {{ connectivityStore.isOnline ? 'En línea' : 'Sin conexión' }}
+                  {{ userRoleLabel }} - {{ backendConnectionLabel }}
                 </p>
               </div>
             </div>
@@ -269,6 +269,11 @@ const openSections = reactive({
 const isAdmin = computed(() => authStore.isAdmin)
 const isEncargado = computed(() => authStore.user?.encargado === 1)
 const canViewDashboard = computed(() => isAdmin.value || isEncargado.value)
+const backendConnectionLabel = computed(() => {
+  if (!connectivityStore.isOnline) return 'Sin conexión'
+  if (connectivityStore.pendingInitialHealthCheck) return 'Verificando servidor'
+  return connectivityStore.isBackendUp ? 'Servidor disponible' : 'Servidor no disponible'
+})
 
 // Whether the operator has ever signed in on this device (has an offline
 // session cache, valid or not). Drives the OfflineBanner copy: when false the
@@ -441,15 +446,19 @@ provide('pwaInstall', { deferredInstallPrompt, installApp })
 // Offline / sync management.
 // `isOnline` now lives in the connectivity store — it is updated by window
 // events registered in main.js via `connectivityStore.init()`.
-const SYNC_INTERVAL_MS = 5 * 60 * 1000
+const SYNC_INTERVAL_MS = 30 * 1000
 let syncIntervalId = null
 
-async function handleOnline() {
-  // The connectivity store handles the boolean; here we just kick off the
-  // sync when we come back online while authenticated.
-  if (authStore.isAuthenticated) {
+async function attemptPendingSync({ forceHealthCheck = false } = {}) {
+  if (!authStore.isAuthenticated || !navigator.onLine) return
+  const backendUp = await connectivityStore.refreshBackendHealth({ force: forceHealthCheck })
+  if (backendUp) {
     await produccionStore.syncPending()
   }
+}
+
+async function handleOnline() {
+  await attemptPendingSync({ forceHealthCheck: true })
 }
 
 onMounted(() => {
@@ -457,13 +466,11 @@ onMounted(() => {
   window.addEventListener('appinstalled', handleAppInstalled)
   window.addEventListener('online', handleOnline)
   if (authStore.isAuthenticated) {
-    produccionStore.refreshPendingCount()
+    produccionStore.refreshPendingCount().then(() => attemptPendingSync({ forceHealthCheck: true }))
   }
 
   syncIntervalId = setInterval(async () => {
-    if (navigator.onLine && authStore.isAuthenticated) {
-      await produccionStore.syncPending()
-    }
+    await attemptPendingSync()
   }, SYNC_INTERVAL_MS)
 })
 

@@ -1758,8 +1758,8 @@ async function handleSubmit() {
     if (result?.offline) {
       await Swal.fire({
         icon: 'info',
-        title: 'Guardado localmente',
-        text: 'Sin conexión. El registro fue guardado en este dispositivo y se enviará automáticamente al recuperar la conexión.',
+        title: 'Guardado solo en este teléfono',
+        text: 'El servidor todavía no confirmó este registro. Quedó en Pendientes y la aplicación seguirá intentando mientras esté abierta.',
         confirmButtonColor: '#3d935d',
         confirmButtonText: 'Entendido',
       })

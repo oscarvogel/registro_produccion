@@ -6,6 +6,7 @@ const catalogRows = new Map()
 vi.mock('@/services/api', () => ({
   default: {
     get: vi.fn(),
+    post: vi.fn(),
   },
 }))
 
@@ -18,6 +19,9 @@ vi.mock('@/services/db', () => ({
       get: vi.fn(async (key) => catalogRows.get(key)),
     },
     pendingRecords: {
+      count: vi.fn(async () => 0),
+      delete: vi.fn(),
+      update: vi.fn(),
       where: vi.fn(() => ({
         equals: vi.fn(() => ({
           count: vi.fn(async () => 0),
@@ -29,11 +33,16 @@ vi.mock('@/services/db', () => ({
 }))
 
 vi.mock('@/services/pendingRecords', () => ({
+  ensurePendingIdentity: vi.fn(async (record) => ({
+    ...record.payload,
+    form_uuid: record.payload?.form_uuid || record.clientId,
+  })),
   queuePendingProductionRecord: vi.fn(),
 }))
 
 import api from '@/services/api'
 import db from '@/services/db'
+import { queuePendingProductionRecord } from '@/services/pendingRecords'
 import { useProduccionStore } from './produccion'
 
 describe('produccion catalogos offline', () => {
@@ -129,5 +138,98 @@ describe('produccion catalogos offline', () => {
       '/api/produccion/unidades-negocio',
       expect.objectContaining({ _suppressErrorToast: true }),
     )
+  })
+})
+
+describe('produccion sync offline', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+    api.post.mockReset()
+    queuePendingProductionRecord.mockReset()
+    db.pendingRecords.count.mockReset().mockResolvedValue(0)
+  })
+
+  it('retries a queued record with its stable form_uuid', async () => {
+    db.pendingRecords.where.mockReturnValue({
+      equals: vi.fn(() => ({
+        toArray: vi.fn(async () => [{
+          id: 7,
+          clientId: 'offline-uuid-7',
+          payload: { fecha: '2026-07-21', operacion: 'PROCESO' },
+          retryCount: 0,
+        }]),
+        count: vi.fn(async () => 0),
+      })),
+    })
+    api.post.mockResolvedValueOnce({ data: { id: 99 } })
+    const store = useProduccionStore()
+
+    const result = await store.syncPending()
+
+    expect(api.post).toHaveBeenCalledWith('/api/produccion', expect.objectContaining({
+      fecha: '2026-07-21',
+      form_uuid: 'offline-uuid-7',
+    }), expect.objectContaining({ _suppressErrorToast: true }))
+    expect(db.pendingRecords.delete).toHaveBeenCalledWith(7)
+    expect(result).toEqual({ successCount: 1, pendingCount: 0, permanentFailureCount: 0 })
+  })
+
+  it('reports a transient retry as still pending instead of successful', async () => {
+    db.pendingRecords.count.mockResolvedValueOnce(1)
+    db.pendingRecords.where.mockReturnValue({
+      equals: vi.fn(() => ({
+        toArray: vi.fn(async () => [{ id: 8, clientId: 'offline-uuid-8', payload: {}, retryCount: 1 }]),
+        count: vi.fn(async () => 1),
+      })),
+    })
+    api.post.mockRejectedValueOnce(new Error('network unreachable'))
+    const store = useProduccionStore()
+
+    const result = await store.syncPending()
+
+    expect(result).toEqual({ successCount: 0, pendingCount: 1, permanentFailureCount: 0 })
+  })
+
+  it('keeps authentication failures pending so login can retry them later', async () => {
+    db.pendingRecords.count.mockResolvedValueOnce(1)
+    db.pendingRecords.where.mockReturnValue({
+      equals: vi.fn(() => ({
+        toArray: vi.fn(async () => [{ id: 10, clientId: 'offline-uuid-10', payload: {}, retryCount: 0 }]),
+        count: vi.fn(async () => 1),
+      })),
+    })
+    api.post.mockRejectedValueOnce({ response: { status: 401, data: { detail: 'Sesión expirada' } } })
+    const store = useProduccionStore()
+
+    const result = await store.syncPending()
+
+    expect(db.pendingRecords.update).toHaveBeenLastCalledWith(10, expect.objectContaining({
+      synced: 0,
+      syncStatus: 'pending',
+    }))
+    expect(result).toEqual({ successCount: 0, pendingCount: 1, permanentFailureCount: 0 })
+  })
+
+  it('counts failed local records as requiring attention', async () => {
+    db.pendingRecords.count.mockResolvedValueOnce(3)
+    const store = useProduccionStore()
+
+    await store.refreshPendingCount()
+
+    expect(store.pendingCount).toBe(3)
+  })
+
+  it('keeps one form_uuid when an online request loses its response and is queued', async () => {
+    Object.defineProperty(navigator, 'onLine', { configurable: true, value: true })
+    api.post.mockRejectedValueOnce(new Error('connection reset after commit'))
+    const store = useProduccionStore()
+
+    const result = await store.submitProduccion({ fecha: '2026-07-21' })
+
+    const postedPayload = api.post.mock.calls[0][1]
+    expect(postedPayload.form_uuid).toBeTruthy()
+    expect(queuePendingProductionRecord).toHaveBeenCalledWith(postedPayload)
+    expect(result).toEqual({ offline: true })
   })
 })
