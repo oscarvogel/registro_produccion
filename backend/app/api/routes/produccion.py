@@ -18,6 +18,7 @@ from app.models.produccion import TableroProduccion
 from app.models.carga_comb import CargaComb
 from app.models.asignacion_operativa import AsignacionOperativa
 from app.models.lugar_carga import LugarCarga
+from app.models.lugar_carga_unidad_negocio import LugarCargaUnidadNegocio
 from app.schemas.produccion import (
     OperadorResponse,
     UnidadNegocioResponse,
@@ -518,7 +519,22 @@ async def list_lugares_carga(un_id: int | None = None, db: Session = Depends(get
         return []
     query = db.query(LugarCarga).filter(LugarCarga.activo == 1)
     if un_id:
-        query = query.filter(LugarCarga.unidad_negocio == un_id)
+        if _table_exists(db, "lugar_carga_unidad_negocio"):
+            query = query.outerjoin(
+                LugarCargaUnidadNegocio,
+                LugarCargaUnidadNegocio.idLugarCarga == LugarCarga.idLugarCarga,
+            ).filter(
+                or_(
+                    LugarCarga.unidad_negocio == un_id,
+                    LugarCargaUnidadNegocio.unidad_negocio == un_id,
+                ),
+                or_(
+                    LugarCargaUnidadNegocio.id.is_(None),
+                    LugarCargaUnidadNegocio.activo.is_(True),
+                ),
+            ).distinct()
+        else:
+            query = query.filter(LugarCarga.unidad_negocio == un_id)
     rows = query.order_by(LugarCarga.Detalle).all()
     return [LugarCargaResponse(idLugarCarga=r.idLugarCarga, detalle=r.Detalle) for r in rows]
 
