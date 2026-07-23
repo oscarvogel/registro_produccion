@@ -9,20 +9,16 @@ Documento de referencia para deployar `registro_produccion` en el server
 
 ## Arquitectura del server
 
-`produccion.servinlgsm.com.ar` corre con **dos backends en paralelo**:
+`produccion.servinlgsm.com.ar` corre con **un solo backend** (container Docker)
+y un frontend estatico servido por nginx.
 
 | Componente | Ruta / puerto | Como se levanta | Quien lo usa |
 |---|---|---|---|
 | **Frontend** (HTML/JS/CSS) | `/var/www/html/django/produccion_fg/frontend/` | Copia desde el tarball | nginx sirve los assets estaticos |
 | **Backend container** | `127.0.0.1:18005` (Docker) | `docker compose -f /srv/apps/registro_produccion/docker-compose.yml up -d` | nginx hace proxy_pass a este |
-| **Backend host** (legacy) | `0.0.0.0:8005` (gunicorn) | `/var/www/html/django/produccion_fg/restart.sh` | **NO se usa** (queda como fallback) |
 
-El **container Docker es el que sirve a produccion**. El backend del host
-(puerto 8005) es un vestigio: el `restart.sh` lo reinicia, pero el nginx
-apunta al container en `:18005`. Si deployas solo el host, los usuarios
-siguen viendo el codigo viejo porque el container no se toca.
-
-### Diagrama
+El **container Docker es el unico backend de produccion**. El nginx esta
+configurado para apuntar a el:
 
 ```
 Browser
@@ -32,9 +28,38 @@ nginx (443) -- /api/* --> 127.0.0.1:18005 (container Docker, produccion_fg)
         \-- /*       --> /var/www/html/django/produccion_fg/frontend/
 ```
 
+> **Historico**: antes habia un segundo backend en el host (puerto 8005)
+> manejado por `/var/www/html/django/produccion_fg/restart.sh`. Ese script
+> esta marcado como DEPRECATED y no se usa mas. El proceso de host se
+> mantiene vivo por inercia pero nginx no lo apunta. Si queres limpiar
+> el server, mira la seccion "Limpiar el backend legacy del host" mas
+> abajo.
+
 El `docker-compose.yml` en `/srv/apps/registro_produccion/docker-compose.yml`
 define el container. El `Dockerfile` copia `backend/` al container y arranca
 gunicorn en :8000. Docker mapea el :8000 del container al :18005 del host.
+
+### Diagrama de directorios
+
+```
+/srv/apps/registro_produccion/    # SOURCE_DIR: repo git, codigo fuente del container
+├── docker-compose.yml
+├── Dockerfile
+├── backend/                       # lo que se copia al container
+├── db_migrations/                  # los SQL que corre el script de deploy
+├── deploy_produccion_fg.sh        # el script de deploy (auto-detecta Docker)
+├── AGENTS.md
+└── DEPLOY.md                      # este archivo
+
+/var/www/html/django/produccion_fg/  # APP_DIR: target del deploy, sirve solo el frontend
+├── frontend/                      # assets estaticos (nginx los sirve)
+├── backend/                       # LEGACY - no se usa mas, se puede borrar
+│   ├── venv/                      # LEGACY
+│   ├── .env                       # LEGACY (db url, sirve para las migraciones)
+│   └── app/                       # LEGACY
+├── restart.sh                     # DEPRECATED
+└── RELEASE_MANIFEST.txt           # manifest del ultimo deploy exitoso
+```
 
 ---
 
@@ -49,7 +74,7 @@ ssh -i ~/.ssh/fasa_195 ferreteria@fasa_195
 docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' \
   | grep produccion_fg
 
-# 2. Commit que esta corriendo realmente
+# 2. Commit que esta corriendo realmente (deberia matchear origin/main)
 docker inspect registro_produccion_produccion_fg --format '{{.Config.Image}}'
 
 # 3. Que el repo del server este sincronizado
@@ -279,11 +304,43 @@ la hace alguien desde fuera de la LAN.
 
 ---
 
+## Limpiar el backend legacy del host (opcional)
+
+Si queres que quede SOLO el container Docker, hay que matar el proceso
+del backend legacy que sigue corriendo en el host (puerto 8005). Eso se
+hace con sudo (no se puede desde el user `ferreteria`):
+
+```bash
+# Conectado al server por ssh, con sudo:
+sudo kill -9 2683786     # PID del master gunicorn del backend legacy
+# Si no sabes el PID, busca:
+sudo ps -ef | grep 'bind 0.0.0.0:8005' | grep -v grep
+
+# Una vez muerto, opcionalmente borrar el codigo legacy del APP_DIR:
+sudo rm -rf /var/www/html/django/produccion_fg/backend/venv
+sudo rm -rf /var/www/html/django/produccion_fg/backend/app
+# Mantener backend/.env porque el script de deploy lo lee para las migraciones
+# Mantener frontend/ porque nginx lo sirve
+# restart.sh ya esta deprecado, se puede borrar sin drama
+```
+
+Verificacion:
+
+```bash
+# Puerto 8005 deberia estar libre
+ss -tlnp | grep ':8005' || echo "OK: puerto 8005 libre"
+# Puerto 18005 (container) sigue respondiendo
+curl -fsS http://127.0.0.1:18005/health
+```
+
 ## Pendiente
 
-- [ ] Fixear `deploy_produccion_fg.sh` para que detecte el modo Docker
+- [x] Fixear `deploy_produccion_fg.sh` para que detecte el modo Docker
       y haga `git pull` + `docker compose build` + `docker compose up -d`
-      en vez de tocar el host. Asi el deploy se hace en un solo paso.
+      en vez de tocar el host. (Hecho)
+- [x] Marcar `restart.sh` como DEPRECATED. (Hecho)
+- [x] Actualizar `DEPLOY.md` con la nueva arquitectura. (Hecho)
+- [ ] Limpiar el backend legacy en :8005 (matar proceso y borrar venv/app
+      del APP_DIR). Requiere sudo en el server.
 - [ ] Alinear los `__tablename__` de los modelos legacy con la DB real
       (snake_case). Es un PR aparte, no urgente.
-- [ ] Eliminar el backend legacy en :8005 si ya no se necesita.
