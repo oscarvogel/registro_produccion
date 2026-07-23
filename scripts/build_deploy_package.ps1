@@ -101,7 +101,9 @@ Run-Step "Copiando deploy script" {
 }
 
 Run-Step "Copiando migraciones DB" {
-    Copy-Item -Force "db_migrations/20260708_personal_unidad_negocio.sql" (Join-Path $Stage "db_migrations/20260708_personal_unidad_negocio.sql")
+    Get-ChildItem -Path "db_migrations" -Filter "*.sql" -File | ForEach-Object {
+        Copy-Item -Force $_.FullName (Join-Path $Stage "db_migrations" $_.Name)
+    }
 }
 
 $Manifest = @(
