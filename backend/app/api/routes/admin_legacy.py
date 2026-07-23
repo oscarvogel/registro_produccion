@@ -9,6 +9,7 @@ from app.api.deps import get_current_admin, get_db
 from app.core.security import get_password_hash
 from app.models.asignacion_operativa import AsignacionOperativa
 from app.models.lugar_carga import LugarCarga
+from app.models.lugar_carga_unidad_negocio import LugarCargaUnidadNegocio
 from app.models.movil import Movil
 from app.models.personal import Personal
 from app.models.personal_unidad_negocio import PersonalUnidadNegocio
@@ -186,6 +187,48 @@ def _sync_tipo_proceso_unidades(db: Session, row: TipoDeProceso, unidad_ids: lis
         db.add(UnidadNegocioTipoProceso(un_id=unidad_id, tipo_proceso_id=row.id))
 
 
+def _lugar_carga_unidad_ids(db: Session, row: LugarCarga) -> list[int]:
+    if not _table_exists(db, "lugar_carga_unidad_negocio"):
+        return _normalize_ids([], row.unidad_negocio)
+
+    ids = [
+        int(value)
+        for (value,) in (
+            db.query(LugarCargaUnidadNegocio.unidad_negocio)
+            .filter(
+                LugarCargaUnidadNegocio.idLugarCarga == row.idLugarCarga,
+                LugarCargaUnidadNegocio.activo.is_(True),
+            )
+            .order_by(LugarCargaUnidadNegocio.unidad_negocio)
+            .all()
+        )
+    ]
+    return _normalize_ids(ids, row.unidad_negocio)
+
+
+def _sync_lugar_carga_unidades(db: Session, row: LugarCarga, unidad_ids: list[int] | None) -> None:
+    ids = _normalize_ids(unidad_ids, row.unidad_negocio)
+    if ids:
+        row.unidad_negocio = ids[0]
+
+    if not _table_exists(db, "lugar_carga_unidad_negocio"):
+        return
+
+    db.query(LugarCargaUnidadNegocio).filter(
+        LugarCargaUnidadNegocio.idLugarCarga == row.idLugarCarga
+    ).delete()
+    for unidad_id in ids:
+        db.add(
+            LugarCargaUnidadNegocio(
+                idLugarCarga=row.idLugarCarga,
+                unidad_negocio=unidad_id,
+                prioridad=100,
+                es_default=0,
+                activo=True,
+            )
+        )
+
+
 def _ensure_asignacion_consistente(db: Session, id_movil: int, id_chofer: int, id_proceso: int) -> None:
     movil = db.query(Movil).filter(Movil.idMovil == id_movil).first()
     if not movil:
@@ -301,11 +344,18 @@ def _to_tipo_movil_response(row: TipoMovil) -> TipoMovilResponse:
     )
 
 
-def _to_lugar_carga_response(row: LugarCarga) -> LugarCargaResponse:
+def _to_lugar_carga_response(db: Session, row: LugarCarga) -> LugarCargaResponse:
+    unidad_ids = _lugar_carga_unidad_ids(db, row)
+    if not unidad_ids:
+        principal = int(row.unidad_negocio or 1)
+        unidad_ids = [principal]
+    else:
+        principal = unidad_ids[0]
     return LugarCargaResponse(
         idLugarCarga=row.idLugarCarga,
         detalle=row.Detalle or "",
-        unidad_negocio=int(row.unidad_negocio or 1),
+        unidad_negocio=principal,
+        unidad_ids=unidad_ids,
         activo=int(row.activo or 0),
     )
 
@@ -1299,11 +1349,26 @@ async def list_lugares_carga(
     if buscar:
         query = query.filter(LugarCarga.Detalle.ilike(f"%{buscar.strip()}%"))
     if unidad_id:
-        query = query.filter(LugarCarga.unidad_negocio == unidad_id)
+        if _table_exists(db, "lugar_carga_unidad_negocio"):
+            query = query.outerjoin(
+                LugarCargaUnidadNegocio,
+                LugarCargaUnidadNegocio.idLugarCarga == LugarCarga.idLugarCarga,
+            ).filter(
+                or_(
+                    LugarCarga.unidad_negocio == unidad_id,
+                    LugarCargaUnidadNegocio.unidad_negocio == unidad_id,
+                ),
+                or_(
+                    LugarCargaUnidadNegocio.id.is_(None),
+                    LugarCargaUnidadNegocio.activo.is_(True),
+                ),
+            ).distinct()
+        else:
+            query = query.filter(LugarCarga.unidad_negocio == unidad_id)
     if activo in (0, 1):
         query = query.filter(LugarCarga.activo == activo)
     rows = query.order_by(LugarCarga.Detalle).offset(skip).limit(limit).all()
-    return [_to_lugar_carga_response(r) for r in rows]
+    return [_to_lugar_carga_response(db, r) for r in rows]
 
 
 @router.post("/lugares-carga", response_model=LugarCargaResponse, status_code=status.HTTP_201_CREATED)
@@ -1324,7 +1389,10 @@ async def create_lugar_carga(
     db.add(row)
     db.commit()
     db.refresh(row)
-    return _to_lugar_carga_response(row)
+    _sync_lugar_carga_unidades(db, row, payload.unidad_ids or [payload.unidad_negocio])
+    db.commit()
+    db.refresh(row)
+    return _to_lugar_carga_response(db, row)
 
 
 @router.put("/lugares-carga/{idLugarCarga}", response_model=LugarCargaResponse)
@@ -1339,6 +1407,7 @@ async def update_lugar_carga(
         raise HTTPException(status_code=404, detail="Lugar de carga no encontrado")
 
     data = payload.model_dump(exclude_unset=True)
+    unidad_ids = data.pop("unidad_ids", None)
     if "detalle" in data:
         detalle = (data.pop("detalle") or "").strip()
         if not detalle:
@@ -1349,9 +1418,14 @@ async def update_lugar_carga(
     if "activo" in data:
         row.activo = _normalize_binary(data.pop("activo"))
 
+    if unidad_ids is not None:
+        _sync_lugar_carga_unidades(db, row, unidad_ids)
+    elif "unidad_negocio" in data:
+        _sync_lugar_carga_unidades(db, row, [row.unidad_negocio])
+
     db.commit()
     db.refresh(row)
-    return _to_lugar_carga_response(row)
+    return _to_lugar_carga_response(db, row)
 
 
 @router.delete("/lugares-carga/{idLugarCarga}", response_model=DeleteResponse)

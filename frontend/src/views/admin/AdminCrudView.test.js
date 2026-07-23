@@ -214,6 +214,54 @@ describe('AdminCrudView tipos de proceso', () => {
     expect(wrapper.findAll('[role="option"]').map((option) => option.text())).toEqual(['AAA111 - Carreton Principal'])
   })
 
+  it('exposes a multi-unit selector for lugares de carga and lists every linked unit', async () => {
+    routeState.params.entity = 'lugares-carga'
+    api.get.mockImplementation((url) => {
+      const dataByUrl = {
+        '/api/admin/lugares-carga': [
+          {
+            idLugarCarga: 9,
+            detalle: 'BASE FG - STOCK COMBUSTIBLE',
+            unidad_negocio: 1,
+            unidad_ids: [1, 2],
+            activo: 1,
+          },
+        ],
+        '/api/admin/unidades-negocio': [
+          { idUnidadNegocio: 1, nombre: 'STOCK DE COMBUSTIBLE - BASE FG', prefijo: 'STK', activo: 1 },
+          { idUnidadNegocio: 2, nombre: 'COSECHA DELTA', prefijo: 'DEL', activo: 1 },
+        ],
+      }
+      return Promise.resolve({ data: dataByUrl[url] || [] })
+    })
+
+    const wrapper = mount(AdminCrudView, {
+      global: {
+        directives: {
+          motionPanel: {},
+          motionPop: {},
+        },
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('STOCK DE COMBUSTIBLE - BASE FG')
+    expect(wrapper.text()).toContain('COSECHA DELTA')
+
+    const nuevo = wrapper.findAll('button').find((button) => button.text().includes('Nuevo'))
+    expect(nuevo).toBeTruthy()
+    await nuevo.trigger('click')
+    await flushPromises()
+
+    const labels = wrapper.findAll('label').map((label) => label.text())
+    expect(labels).toContain('Unidades de Negocio')
+    const unitCheckboxes = wrapper.findAll('.app-surface-muted input[type="checkbox"]')
+    expect(unitCheckboxes.length).toBe(2)
+  })
+
   it('shows an admin CRUD form for actas used by the production combo', async () => {
     routeState.params.entity = 'actas'
     api.get.mockImplementation((url) => {

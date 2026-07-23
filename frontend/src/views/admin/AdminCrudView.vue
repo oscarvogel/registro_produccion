@@ -753,20 +753,21 @@ const ENTITY_DEFINITIONS = {
   'lugares-carga': {
     title: 'Lugares de Carga',
     singular: 'lugar de carga',
-    description: 'Administra lugares de carga por unidad de negocio.',
-    formHint: 'Cada lugar queda disponible solo para su unidad.',
+    description: 'Administra lugares de carga y las unidades de negocio donde quedan disponibles.',
+    formHint: 'La primera unidad seleccionada queda como principal; el resto se vincula en la tabla pivote.',
     idKey: 'idLugarCarga',
     deleteVerb: 'Desactivar',
     extraReferences: ['unidades-negocio'],
     columns: [
       { key: 'idLugarCarga', label: 'ID' },
       { key: 'detalle', label: 'Detalle' },
-      { key: 'unidad_negocio', label: 'Unidad', type: 'lookup', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre' },
+      { key: 'unidad_ids', label: 'Unidades', type: 'multiLookup', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre' },
       { key: 'activo', label: 'Estado', type: 'badge', trueText: 'Activo', falseText: 'Inactivo' },
     ],
     fields: [
       { key: 'detalle', label: 'Detalle', type: 'text', required: true, section: 'principal' },
-      { key: 'unidad_negocio', label: 'Unidad de Negocio', type: 'autocomplete', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre', default: 1, section: 'principal' },
+      { key: 'unidad_ids', label: 'Unidades de Negocio', type: 'multiselect', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre', default: [1], section: 'principal' },
+      { key: 'unidad_negocio', label: 'Unidad Principal', type: 'autocomplete', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre', default: 1, section: 'principal' },
       { key: 'activo', label: 'Activo', type: 'checkbox', output: 'int', default: true, section: 'principal' },
     ],
   },
@@ -1136,6 +1137,7 @@ function validatePayload(payload) {
   }
   if (entity.value === 'moviles' && (!payload.patente?.trim() || !payload.detalle?.trim())) return 'Patente y detalle son obligatorios.'
   if (entity.value === 'tipos-proceso' && !payload.nombre?.trim()) return 'Nombre es obligatorio.'
+  if (entity.value === 'lugares-carga' && (!payload.unidad_ids || payload.unidad_ids.length === 0)) return 'Selecciona al menos una unidad de negocio.'
   if (entity.value === 'asignaciones') return validateAssignment(payload)
   return ''
 }
@@ -1461,7 +1463,7 @@ function toggleMultiValue(key, value, checked) {
   if (checked && !form[key].map(Number).includes(parsed)) form[key].push(parsed)
   if (!checked) form[key] = form[key].filter((item) => Number(item) !== parsed)
 
-  if (key === 'unidad_ids' && entity.value === 'personal') {
+  if (key === 'unidad_ids' && (entity.value === 'personal' || entity.value === 'lugares-carga')) {
     form.unidad_negocio = form[key][0] || form.unidad_negocio || 1
   }
 }
@@ -1479,7 +1481,7 @@ function rowUnidadIds(row) {
   if (entity.value === 'personal') return Array.isArray(row.unidad_ids) ? row.unidad_ids.map(Number) : [Number(row.unidad_negocio || 0)]
   if (entity.value === 'moviles') return [Number(row.id_unidad_negocio || 0)]
   if (entity.value === 'tipos-proceso') return Array.isArray(row.unidad_ids) ? row.unidad_ids.map(Number) : []
-  if (entity.value === 'lugares-carga') return [Number(row.unidad_negocio || 0)]
+  if (entity.value === 'lugares-carga') return Array.isArray(row.unidad_ids) ? row.unidad_ids.map(Number) : [Number(row.unidad_negocio || 0)]
   if (entity.value === 'asignaciones') {
     const movil = findReference('moviles', row.idMovil, 'idMovil')
     return movil ? [Number(movil.id_unidad_negocio || 0)] : []

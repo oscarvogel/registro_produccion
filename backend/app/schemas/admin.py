@@ -274,12 +274,14 @@ class TipoProcesoResponse(BaseModel):
 class LugarCargaCreate(BaseModel):
     detalle: str = Field(min_length=1)
     unidad_negocio: int = 1
+    unidad_ids: list[int] = Field(default_factory=list)
     activo: int = 1
 
 
 class LugarCargaUpdate(BaseModel):
     detalle: str | None = None
     unidad_negocio: int | None = None
+    unidad_ids: list[int] | None = None
     activo: int | None = None
 
 
@@ -287,6 +289,7 @@ class LugarCargaResponse(BaseModel):
     idLugarCarga: int
     detalle: str
     unidad_negocio: int
+    unidad_ids: list[int] = Field(default_factory=list)
     activo: int
 
 
