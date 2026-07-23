@@ -101,7 +101,7 @@ Run-Step "Copiando deploy script" {
 }
 
 Run-Step "Copiando migraciones DB" {
-    Get-ChildItem -Path "db_migrations" -Filter "*.sql" -File | ForEach-Object {
+    Get-ChildItem -Path "db_migrations" -Filter "*.sql" -File | ForEach-Object -Process {
         Copy-Item -Force $_.FullName (Join-Path $Stage "db_migrations" $_.Name)
     }
 }
