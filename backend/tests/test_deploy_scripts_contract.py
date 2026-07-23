@@ -109,7 +109,10 @@ def test_production_deploy_package_applies_idempotent_db_migrations():
 
     package_fragments = [
         "db_migrations",
-        "20260708_personal_unidad_negocio.sql",
+        # Contrato nuevo: el script copia TODOS los .sql de db_migrations
+        # via wildcard, no uno hardcodeado. Asi agregar migraciones no
+        # requiere tocar build_deploy_package.ps1.
+        "db_migrations\\*.sql",
     ]
     deploy_fragments = [
         "Aplicando migraciones DB",
