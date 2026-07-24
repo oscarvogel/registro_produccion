@@ -214,6 +214,108 @@ describe('AdminCrudView tipos de proceso', () => {
     expect(wrapper.findAll('[role="option"]').map((option) => option.text())).toEqual(['AAA111 - Carreton Principal'])
   })
 
+  it('exposes a multi-unit Relaciones tab when editing a movil', async () => {
+    routeState.params.entity = 'moviles'
+    api.get.mockImplementation((url) => {
+      const dataByUrl = {
+        '/api/admin/moviles': [
+          { idMovil: 7, patente: 'MWY673', detalle: 'Transporte Forestal', id_unidad_negocio: 3, unidad_ids: [3, 5], activo: 1 },
+        ],
+        '/api/admin/unidades-negocio': [
+          { idUnidadNegocio: 3, nombre: 'COSECHA CTL', prefijo: 'CTL', activo: 1 },
+          { idUnidadNegocio: 5, nombre: 'TALLER', prefijo: 'TAL', activo: 1 },
+        ],
+        '/api/admin/tipos-proceso': [],
+        '/api/admin/tipos-movil': [],
+      }
+      return Promise.resolve({ data: dataByUrl[url] || [] })
+    })
+
+    const wrapper = mount(AdminCrudView, {
+      global: {
+        directives: {
+          motionPanel: {},
+          motionPop: {},
+        },
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    })
+    await flushPromises()
+
+    const editar = wrapper.findAll('button').find((button) => button.text().includes('Editar') || button.text().includes('Edit'))
+    // si no hay "Editar", abrir el form con Nuevo
+    const trigger = editar || wrapper.findAll('button').find((button) => button.text().includes('Nuevo'))
+    expect(trigger).toBeTruthy()
+    await trigger.trigger('click')
+    await flushPromises()
+
+    const relaciones = wrapper.findAll('button').find((button) => button.text().trim() === 'Relaciones')
+    expect(relaciones).toBeTruthy()
+    await relaciones.trigger('click')
+    await flushPromises()
+
+    const labels = wrapper.findAll('label').map((label) => label.text())
+    expect(labels).toContain('Unidad Principal')
+    expect(labels).toContain('Unidades vinculadas')
+  })
+
+
+  it('honors unidad_ids when filtering moviles available for a business unit', async () => {
+    routeState.params.entity = 'unidades-negocio'
+    api.get.mockImplementation((url) => {
+      const dataByUrl = {
+        '/api/admin/unidades-negocio': [
+          { idUnidadNegocio: 1, nombre: 'COSECHA DELTA', prefijo: 'DELTA', activo: 1 },
+          { idUnidadNegocio: 2, nombre: 'TALLER', prefijo: 'TAL', activo: 1 },
+        ],
+        '/api/admin/personal': [],
+        '/api/admin/moviles': [
+          { idMovil: 12, patente: 'ZZZ999', detalle: 'Zorra Forestal', id_unidad_negocio: 2, unidad_ids: [2] },
+          { idMovil: 10, patente: 'AAA111', detalle: 'Carreton Multi', id_unidad_negocio: 1, unidad_ids: [1, 2] },
+          { idMovil: 11, patente: 'BBB222', detalle: 'Solo Delta', id_unidad_negocio: 1, unidad_ids: [1] },
+        ],
+        '/api/admin/tipos-proceso': [],
+      }
+      return Promise.resolve({ data: dataByUrl[url] || [] })
+    })
+
+    const wrapper = mount(AdminCrudView, {
+      global: {
+        directives: {
+          motionPanel: {},
+          motionPop: {},
+        },
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    })
+    await flushPromises()
+
+    const relaciones = wrapper.findAll('button').find((button) => button.text().includes('Relaciones'))
+    await relaciones.trigger('click')
+    await flushPromises()
+
+    // Relacionados a la unidad 1: solo "Carreton Multi" (porque esta en [1, 2])
+    // y "Solo Delta" (porque esta en [1]).
+    const wrapperText = wrapper.text()
+    expect(wrapperText).toContain('AAA111 - Carreton Multi')
+    expect(wrapperText).toContain('BBB222 - Solo Delta')
+    expect(wrapperText).not.toContain('ZZZ999 - Zorra Forestal')
+
+    const agregarMovil = wrapper.findAll('button[title="Agregar Moviles"]').at(0)
+    await agregarMovil.trigger('click')
+    await flushPromises()
+
+    const input = wrapper.find('input[role="combobox"]')
+    await input.trigger('focus')
+    await flushPromises()
+    const optionLabels = wrapper.findAll('[role="option"]').map((option) => option.text())
+    expect(optionLabels).toEqual(['ZZZ999 - Zorra Forestal'])
+  })
+
   it('exposes a multi-unit selector for lugares de carga and lists every linked unit', async () => {
     routeState.params.entity = 'lugares-carga'
     api.get.mockImplementation((url) => {
