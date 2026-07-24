@@ -67,3 +67,9 @@ migrations.sql
 .agents/
 skills-lock.json
 .env.vps
+
+# Credenciales locales (usuario RO para Mavis, secretos, etc.)
+mavis_ro.env
+backup_mail.env
+*.local.env
+secrets/
