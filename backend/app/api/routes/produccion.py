@@ -13,6 +13,7 @@ from app.models.unidad_negocio import UnidadNegocio
 from app.models.tipo_proceso import TipoDeProceso, UnidadNegocioTipoProceso
 from app.models.movil import Movil
 from app.models.movil_operador import MovilOperador
+from app.models.movil_unidad_negocio import MovilUnidadNegocio
 from app.models.ubicacion import Acta, Predio, Rodal
 from app.models.produccion import TableroProduccion
 from app.models.carga_comb import CargaComb
@@ -106,6 +107,35 @@ def _personal_unidad_ids(db: Session, personal: Personal) -> list[int]:
         ]
         return _normalize_ids(ids, personal.unidad_negocio)
     return _normalize_ids([], personal.unidad_negocio)
+
+
+def _movil_unidad_ids(db: Session, movil: Movil) -> list[int]:
+    if _table_exists(db, "movil_unidad_negocio"):
+        ids = [
+            int(value)
+            for (value,) in (
+                db.query(MovilUnidadNegocio.idUnidadNegocio)
+                .filter(MovilUnidadNegocio.idMovil == movil.idMovil)
+                .all()
+            )
+        ]
+        return _normalize_ids(ids, movil.idUnidadNegocio)
+    return _normalize_ids([], movil.idUnidadNegocio)
+
+
+def _movil_belongs_to_any_unidad(db: Session, movil: Movil, unidad_ids: list[int]) -> bool:
+    if not unidad_ids:
+        return True
+    return any(unit_id in _movil_unidad_ids(db, movil) for unit_id in unidad_ids)
+
+
+def _filter_moviles_by_allowed_unidades(query, db: Session, allowed_ids: list[int]):
+    if _table_exists(db, "movil_unidad_negocio"):
+        return query.join(
+            MovilUnidadNegocio,
+            MovilUnidadNegocio.idMovil == Movil.idMovil,
+        ).filter(MovilUnidadNegocio.idUnidadNegocio.in_(allowed_ids))
+    return query.filter(Movil.idUnidadNegocio.in_(allowed_ids))
 
 
 def _personal_unidad_ids_map(db: Session, people: list[Personal]) -> dict[int, list[int]]:
@@ -205,7 +235,7 @@ def _validate_restricted_payload(data: TableroProduccionCreate, user: Personal, 
         raise HTTPException(status_code=403, detail="El operador no esta habilitado para Full Tree")
 
     movil = db.query(Movil).filter(Movil.idMovil == data.cod_equipo, Movil.activo == 1).first()
-    if not movil or int(movil.idUnidadNegocio or 0) not in restricted:
+    if not movil or not _movil_belongs_to_any_unidad(db, movil, restricted):
         raise HTTPException(status_code=403, detail="El movil no esta habilitado para Full Tree")
 
     if data.codigo_tabla and not _tipo_proceso_habilitado(db, data.codigo_tabla, int(data.cod_un)):
@@ -338,7 +368,7 @@ async def list_asignaciones(
         )
     )
     if allowed_ids:
-        query = query.filter(Movil.idUnidadNegocio.in_(allowed_ids))
+        query = _filter_moviles_by_allowed_unidades(query, db, allowed_ids)
         if _table_exists(db, "unidadnegocio_tipo_proceso"):
             allowed_process_ids = [
                 int(value)
@@ -386,7 +416,7 @@ async def get_movil_by_operador(
         if asig:
             movil_query = db.query(Movil).filter(Movil.idMovil == asig.idMovil, Movil.activo == 1)
             if allowed_ids:
-                movil_query = movil_query.filter(Movil.idUnidadNegocio.in_(allowed_ids))
+                movil_query = _filter_moviles_by_allowed_unidades(movil_query, db, allowed_ids)
             movil = movil_query.first()
             if movil:
                 return MovilResponse(
@@ -420,7 +450,7 @@ async def get_movil_by_operador(
                 Movil.activo == 1,
             )
             if allowed_ids:
-                movil_query = movil_query.filter(Movil.idUnidadNegocio.in_(allowed_ids))
+                movil_query = _filter_moviles_by_allowed_unidades(movil_query, db, allowed_ids)
             movil = movil_query.first()
             if movil:
                 return MovilResponse(
@@ -434,7 +464,7 @@ async def get_movil_by_operador(
     if _table_exists(db, "moviles"):
         movil_query = db.query(Movil).filter(Movil.idChofer == operador_id, Movil.activo == 1)
         if allowed_ids:
-            movil_query = movil_query.filter(Movil.idUnidadNegocio.in_(allowed_ids))
+            movil_query = _filter_moviles_by_allowed_unidades(movil_query, db, allowed_ids)
         movil = movil_query.first()
         if movil:
             return MovilResponse(
@@ -459,7 +489,7 @@ async def list_moviles(
     if allowed_ids == []:
         return []
     if allowed_ids:
-        query = query.filter(Movil.idUnidadNegocio.in_(allowed_ids))
+        query = _filter_moviles_by_allowed_unidades(query, db, allowed_ids)
     rows = query.order_by(Movil.Detalle, Movil.Patente).all()
     return [
         MovilResponse(

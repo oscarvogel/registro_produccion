@@ -159,6 +159,7 @@ class MovilCreate(BaseModel):
     detalle: str = Field(min_length=1)
     tipo_proceso: str = "1"
     id_unidad_negocio: int = 1
+    unidad_ids: list[int] = Field(default_factory=list)
     cant_neumaticos: int = 0
     capacidad_tanque: int = 0
     consumo_promedio: float = 0
@@ -178,6 +179,7 @@ class MovilUpdate(BaseModel):
     detalle: str | None = None
     tipo_proceso: str | None = None
     id_unidad_negocio: int | None = None
+    unidad_ids: list[int] | None = None
     cant_neumaticos: int | None = None
     capacidad_tanque: int | None = None
     consumo_promedio: float | None = None
@@ -198,6 +200,7 @@ class MovilResponse(BaseModel):
     detalle: str
     tipo_proceso: str
     id_unidad_negocio: int
+    unidad_ids: list[int] = Field(default_factory=list)
     cant_neumaticos: int
     capacidad_tanque: int
     consumo_promedio: float

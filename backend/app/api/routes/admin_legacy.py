@@ -11,6 +11,7 @@ from app.models.asignacion_operativa import AsignacionOperativa
 from app.models.lugar_carga import LugarCarga
 from app.models.lugar_carga_unidad_negocio import LugarCargaUnidadNegocio
 from app.models.movil import Movil
+from app.models.movil_unidad_negocio import MovilUnidadNegocio
 from app.models.personal import Personal
 from app.models.personal_unidad_negocio import PersonalUnidadNegocio
 from app.models.produccion import TableroProduccion
@@ -229,6 +230,73 @@ def _sync_lugar_carga_unidades(db: Session, row: LugarCarga, unidad_ids: list[in
         )
 
 
+def _movil_unidad_ids(db: Session, row: Movil) -> list[int]:
+    if not _table_exists(db, "movil_unidad_negocio"):
+        return _normalize_ids([], row.idUnidadNegocio)
+
+    ids = [
+        int(value)
+        for (value,) in (
+            db.query(MovilUnidadNegocio.idUnidadNegocio)
+            .filter(MovilUnidadNegocio.idMovil == row.idMovil)
+            .order_by(MovilUnidadNegocio.idUnidadNegocio)
+            .all()
+        )
+    ]
+    return _normalize_ids(ids, row.idUnidadNegocio)
+
+
+def _movil_unidad_ids_map(db: Session, rows: list[Movil]) -> dict[int, list[int]]:
+    rows_by_id = {
+        int(row.idMovil): row
+        for row in rows
+        if row.idMovil is not None
+    }
+    unit_ids_by_movil: dict[int, list[int]] = {
+        movil_id: _normalize_ids([], row.idUnidadNegocio)
+        for movil_id, row in rows_by_id.items()
+    }
+    if not rows_by_id or not _table_exists(db, "movil_unidad_negocio"):
+        return unit_ids_by_movil
+
+    relation_rows = (
+        db.query(MovilUnidadNegocio.idMovil, MovilUnidadNegocio.idUnidadNegocio)
+        .filter(MovilUnidadNegocio.idMovil.in_(rows_by_id.keys()))
+        .all()
+    )
+    grouped_ids: dict[int, list[int]] = {movil_id: [] for movil_id in rows_by_id}
+    for movil_id, unit_id in relation_rows:
+        try:
+            grouped_ids[int(movil_id)].append(int(unit_id))
+        except (TypeError, ValueError):
+            continue
+
+    return {
+        movil_id: _normalize_ids(grouped_ids.get(movil_id), rows_by_id[movil_id].idUnidadNegocio)
+        for movil_id in rows_by_id
+    }
+
+
+def _sync_movil_unidades(db: Session, row: Movil, unidad_ids: list[int] | None) -> None:
+    ids = _normalize_ids(unidad_ids, row.idUnidadNegocio)
+    if ids:
+        row.idUnidadNegocio = ids[0]
+
+    if not _table_exists(db, "movil_unidad_negocio"):
+        return
+
+    db.query(MovilUnidadNegocio).filter(
+        MovilUnidadNegocio.idMovil == row.idMovil
+    ).delete()
+    for unidad_id in ids:
+        db.add(
+            MovilUnidadNegocio(
+                idMovil=row.idMovil,
+                idUnidadNegocio=unidad_id,
+            )
+        )
+
+
 def _ensure_asignacion_consistente(db: Session, id_movil: int, id_chofer: int, id_proceso: int) -> None:
     movil = db.query(Movil).filter(Movil.idMovil == id_movil).first()
     if not movil:
@@ -242,24 +310,37 @@ def _ensure_asignacion_consistente(db: Session, id_movil: int, id_chofer: int, i
     if not proceso:
         raise HTTPException(status_code=400, detail="Tipo de proceso no encontrado")
 
-    unidad_id = int(movil.idUnidadNegocio or 0)
-    if unidad_id <= 0:
+    movil_unidad_ids = _movil_unidad_ids(db, movil)
+    if not movil_unidad_ids:
         raise HTTPException(status_code=400, detail="El movil debe tener unidad de negocio")
 
-    if unidad_id not in _personal_unidad_ids(db, chofer):
-        raise HTTPException(status_code=400, detail="El chofer no pertenece a la unidad del movil")
+    chofer_unidad_ids = set(_personal_unidad_ids(db, chofer))
+    movil_unidad_set = set(movil_unidad_ids)
+    if not (chofer_unidad_ids & movil_unidad_set):
+        raise HTTPException(
+            status_code=400,
+            detail="El chofer no pertenece a ninguna de las unidades del movil",
+        )
 
     if _table_exists(db, "unidadnegocio_tipo_proceso"):
-        exists = (
-            db.query(UnidadNegocioTipoProceso)
-            .filter(
-                UnidadNegocioTipoProceso.un_id == unidad_id,
-                UnidadNegocioTipoProceso.tipo_proceso_id == id_proceso,
+        habilitado = False
+        for unidad_id in movil_unidad_ids:
+            exists = (
+                db.query(UnidadNegocioTipoProceso)
+                .filter(
+                    UnidadNegocioTipoProceso.un_id == unidad_id,
+                    UnidadNegocioTipoProceso.tipo_proceso_id == id_proceso,
+                )
+                .first()
             )
-            .first()
-        )
-        if not exists:
-            raise HTTPException(status_code=400, detail="El tipo de proceso no esta habilitado para la unidad del movil")
+            if exists:
+                habilitado = True
+                break
+        if not habilitado:
+            raise HTTPException(
+                status_code=400,
+                detail="El tipo de proceso no esta habilitado para ninguna de las unidades del movil",
+            )
 
 
 def _to_personal_response(db: Session, row: Personal) -> PersonalResponse:
@@ -291,13 +372,18 @@ def _to_personal_response_with_units(row: Personal, unidad_ids: list[int]) -> Pe
     )
 
 
-def _to_movil_response(row: Movil) -> MovilResponse:
+def _to_movil_response(db: Session, row: Movil) -> MovilResponse:
+    unit_ids = _movil_unidad_ids(db, row)
+    if not unit_ids:
+        unit_ids = [int(row.idUnidadNegocio or 1)]
+    principal = unit_ids[0]
     return MovilResponse(
         idMovil=row.idMovil,
         patente=row.Patente or "",
         detalle=row.Detalle or "",
         tipo_proceso=row.tipo_proceso or "1",
-        id_unidad_negocio=int(row.idUnidadNegocio or 1),
+        id_unidad_negocio=principal,
+        unidad_ids=unit_ids,
         cant_neumaticos=int(row.CantNeumaticos or 0),
         capacidad_tanque=int(row.capacidad_tanque or 0),
         consumo_promedio=float(row.consumo_promedio or 0),
@@ -311,6 +397,39 @@ def _to_movil_response(row: Movil) -> MovilResponse:
         activo=int(row.activo or 0),
         observaciones=row.observaciones,
     )
+
+
+def _to_movil_responses(db: Session, rows: list[Movil]) -> list[MovilResponse]:
+    unit_ids_map = _movil_unidad_ids_map(db, rows)
+    results: list[MovilResponse] = []
+    for row in rows:
+        unit_ids = unit_ids_map.get(int(row.idMovil), [])
+        if not unit_ids:
+            unit_ids = [int(row.idUnidadNegocio or 1)]
+        principal = unit_ids[0]
+        results.append(
+            MovilResponse(
+                idMovil=row.idMovil,
+                patente=row.Patente or "",
+                detalle=row.Detalle or "",
+                tipo_proceso=row.tipo_proceso or "1",
+                id_unidad_negocio=principal,
+                unidad_ids=unit_ids,
+                cant_neumaticos=int(row.CantNeumaticos or 0),
+                capacidad_tanque=int(row.capacidad_tanque or 0),
+                consumo_promedio=float(row.consumo_promedio or 0),
+                tipo_movil=int(row.tipo_movil or 1),
+                anio_fabricacion=int(row.anio_fabricacion or 0),
+                nro_chasis=row.nro_chasis or "",
+                nro_motor=row.nro_motor or "",
+                venc_tecnica=row.VencTecnica,
+                ruta=bool(row.Ruta),
+                venc_ruta=row.VencRuta,
+                activo=int(row.activo or 0),
+                observaciones=row.observaciones,
+            )
+        )
+    return results
 
 
 def _to_unidad_response(row: UnidadNegocio) -> UnidadNegocioResponse:
@@ -1026,12 +1145,17 @@ async def list_moviles(
     if buscar:
         pattern = f"%{buscar.strip()}%"
         query = query.filter(or_(Movil.Detalle.ilike(pattern), Movil.Patente.ilike(pattern)))
-    if unidad_id:
+    if unidad_id and _table_exists(db, "movil_unidad_negocio"):
+        query = query.join(
+            MovilUnidadNegocio,
+            MovilUnidadNegocio.idMovil == Movil.idMovil,
+        ).filter(MovilUnidadNegocio.idUnidadNegocio == unidad_id)
+    elif unidad_id:
         query = query.filter(Movil.idUnidadNegocio == unidad_id)
     if activo in (0, 1):
         query = query.filter(Movil.activo == activo)
     rows = query.order_by(Movil.Detalle).offset(skip).limit(limit).all()
-    return [_to_movil_response(r) for r in rows]
+    return _to_movil_responses(db, rows)
 
 
 @router.post("/moviles", response_model=MovilResponse, status_code=status.HTTP_201_CREATED)
@@ -1043,11 +1167,17 @@ async def create_movil(
     if not payload.patente.strip() or not payload.detalle.strip():
         raise HTTPException(status_code=400, detail="Patente y detalle son obligatorios")
 
+    principal_id = (
+        payload.unidad_ids[0]
+        if payload.unidad_ids
+        else payload.id_unidad_negocio
+    )
+
     row = Movil(
         Patente=payload.patente.strip(),
         Detalle=payload.detalle.strip(),
         tipo_proceso=payload.tipo_proceso,
-        idUnidadNegocio=payload.id_unidad_negocio,
+        idUnidadNegocio=principal_id,
         CantNeumaticos=payload.cant_neumaticos,
         capacidad_tanque=payload.capacidad_tanque,
         consumo_promedio=payload.consumo_promedio,
@@ -1065,7 +1195,10 @@ async def create_movil(
     db.add(row)
     db.commit()
     db.refresh(row)
-    return _to_movil_response(row)
+    _sync_movil_unidades(db, row, payload.unidad_ids or [payload.id_unidad_negocio])
+    db.commit()
+    db.refresh(row)
+    return _to_movil_response(db, row)
 
 
 @router.put("/moviles/{idMovil}", response_model=MovilResponse)
@@ -1080,6 +1213,8 @@ async def update_movil(
         raise HTTPException(status_code=404, detail="Movil no encontrado")
 
     data = payload.model_dump(exclude_unset=True)
+    unidad_ids = data.pop("unidad_ids", None)
+    sync_units_due_to_id = False
 
     mapping = {
         "patente": "Patente",
@@ -1107,13 +1242,20 @@ async def update_movil(
                 if not value:
                     raise HTTPException(status_code=400, detail=f"{source} es obligatorio")
             setattr(row, target, value)
+            if source == "id_unidad_negocio" and unidad_ids is None:
+                sync_units_due_to_id = True
 
     if "activo" in data:
         row.activo = _normalize_binary(data.pop("activo"))
 
+    if unidad_ids is not None:
+        _sync_movil_unidades(db, row, unidad_ids)
+    elif sync_units_due_to_id:
+        _sync_movil_unidades(db, row, [row.idUnidadNegocio])
+
     db.commit()
     db.refresh(row)
-    return _to_movil_response(row)
+    return _to_movil_response(db, row)
 
 
 @router.delete("/moviles/{idMovil}", response_model=DeleteResponse)

@@ -679,14 +679,15 @@ const ENTITY_DEFINITIONS = {
       { key: 'idMovil', label: 'ID' },
       { key: 'patente', label: 'Patente' },
       { key: 'detalle', label: 'Detalle' },
-      { key: 'id_unidad_negocio', label: 'Unidad', type: 'lookup', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre' },
+      { key: 'unidad_ids', label: 'Unidades', type: 'multiLookup', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre' },
       { key: 'activo', label: 'Estado', type: 'badge', trueText: 'Activo', falseText: 'Inactivo' },
     ],
     fields: [
       { key: 'patente', label: 'Patente', type: 'text', required: true, section: 'principal' },
       { key: 'detalle', label: 'Detalle', type: 'text', required: true, section: 'principal' },
-      { key: 'id_unidad_negocio', label: 'Unidad de Negocio', type: 'autocomplete', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre', default: 1, section: 'principal' },
       { key: 'activo', label: 'Activo', type: 'checkbox', output: 'int', default: true, section: 'principal' },
+      { key: 'unidad_negocio', label: 'Unidad Principal', type: 'autocomplete', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre', default: 1, section: 'relaciones' },
+      { key: 'unidad_ids', label: 'Unidades vinculadas', type: 'multiselect', optionsEntity: 'unidades-negocio', optionValue: 'idUnidadNegocio', optionLabel: 'nombre', default: [1], section: 'relaciones' },
       { key: 'tipo_proceso', label: 'Tipo Proceso', type: 'autocomplete', optionsEntity: 'tipos-proceso', optionValue: 'id', optionLabel: 'nombre', output: 'string', default: '1', section: 'tecnico' },
       { key: 'tipo_movil', label: 'Tipo Movil', type: 'autocomplete', optionsEntity: 'tipos-movil', optionValue: 'id', optionLabel: 'detalle', default: 1, section: 'tecnico' },
       { key: 'cant_neumaticos', label: 'Cantidad Neumaticos', type: 'number', default: 0, section: 'tecnico' },
@@ -1152,11 +1153,14 @@ function validateAssignment(payload) {
   const proceso = findReference('tipos-proceso', payload.idProceso, 'id')
   if (!movil || !chofer || !proceso) return 'La asignacion contiene datos no disponibles.'
 
-  const unidadMovil = Number(movil.id_unidad_negocio || 0)
-  if (unidadMovil && Array.isArray(chofer.unidad_ids) && !chofer.unidad_ids.map(Number).includes(unidadMovil)) {
-    return 'El chofer no pertenece a la unidad del movil.'
+  const unidadesMovil = Array.isArray(movil.unidad_ids) ? movil.unidad_ids.map(Number) : [Number(movil.id_unidad_negocio || 0)]
+  const unidadesMovilSet = new Set(unidadesMovil.filter((id) => id > 0))
+  const unidadesChofer = Array.isArray(chofer.unidad_ids) ? chofer.unidad_ids.map(Number) : []
+  if (unidadesMovilSet.size > 0 && unidadesChofer.length > 0 && !unidadesChofer.some((id) => unidadesMovilSet.has(id))) {
+    return 'El chofer no pertenece a ninguna unidad del movil.'
   }
-  if (unidadMovil && Array.isArray(proceso.unidad_ids) && proceso.unidad_ids.length > 0 && !proceso.unidad_ids.map(Number).includes(unidadMovil)) {
+  const unidadesProceso = Array.isArray(proceso.unidad_ids) ? proceso.unidad_ids.map(Number) : []
+  if (unidadesMovilSet.size > 0 && unidadesProceso.length > 0 && !unidadesProceso.some((id) => unidadesMovilSet.has(id))) {
     return 'El tipo de proceso no esta habilitado para la unidad del movil.'
   }
 
@@ -1294,7 +1298,7 @@ function unidadRelations(unidadId) {
     .map((item) => ({ id: item.idPersonal, label: item.nombre }))
     .sort(compareRelationLabels)
   const moviles = (referenceData.moviles || [])
-    .filter((item) => Number(item.id_unidad_negocio) === id)
+    .filter((item) => movilBelongsToUnidad(item, id))
     .map((item) => ({ id: item.idMovil, label: formatOptionLabel(item, { optionsEntity: 'moviles', optionLabel: 'detalle' }) }))
     .sort(compareRelationLabels)
   const procesos = (referenceData['tipos-proceso'] || [])
@@ -1363,7 +1367,7 @@ function relationAddOptions(unidadId, type) {
 
   if (type === 'moviles') {
     return (referenceData.moviles || [])
-      .filter((item) => Number(item.id_unidad_negocio) !== id)
+      .filter((item) => !movilBelongsToUnidad(item, id))
       .map((item) => ({ id: item.idMovil, label: formatOptionLabel(item, { optionsEntity: 'moviles', optionLabel: 'detalle' }) }))
       .sort(compareRelationLabels)
   }
@@ -1376,6 +1380,17 @@ function compareRelationLabels(left, right) {
     sensitivity: 'base',
     numeric: true,
   })
+}
+
+function movilBelongsToUnidad(movil, unidadId) {
+  if (!movil) return false
+  const target = Number(unidadId)
+  if (!target) return false
+  const unidadIds = Array.isArray(movil.unidad_ids) ? movil.unidad_ids.map(Number) : []
+  if (unidadIds.includes(target)) return true
+  if (unidadIds.length > 0) return false
+  // fallback para respuestas legacy que solo traen id_unidad_negocio
+  return Number(movil.id_unidad_negocio) === target
 }
 
 function relationMoveOptions(unidadId) {
@@ -1419,8 +1434,25 @@ async function unlinkPersonalFromUnidad(personalId, unidadId) {
   await updateRelationEntity('personal', personalId, { unidad_ids: unidadIds })
 }
 
+async function linkMovilToUnidad(movilId, unidadId) {
+  const movil = findReference('moviles', movilId, 'idMovil')
+  if (!movil) return
+  const unidadIds = Array.isArray(movil.unidad_ids) ? movil.unidad_ids.map(Number) : [Number(movil.id_unidad_negocio || 0)]
+  const target = Number(unidadId)
+  if (!unidadIds.includes(target)) unidadIds.push(target)
+  await updateRelationEntity('moviles', movilId, { unidad_ids: unidadIds })
+}
+
+async function unlinkMovilFromUnidad(movilId, unidadId) {
+  const movil = findReference('moviles', movilId, 'idMovil')
+  if (!movil) return
+  const unidadIds = (Array.isArray(movil.unidad_ids) ? movil.unidad_ids.map(Number) : [Number(movil.id_unidad_negocio || 0)])
+    .filter((id) => id !== Number(unidadId))
+  await updateRelationEntity('moviles', movilId, { unidad_ids: unidadIds })
+}
+
 async function moveMovilToUnidad(movilId, unidadId) {
-  await updateRelationEntity('moviles', movilId, { id_unidad_negocio: Number(unidadId) })
+  await linkMovilToUnidad(movilId, unidadId)
 }
 
 async function updateRelationEntity(refEntity, id, payload) {
@@ -1479,12 +1511,13 @@ function lookupLabel(value, column) {
 
 function rowUnidadIds(row) {
   if (entity.value === 'personal') return Array.isArray(row.unidad_ids) ? row.unidad_ids.map(Number) : [Number(row.unidad_negocio || 0)]
-  if (entity.value === 'moviles') return [Number(row.id_unidad_negocio || 0)]
+  if (entity.value === 'moviles') return Array.isArray(row.unidad_ids) ? row.unidad_ids.map(Number) : [Number(row.id_unidad_negocio || 0)]
   if (entity.value === 'tipos-proceso') return Array.isArray(row.unidad_ids) ? row.unidad_ids.map(Number) : []
   if (entity.value === 'lugares-carga') return Array.isArray(row.unidad_ids) ? row.unidad_ids.map(Number) : [Number(row.unidad_negocio || 0)]
   if (entity.value === 'asignaciones') {
     const movil = findReference('moviles', row.idMovil, 'idMovil')
-    return movil ? [Number(movil.id_unidad_negocio || 0)] : []
+    if (!movil) return []
+    return Array.isArray(movil.unidad_ids) ? movil.unidad_ids.map(Number) : [Number(movil.id_unidad_negocio || 0)]
   }
   return []
 }
@@ -1513,7 +1546,7 @@ function referenceOptionsForEntity(refEntity, { unidadId = 0 } = {}) {
     .filter((option) => {
       if (!unidadId) return true
       if (refEntity === 'personal') return Array.isArray(option.unidad_ids) && option.unidad_ids.map(Number).includes(Number(unidadId))
-      if (refEntity === 'moviles') return Number(option.id_unidad_negocio) === Number(unidadId)
+      if (refEntity === 'moviles') return movilBelongsToUnidad(option, Number(unidadId))
       if (refEntity === 'tipos-proceso') return Array.isArray(option.unidad_ids) && option.unidad_ids.map(Number).includes(Number(unidadId))
       return true
     })
