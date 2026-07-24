@@ -599,7 +599,7 @@
             label="Litros de gasoil"
             type="number"
             v-model.number="form.combustible"
-            placeholder="Ej: 150"
+            :placeholder="cargoCombustible ? 'Cantidad cargada (obligatorio)' : 'Ej: 150'"
             min="0"
             required
           />
@@ -1002,7 +1002,7 @@ const puedeAvanzar = computed(() => {
     case 3: return !!form.tipo_de_proceso_id
     case 4: return horasValidas.value
     case 5: return produccionValida.value
-    case 6: return true
+    case 6: return combustibleValido.value
     case 7: return ubicacionValida.value
     case 8: return true
     default: return true
@@ -1184,6 +1184,11 @@ const horasValidas = computed(() => {
   return true
 })
 
+const combustibleValido = computed(() => {
+  if (!cargoCombustible.value) return true
+  return Number(form.combustible) > 0
+})
+
 const produccionValida = computed(() => {
   if (!form.tipo_de_proceso_id || camposActivos.value.length === 0) return true
 
@@ -1258,7 +1263,7 @@ const stepComplete = computed(() => [
   !!form.tipo_de_proceso_id,
   horasValidas.value,
   produccionValida.value,
-  true,
+  combustibleValido.value,
   ubicacionValida.value,
   puedeAvanzar.value,
 ])
@@ -1290,6 +1295,9 @@ const mensajePasoIncompleto = computed(() => {
   }
   if (pasoActual.value === 5 && !produccionValida.value) {
     return 'Completá los campos de producción con valores mayores a 0 para continuar.'
+  }
+  if (pasoActual.value === 6 && !combustibleValido.value) {
+    return 'Marcaste que se cargó combustible, pero los litros están en 0. Ingresá una cantidad mayor a 0 o desactivá el toggle.'
   }
   if (pasoActual.value === 7 && !ubicacionValida.value) {
     return mensajeUbicacionIncompleta.value
