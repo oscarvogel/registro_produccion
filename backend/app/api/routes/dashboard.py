@@ -82,7 +82,7 @@ def _apply_process_filter(base, process_filter: dict | None):
     if not process_filter:
         return base
     if process_filter["mode"] == "tipo":
-        return base.filter(TableroProduccion.codigo_tabla.in_(process_filter["ids"]))
+        return base.filter(TableroProduccion.tipo_proceso_id.in_(process_filter["ids"]))
     if process_filter["mode"] == "operacion":
         return base.filter(func.upper(func.trim(TableroProduccion.operacion)) == process_filter["name"].upper())
     return base
@@ -95,8 +95,7 @@ def _base_filters(query, tp_ids: list[int], movil_id: int | None, fecha_desde: d
     query = query.filter(TableroProduccion.cod_un.isnot(None))
 
     if tp_ids:
-        query = query.filter(TableroProduccion.tabla == "tipo_de_proceso")
-        query = query.filter(TableroProduccion.codigo_tabla.in_(tp_ids))
+        query = query.filter(TableroProduccion.tipo_proceso_id.in_(tp_ids))
 
     if movil_id is not None:
         query = query.filter(TableroProduccion.cod_equipo == movil_id)
