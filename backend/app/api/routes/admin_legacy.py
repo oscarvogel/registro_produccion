@@ -654,7 +654,7 @@ async def get_admin_dashboard_overview(
 
     proceso_rows = (
         _production_base(db, start, end)
-        .join(TipoDeProceso, TipoDeProceso.id == TableroProduccion.codigo_tabla)
+        .join(TipoDeProceso, TipoDeProceso.id == TableroProduccion.tipo_proceso_id)
         .with_entities(
             TipoDeProceso.id.label("id"),
             TipoDeProceso.nombre.label("nombre"),
@@ -837,11 +837,11 @@ async def get_admin_dashboard(
         tipos_by_un.setdefault(un_id, []).append(tipo)
 
     type_totals_by_un_tipo = {
-        (row.cod_un, row.codigo_tabla): row
+        (row.cod_un, row.tipo_proceso_id): row
         for row in (
             db.query(
                 TableroProduccion.cod_un.label("cod_un"),
-                TableroProduccion.codigo_tabla.label("codigo_tabla"),
+                TableroProduccion.tipo_proceso_id.label("tipo_proceso_id"),
                 func.count(TableroProduccion.id).label("registros"),
                 func.coalesce(func.sum(TableroProduccion.produccion), 0).label("produccion"),
             )
@@ -850,7 +850,7 @@ async def get_admin_dashboard(
                 TableroProduccion.fecha >= start,
                 TableroProduccion.fecha <= end,
             )
-            .group_by(TableroProduccion.cod_un, TableroProduccion.codigo_tabla)
+            .group_by(TableroProduccion.cod_un, TableroProduccion.tipo_proceso_id)
             .all()
         )
     }

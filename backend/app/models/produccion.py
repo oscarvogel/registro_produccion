@@ -66,6 +66,7 @@ class TableroProduccion(Base):
     cod_un = Column(Integer, nullable=True)
     tabla = Column(String(50), nullable=True)
     codigo_tabla = Column(Integer, nullable=False, default=0)
+    tipo_proceso_id = Column(Integer, nullable=True)
     espada = Column(SmallInteger, nullable=True)
     puntera = Column(SmallInteger, nullable=True)
     cadena = Column(SmallInteger, nullable=True)

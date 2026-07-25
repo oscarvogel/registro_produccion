@@ -690,6 +690,7 @@ async def create_produccion(
             lugar_carga=data.lugar_carga,
             tabla=data.tabla,
             codigo_tabla=data.codigo_tabla,
+            tipo_proceso_id=(data.codigo_tabla if data.tabla == "tipo_de_proceso" else None),
             fecha_hora=datetime.now(),
             origen="web",
         )
