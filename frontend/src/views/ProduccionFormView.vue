@@ -594,7 +594,7 @@
           </button>
         </div>
 
-        <div v-if="cargoCombustible" class="mt-3">
+        <div v-if="cargoCombustible" class="mt-3 space-y-3">
           <InputField
             label="Litros de gasoil"
             type="number"
@@ -603,6 +603,28 @@
             min="0"
             required
           />
+          <div class="grid gap-3 sm:grid-cols-3">
+            <InputField
+              label="Remito 1"
+              v-model="form.remito"
+              placeholder="Ej: 0001-00012345"
+              :required="Number(form.combustible) > 0"
+              :invalid="remitoInvalido"
+              maxlength="12"
+            />
+            <InputField
+              label="Remito 2"
+              v-model="form.remito2"
+              placeholder="Opcional"
+              maxlength="12"
+            />
+            <InputField
+              label="Remito 3"
+              v-model="form.remito3"
+              placeholder="Opcional"
+              maxlength="12"
+            />
+          </div>
         </div>
       </SectionCard>
 
@@ -1134,6 +1156,9 @@ const form = reactive({
   hrs_no_op: 0,
   motivo_no_op: '',
   combustible: 0,
+  remito: '',
+  remito2: '',
+  remito3: '',
   aceite_cadena: 0,
   aceite_hidraulico: 0,
   aceite_motor: 0,
@@ -1186,7 +1211,14 @@ const horasValidas = computed(() => {
 
 const combustibleValido = computed(() => {
   if (!cargoCombustible.value) return true
-  return Number(form.combustible) > 0
+  if (Number(form.combustible) <= 0) return false
+  return String(form.remito ?? '').trim().length > 0
+})
+
+const remitoInvalido = computed(() => {
+  if (!cargoCombustible.value) return false
+  if (Number(form.combustible) <= 0) return false
+  return String(form.remito ?? '').trim().length === 0
 })
 
 const produccionValida = computed(() => {
@@ -1220,6 +1252,10 @@ const ubicacionValida = computed(() => {
   if (requiereActa.value && (!actaNormalizada.value || actaNormalizada.value === '0')) return false
   if (requierePredio.value && !form.predio_id) return false
   if (requiereRodal.value && !rodalCompleto.value) return false
+  // El lugar de carga es obligatorio siempre que el parte registre combustible:
+  // el CargaComb que se crea a partir de un parte con combustible requiere un
+  // idLugarCarga valido y el backend ya no usa el default 1 hardcodeado.
+  if (Number(form.combustible) > 0 && Number(form.lugar_carga_id) <= 0) return false
   return true
 })
 
@@ -1233,7 +1269,8 @@ const ubicacionCatalogosConError = computed(() => {
 })
 
 const mensajeUbicacionIncompleta = computed(() => {
-  if (!ubicacionOperativaRequerida.value) return ''
+  const requiereLugarCarga = Number(form.combustible) > 0 && Number(form.lugar_carga_id) <= 0
+  if (!ubicacionOperativaRequerida.value && !requiereLugarCarga) return ''
   if (ubicacionCatalogosConError.value.length > 0) {
     return `No se pudo cargar ${ubicacionCatalogosConError.value.join(', ')}. Reintentá el catálogo para completar la ubicación.`
   }
@@ -1241,6 +1278,8 @@ const mensajeUbicacionIncompleta = computed(() => {
   if (requiereActa.value) pendientes.push('Acta')
   if (requierePredio.value) pendientes.push('Predio')
   if (requiereRodal.value) pendientes.push('Rodal')
+  if (requiereLugarCarga) pendientes.push('Lugar de Carga')
+  if (pendientes.length === 0) return ''
   return `Completá ${pendientes.join(', ')} para este tipo de trabajo.`
 })
 
@@ -1297,7 +1336,10 @@ const mensajePasoIncompleto = computed(() => {
     return 'Completá los campos de producción con valores mayores a 0 para continuar.'
   }
   if (pasoActual.value === 6 && !combustibleValido.value) {
-    return 'Marcaste que se cargó combustible, pero los litros están en 0. Ingresá una cantidad mayor a 0 o desactivá el toggle.'
+    if (Number(form.combustible) <= 0) {
+      return 'Marcaste que se cargó combustible, pero los litros están en 0. Ingresá una cantidad mayor a 0 o desactivá el toggle.'
+    }
+    return 'Marcaste que se cargó combustible: ingresá al menos el Remito 1 para poder continuar.'
   }
   if (pasoActual.value === 7 && !ubicacionValida.value) {
     return mensajeUbicacionIncompleta.value
@@ -1527,7 +1569,12 @@ async function onPredioChange() {
 
 // ─── Watch combustible toggle ───
 watch(cargoCombustible, (val) => {
-  if (!val) form.combustible = 0
+  if (!val) {
+    form.combustible = 0
+    form.remito = ''
+    form.remito2 = ''
+    form.remito3 = ''
+  }
 })
 
 watch(() => [form.tipo_de_proceso_id, tipoProcesoNombre.value], () => {
@@ -1698,7 +1745,7 @@ async function handleSubmit() {
       return
     }
 
-    if (ubicacionOperativaRequerida.value && !ubicacionValida.value) {
+    if (!ubicacionValida.value) {
       await Swal.fire({
         icon: 'warning',
         title: 'Ubicación incompleta',
@@ -1730,6 +1777,9 @@ async function handleSubmit() {
       hr_inicio: form.hr_inicio,
       hr_fin: form.hr_fin,
       combustible: form.combustible,
+      remito: cargoCombustible.value ? String(form.remito ?? '').trim() : '',
+      remito2: cargoCombustible.value ? String(form.remito2 ?? '').trim() : '',
+      remito3: cargoCombustible.value ? String(form.remito3 ?? '').trim() : '',
       aceite_cadena: form.aceite_cadena,
       aceite_hidraulico: form.aceite_hidraulico,
       aceite_motor: form.aceite_motor,

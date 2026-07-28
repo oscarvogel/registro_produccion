@@ -16,6 +16,7 @@
         :disabled="disabled"
         :min="min"
         :max="max"
+        :maxlength="maxlength"
         :step="step"
         :inputmode="inputMode"
         :pattern="pattern"
@@ -47,6 +48,7 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   min: { type: [String, Number], default: undefined },
   max: { type: [String, Number], default: undefined },
+  maxlength: { type: [String, Number], default: undefined },
   step: { type: [String, Number], default: undefined },
   invalid: { type: Boolean, default: false },
 })

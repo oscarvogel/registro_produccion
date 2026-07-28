@@ -152,6 +152,10 @@ class TableroProduccionCreate(BaseModel):
     lugar_carga: int = 0
     tabla: str = "tipo_de_proceso"
     codigo_tabla: int = 0
+    id_tipo_comb: int = Field(default=1, ge=1)
+    remito: str = Field(default="", max_length=12)
+    remito2: str = Field(default="", max_length=12)
+    remito3: str = Field(default="", max_length=12)
 
 
 # --- Mis Registros (vista operador) ---

@@ -693,6 +693,9 @@ async def create_produccion(
             tipo_proceso_id=(data.codigo_tabla if data.tabla == "tipo_de_proceso" else None),
             fecha_hora=datetime.now(),
             origen="web",
+            remito=data.remito or "",
+            remito2=data.remito2 or "",
+            remito3=data.remito3 or "",
         )
         db.add(registro)
         db.flush()
@@ -702,10 +705,11 @@ async def create_produccion(
             now = datetime.now()
             carga = CargaComb(
                 idMovil=data.cod_equipo or 0,
-                idTipoComb=1,  # Gasoil por defecto
+                idTipoComb=data.id_tipo_comb or 1,
                 Fecha=data.fecha,
                 KM=0,
                 Litros=data.combustible,
+                idLugarCarga=data.lugar_carga or 1,
                 UnidadNegocio=data.cod_un or 1,
                 personal=data.cod_operador or 1,
                 idtabla=str(new_id),
@@ -713,6 +717,9 @@ async def create_produccion(
                 _usuario="web",
                 _fecha=now.date(),
                 _hora=now.strftime("%H:%M:%S"),
+                remito=data.remito or "",
+                remito2=data.remito2 or "",
+                remito3=data.remito3 or "",
             )
             db.add(carga)
 
