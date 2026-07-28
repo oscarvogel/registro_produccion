@@ -705,10 +705,11 @@ async def create_produccion(
             now = datetime.now()
             carga = CargaComb(
                 idMovil=data.cod_equipo or 0,
-                idTipoComb=1,  # Gasoil por defecto
+                idTipoComb=data.id_tipo_comb or 1,
                 Fecha=data.fecha,
                 KM=0,
                 Litros=data.combustible,
+                idLugarCarga=data.lugar_carga or 1,
                 UnidadNegocio=data.cod_un or 1,
                 personal=data.cod_operador or 1,
                 idtabla=str(new_id),

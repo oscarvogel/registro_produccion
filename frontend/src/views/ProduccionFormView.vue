@@ -1252,6 +1252,10 @@ const ubicacionValida = computed(() => {
   if (requiereActa.value && (!actaNormalizada.value || actaNormalizada.value === '0')) return false
   if (requierePredio.value && !form.predio_id) return false
   if (requiereRodal.value && !rodalCompleto.value) return false
+  // El lugar de carga es obligatorio siempre que el parte registre combustible:
+  // el CargaComb que se crea a partir de un parte con combustible requiere un
+  // idLugarCarga valido y el backend ya no usa el default 1 hardcodeado.
+  if (Number(form.combustible) > 0 && Number(form.lugar_carga_id) <= 0) return false
   return true
 })
 
@@ -1265,7 +1269,8 @@ const ubicacionCatalogosConError = computed(() => {
 })
 
 const mensajeUbicacionIncompleta = computed(() => {
-  if (!ubicacionOperativaRequerida.value) return ''
+  const requiereLugarCarga = Number(form.combustible) > 0 && Number(form.lugar_carga_id) <= 0
+  if (!ubicacionOperativaRequerida.value && !requiereLugarCarga) return ''
   if (ubicacionCatalogosConError.value.length > 0) {
     return `No se pudo cargar ${ubicacionCatalogosConError.value.join(', ')}. Reintentá el catálogo para completar la ubicación.`
   }
@@ -1273,6 +1278,8 @@ const mensajeUbicacionIncompleta = computed(() => {
   if (requiereActa.value) pendientes.push('Acta')
   if (requierePredio.value) pendientes.push('Predio')
   if (requiereRodal.value) pendientes.push('Rodal')
+  if (requiereLugarCarga) pendientes.push('Lugar de Carga')
+  if (pendientes.length === 0) return ''
   return `Completá ${pendientes.join(', ')} para este tipo de trabajo.`
 })
 
@@ -1738,7 +1745,7 @@ async function handleSubmit() {
       return
     }
 
-    if (ubicacionOperativaRequerida.value && !ubicacionValida.value) {
+    if (!ubicacionValida.value) {
       await Swal.fire({
         icon: 'warning',
         title: 'Ubicación incompleta',

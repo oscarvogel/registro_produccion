@@ -120,6 +120,8 @@ def test_create_persists_remitos_in_tablero_and_cargacomb(monkeypatch):
         cod_equipo=10,
         cod_operador=5,
         combustible=150,
+        lugar_carga=42,
+        id_tipo_comb=2,
         remito="R-0001",
         remito2="R-0002",
         remito3="R-0003",
@@ -142,6 +144,28 @@ def test_create_persists_remitos_in_tablero_and_cargacomb(monkeypatch):
     assert carga.remito3 == "R-0003"
     assert carga.tabla == "tablero_produccion"
     assert carga.Litros == 150
+    assert carga.idLugarCarga == 42
+    assert carga.idTipoComb == 2
+
+
+def test_create_falls_back_to_defaults_when_lugar_carga_and_tipo_comb_missing(monkeypatch):
+    """Si el cliente no manda lugar_carga o id_tipo_comb, el backend usa 1 (Gasoil default)."""
+    db = FakeDb()
+    _bypass_external_deps(monkeypatch)
+
+    payload = TableroProduccionCreate(
+        fecha=date(2026, 7, 28),
+        cod_equipo=10,
+        cod_operador=5,
+        combustible=80,
+        # Sin lugar_carga, sin id_tipo_comb
+    )
+
+    asyncio.run(produccion.create_produccion(payload, db=db, user=SimpleNamespace()))
+
+    carga = db.added[1]
+    assert carga.idLugarCarga == 1  # fallback del schema
+    assert carga.idTipoComb == 1    # fallback Gasoil
 
 
 def test_create_does_not_create_cargacomb_when_combustible_is_zero(monkeypatch):
