@@ -143,6 +143,7 @@ def test_create_persists_remitos_in_tablero_and_cargacomb(monkeypatch):
     assert carga.remito2 == "R-0002"
     assert carga.remito3 == "R-0003"
     assert carga.tabla == "tablero_produccion"
+    assert carga.tipo_mov == "E"
     assert carga.Litros == 150
     assert carga.idLugarCarga == 42
     assert carga.idTipoComb == 2
