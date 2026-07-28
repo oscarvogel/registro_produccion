@@ -714,6 +714,7 @@ async def create_produccion(
                 personal=data.cod_operador or 1,
                 idtabla=str(new_id),
                 tabla="tablero_produccion",
+                tipo_mov="E",  # Egreso: el combustible sale del panol hacia el movil
                 _usuario="web",
                 _fecha=now.date(),
                 _hora=now.strftime("%H:%M:%S"),
