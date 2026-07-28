@@ -32,6 +32,8 @@ class DemoDataset:
     rodales: list[dict]
     asignaciones: list[dict]
     moviles_operadores: list[dict]
+    personal_unidad_negocio: list[dict]
+    unidadnegocio_tipo_proceso: list[dict]
     produccion: list[dict]
     cargas_combustible: list[dict]
 
@@ -243,6 +245,22 @@ def build_demo_dataset(*, record_count: int, today: date | None = None) -> DemoD
                 }
             )
 
+    # Pivotes: asocian los personales demo al UN demo y los tipos de proceso
+    # demo al UN demo. Sin estas filas los endpoints `list_operadores` y
+    # `list_tipo_proceso` filtran por las pivotes y devuelven listas vacias,
+    # bloqueando el flujo end-to-end del formulario de produccion.
+    un_demo = unidades_negocio[0]["idUnidadNegocio"]
+    personal_unidad_negocio = [
+        {"idPersonal": row["idPersonal"], "idUnidadNegocio": un_demo}
+        for row in personal
+        if row.get("unidad_negocio") == un_demo
+    ]
+    unidadnegocio_tipo_proceso = [
+        {"un_id": un_demo, "tipo_proceso_id": row["id"]}
+        for row in tipos_proceso
+        if row.get("activo") == 1
+    ]
+
     return DemoDataset(
         unidades_negocio=unidades_negocio,
         tipos_proceso=tipos_proceso,
@@ -254,6 +272,8 @@ def build_demo_dataset(*, record_count: int, today: date | None = None) -> DemoD
         rodales=rodales,
         asignaciones=asignaciones,
         moviles_operadores=moviles_operadores,
+        personal_unidad_negocio=personal_unidad_negocio,
+        unidadnegocio_tipo_proceso=unidadnegocio_tipo_proceso,
         produccion=produccion,
         cargas_combustible=cargas_combustible,
     )
@@ -331,16 +351,27 @@ def _delete_existing_demo_data(db) -> dict[str, int]:
     from app.models.movil import Movil
     from app.models.movil_operador import MovilOperador
     from app.models.personal import Personal
+    from app.models.personal_unidad_negocio import PersonalUnidadNegocio
     from app.models.produccion import TableroProduccion
     from app.models.tipo_movil import TipoMovil
     from app.models.tipo_proceso import TipoDeProceso
+    from app.models.tipo_proceso import UnidadNegocioTipoProceso
     from app.models.ubicacion import Predio, Rodal
     from app.models.unidad_negocio import UnidadNegocio
 
     demo_personal_ids = [row[0] for row in db.query(Personal.idPersonal).filter(Personal.Nombre.like("%Demo%")).all()]
     demo_movil_ids = [row[0] for row in db.query(Movil.idMovil).filter(Movil.Detalle.like("%Demo%")).all()]
+    demo_tipo_proceso_ids = [row[0] for row in db.query(TipoDeProceso.id).filter(TipoDeProceso.nombre.like("%Demo%")).all()]
+    demo_un_ids = [row[0] for row in db.query(UnidadNegocio.idUnidadNegocio).filter(UnidadNegocio.Nombre.like("%Demo%")).all()]
 
     deleted = {}
+    # Pivotes: borrar antes que las tablas referenciadas para no violar FKs.
+    deleted["personal_unidad_negocio"] = db.query(PersonalUnidadNegocio).filter(
+        PersonalUnidadNegocio.idPersonal.in_(demo_personal_ids) | PersonalUnidadNegocio.idUnidadNegocio.in_(demo_un_ids)
+    ).delete(synchronize_session=False)
+    deleted["unidadnegocio_tipo_proceso"] = db.query(UnidadNegocioTipoProceso).filter(
+        UnidadNegocioTipoProceso.un_id.in_(demo_un_ids) | UnidadNegocioTipoProceso.tipo_proceso_id.in_(demo_tipo_proceso_ids)
+    ).delete(synchronize_session=False)
     deleted["asignaciones"] = db.query(AsignacionOperativa).filter(
         AsignacionOperativa.idMovil.in_(demo_movil_ids) | AsignacionOperativa.idChofer.in_(demo_personal_ids)
     ).delete(synchronize_session=False)
@@ -387,9 +418,11 @@ def run_seed(*, record_count: int, clear_only: bool = False) -> dict[str, int]:
     from app.models.movil import Movil
     from app.models.movil_operador import MovilOperador
     from app.models.personal import Personal
+    from app.models.personal_unidad_negocio import PersonalUnidadNegocio
     from app.models.produccion import TableroProduccion
     from app.models.tipo_movil import TipoMovil
     from app.models.tipo_proceso import TipoDeProceso
+    from app.models.tipo_proceso import UnidadNegocioTipoProceso
     from app.models.ubicacion import Predio, Rodal
     from app.models.unidad_negocio import UnidadNegocio
 
@@ -410,6 +443,10 @@ def run_seed(*, record_count: int, clear_only: bool = False) -> dict[str, int]:
             created["rodales"] = _bulk_insert(db, Rodal, dataset.rodales)
             created["asignaciones"] = _bulk_insert(db, AsignacionOperativa, dataset.asignaciones)
             created["moviles_operadores"] = _bulk_insert(db, MovilOperador, dataset.moviles_operadores)
+            # Pivotes: necesarias para que los endpoints de catalogo devuelvan
+            # los personales demo y los tipos de proceso del UN demo.
+            created["personal_unidad_negocio"] = _bulk_insert(db, PersonalUnidadNegocio, dataset.personal_unidad_negocio)
+            created["unidadnegocio_tipo_proceso"] = _bulk_insert(db, UnidadNegocioTipoProceso, dataset.unidadnegocio_tipo_proceso)
             created["produccion"] = _bulk_insert(db, TableroProduccion, dataset.produccion)
             created["cargas_combustible"] = _bulk_insert(db, CargaComb, dataset.cargas_combustible)
         if foreign_key_checks_disabled:
