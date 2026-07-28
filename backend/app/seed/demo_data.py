@@ -28,6 +28,9 @@ class DemoDataset:
     personal: list[dict]
     moviles: list[dict]
     lugares_carga: list[dict]
+    lugares_carga_legacy: list[dict]
+    tipocomb: list[dict]
+    panioles: list[dict]
     predios: list[dict]
     rodales: list[dict]
     asignaciones: list[dict]
@@ -137,6 +140,34 @@ def build_demo_dataset(*, record_count: int, today: date | None = None) -> DemoD
             "unidad_negocio": unidades_negocio[0]["idUnidadNegocio"],
         }
         for index in range(1, 5)
+    ]
+    # Catálogos legacy: el backend de /produccion/ hardcodea idTipoComb=1,
+    # idLugarCarga=1 (fallback) e idPaniol=1 al crear el cargacomb. Esos IDs
+    # existen en producción pero no en la demo, así que los creamos
+    # explícitamente con id=1 para que cualquier parte con combustible se
+    # pueda guardar en una instancia demo recién seeded.
+    lugares_carga_legacy = [
+        {
+            "idLugarCarga": 1,
+            "Detalle": "Lugar Carga Demo Legacy (Gasoil)",
+            "activo": 1,
+            "unidad_negocio": unidades_negocio[0]["idUnidadNegocio"],
+        }
+    ]
+    tipocomb = [
+        {
+            "idTipoComb": 1,
+            "Detalle": "Gasoil",
+            "Unitario": Decimal("0.0000"),
+            "idArticulo": 1,
+        }
+    ]
+    panioles = [
+        {
+            "idPaniol": 1,
+            "Nombre": "Pañol Demo Principal",
+            "un": unidades_negocio[0]["idUnidadNegocio"],
+        }
     ]
     predios = [
         {
@@ -268,6 +299,9 @@ def build_demo_dataset(*, record_count: int, today: date | None = None) -> DemoD
         personal=personal,
         moviles=moviles,
         lugares_carga=lugares_carga,
+        lugares_carga_legacy=lugares_carga_legacy,
+        tipocomb=tipocomb,
+        panioles=panioles,
         predios=predios,
         rodales=rodales,
         asignaciones=asignaciones,
@@ -400,6 +434,10 @@ def _delete_existing_demo_data(db) -> dict[str, int]:
     deleted["unidades_negocio"] = db.query(UnidadNegocio).filter(UnidadNegocio.Nombre.like("%Demo%")).delete(
         synchronize_session=False
     )
+    # Catalogos legacy: borrar las filas demo por nombre (id=1 si existe en prod
+    # queda intacto). No son modelos del ORM, asi que usamos text() directo.
+    db.execute(text("DELETE FROM tipocomb WHERE Detalle = 'Gasoil'"))
+    db.execute(text("DELETE FROM panioles WHERE Nombre = 'Pañol Demo Principal'"))
     return deleted
 
 
@@ -439,6 +477,37 @@ def run_seed(*, record_count: int, clear_only: bool = False) -> dict[str, int]:
             created["personal"] = _bulk_insert(db, Personal, dataset.personal)
             created["moviles"] = _bulk_insert(db, Movil, dataset.moviles)
             created["lugares_carga"] = _bulk_insert(db, LugarCarga, dataset.lugares_carga)
+            # Catalogos legacy: se insertan con INSERT IGNORE para ser
+            # idempotentes (si ya existe una fila con el id, no falla).
+            # Necesarios porque el backend de /produccion/ los usa como
+            # fallback (idTipoComb=1, idLugarCarga=1, idPaniol=1) y el
+            # endpoint de cargacomb los requiere como FKs.
+            created["lugares_carga_legacy"] = 0
+            for row in dataset.lugares_carga_legacy:
+                existing = db.query(LugarCarga).filter(LugarCarga.idLugarCarga == row["idLugarCarga"]).first()
+                if existing is None:
+                    db.add(LugarCarga(**row))
+                    created["lugares_carga_legacy"] += 1
+            created["tipocomb"] = 0
+            for row in dataset.tipocomb:
+                db.execute(
+                    text(
+                        "INSERT IGNORE INTO tipocomb (idTipoComb, Detalle, Unitario, idArticulo) "
+                        "VALUES (:idTipoComb, :Detalle, :Unitario, :idArticulo)"
+                    ),
+                    row,
+                )
+                created["tipocomb"] += 1
+            created["panioles"] = 0
+            for row in dataset.panioles:
+                db.execute(
+                    text(
+                        "INSERT IGNORE INTO panioles (idPaniol, Nombre, un) "
+                        "VALUES (:idPaniol, :Nombre, :un)"
+                    ),
+                    row,
+                )
+                created["panioles"] += 1
             created["predios"] = _bulk_insert(db, Predio, dataset.predios)
             created["rodales"] = _bulk_insert(db, Rodal, dataset.rodales)
             created["asignaciones"] = _bulk_insert(db, AsignacionOperativa, dataset.asignaciones)
