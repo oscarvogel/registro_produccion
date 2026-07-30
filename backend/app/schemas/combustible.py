@@ -1,5 +1,5 @@
 from datetime import date
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class CombustibleMovilResponse(BaseModel):
@@ -10,11 +10,25 @@ class CombustibleMovilResponse(BaseModel):
 
 
 class CargaCombustibleCreate(BaseModel):
+    form_uuid: str = Field(min_length=1, max_length=36)
     fecha: date
     id_movil: int
     litros: float = Field(gt=0)
-    km: int = Field(ge=0)
+    km: int = Field(gt=0)
+    id_lugar_carga: int = Field(ge=1)
+    id_tipo_comb: int = Field(default=1, ge=1)
+    remito: str = Field(min_length=1, max_length=12)
+    remito2: str = Field(default="", max_length=12)
+    remito3: str = Field(default="", max_length=12)
     observaciones: str | None = None
+
+    @field_validator("form_uuid", "remito")
+    @classmethod
+    def validate_required_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("El valor no puede estar vacío")
+        return normalized
 
 
 class CargaCombustibleResponse(BaseModel):
@@ -28,4 +42,10 @@ class CargaCombustibleResponse(BaseModel):
     unidad_negocio: int
     litros: float
     km: int
+    id_lugar_carga: int
+    id_tipo_comb: int
+    remito: str
+    remito2: str
+    remito3: str
+    form_uuid: str
     observaciones: str | None = None

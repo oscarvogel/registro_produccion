@@ -354,7 +354,7 @@ const adminActions = computed(() => [
   { name: 'produccion', label: 'Ir a Carga de Producción', description: 'Abre el formulario de producción.', to: { name: 'produccion' }, badge: null },
   { name: 'combustible', label: 'Ir a Carga de Combustible', description: 'Abre el formulario de combustible.', to: { name: 'combustible' }, badge: null },
   { name: 'pendientes', label: 'Abrir Pendientes', description: 'Cola offline y reintentos.', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
-  { name: 'admin', label: 'Abrir Panel Admin', description: 'Catálogos, permisos y relaciones.', to: { name: 'admin-dashboard' }, badge: null },
+  { name: 'admin', label: 'Abrir Panel Admin', description: 'Catálogos, permisos y relaciones.', to: { name: 'admin-center' }, badge: null },
 ])
 
 const adminTotals = computed(() => adminStore.dashboard.reduce((acc, unidad) => {

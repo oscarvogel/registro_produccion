@@ -4,7 +4,9 @@ import api from '@/services/api'
 export const useCombustibleStore = defineStore('combustible', {
   state: () => ({
     moviles: [],
+    lugaresCarga: [],
     loadingMoviles: false,
+    loadingLugares: false,
     saving: false,
     error: null,
     lastCarga: null,
@@ -24,6 +26,28 @@ export const useCombustibleStore = defineStore('combustible', {
         this.moviles = []
       } finally {
         this.loadingMoviles = false
+      }
+    },
+
+    async fetchLugaresCarga(unidadId) {
+      this.lugaresCarga = []
+      if (!unidadId) return []
+
+      this.loadingLugares = true
+      this.error = null
+      try {
+        const { data } = await api.get('/api/produccion/lugares-carga', {
+          params: { un_id: unidadId },
+          _suppressErrorToast: true,
+        })
+        this.lugaresCarga = Array.isArray(data) ? data : []
+        return this.lugaresCarga
+      } catch (error) {
+        this.error = error.response?.data?.detail || 'No se pudieron cargar los lugares de carga'
+        this.lugaresCarga = []
+        return []
+      } finally {
+        this.loadingLugares = false
       }
     },
 

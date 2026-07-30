@@ -133,6 +133,23 @@ def test_production_deploy_package_applies_idempotent_db_migrations():
     assert missing == []
 
 
+def test_combustible_idempotency_migration_is_packaged_and_repeatable():
+    package_script = read("scripts/build_deploy_package.ps1")
+    migration = read("db_migrations/20260730_cargacomb_form_uuid.sql")
+
+    required_fragments = [
+        "information_schema.COLUMNS",
+        "information_schema.STATISTICS",
+        "ADD COLUMN form_uuid VARCHAR(36) NULL",
+        "uq_cargacomb_personal_form_uuid",
+        "UNIQUE INDEX",
+        "personal, form_uuid",
+    ]
+
+    assert "db_migrations\\*.sql" in package_script
+    assert [fragment for fragment in required_fragments if fragment not in migration] == []
+
+
 def test_admin_actas_crud_contract_is_registered():
     schemas = read("backend/app/schemas/admin.py")
     admin_routes = read("backend/app/api/routes/admin_legacy.py")

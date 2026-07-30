@@ -575,6 +575,9 @@
 
       <!-- ═══ 7. COMBUSTIBLE ═══ -->
       <SectionCard v-show="pasoActual === 6" title="Combustible">
+        <div class="mb-3 rounded-lg border border-info/30 bg-info-light/40 p-3 text-sm text-info-dark">
+          Si registrás combustible en este parte, también se descuenta del stock. No repitas la carga en la sección Carga de Combustible.
+        </div>
         <div class="flex items-center justify-between">
           <span class="text-sm font-medium text-neutral-700">¿Se cargó combustible?</span>
           <button
@@ -601,6 +604,14 @@
             v-model.number="form.combustible"
             :placeholder="cargoCombustible ? 'Cantidad cargada (obligatorio)' : 'Ej: 150'"
             min="0"
+            required
+          />
+          <InputField
+            label="KM / Horómetro al cargar"
+            type="number"
+            v-model.number="form.km_combustible"
+            placeholder="Lectura real del equipo"
+            min="1"
             required
           />
           <div class="grid gap-3 sm:grid-cols-3">
@@ -1156,6 +1167,7 @@ const form = reactive({
   hrs_no_op: 0,
   motivo_no_op: '',
   combustible: 0,
+  km_combustible: 0,
   remito: '',
   remito2: '',
   remito3: '',
@@ -1212,6 +1224,7 @@ const horasValidas = computed(() => {
 const combustibleValido = computed(() => {
   if (!cargoCombustible.value) return true
   if (Number(form.combustible) <= 0) return false
+  if (Number(form.km_combustible) <= 0) return false
   return String(form.remito ?? '').trim().length > 0
 })
 
@@ -1338,6 +1351,9 @@ const mensajePasoIncompleto = computed(() => {
   if (pasoActual.value === 6 && !combustibleValido.value) {
     if (Number(form.combustible) <= 0) {
       return 'Marcaste que se cargó combustible, pero los litros están en 0. Ingresá una cantidad mayor a 0 o desactivá el toggle.'
+    }
+    if (Number(form.km_combustible) <= 0) {
+      return 'Marcaste que se cargó combustible: ingresá el KM u horómetro real del equipo para poder continuar.'
     }
     return 'Marcaste que se cargó combustible: ingresá al menos el Remito 1 para poder continuar.'
   }
@@ -1571,6 +1587,7 @@ async function onPredioChange() {
 watch(cargoCombustible, (val) => {
   if (!val) {
     form.combustible = 0
+    form.km_combustible = 0
     form.remito = ''
     form.remito2 = ''
     form.remito3 = ''
@@ -1777,6 +1794,7 @@ async function handleSubmit() {
       hr_inicio: form.hr_inicio,
       hr_fin: form.hr_fin,
       combustible: form.combustible,
+      km_combustible: cargoCombustible.value ? Number(form.km_combustible) : 0,
       remito: cargoCombustible.value ? String(form.remito ?? '').trim() : '',
       remito2: cargoCombustible.value ? String(form.remito2 ?? '').trim() : '',
       remito3: cargoCombustible.value ? String(form.remito3 ?? '').trim() : '',

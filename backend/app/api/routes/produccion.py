@@ -700,27 +700,29 @@ async def create_produccion(
         db.add(registro)
         db.flush()
 
-        # Si se cargó combustible, crear registro en cargacomb
-        if data.combustible and data.combustible > 0:
+        # El abastecimiento asociado al parte se registra en la misma
+        # transaccion: el parte y el egreso de stock nacen o fallan juntos.
+        if data.combustible > 0:
             now = datetime.now()
             carga = CargaComb(
-                idMovil=data.cod_equipo or 0,
-                idTipoComb=data.id_tipo_comb or 1,
+                idMovil=data.cod_equipo,
+                idTipoComb=data.id_tipo_comb,
                 Fecha=data.fecha,
-                KM=0,
+                KM=data.km_combustible,
                 Litros=data.combustible,
-                idLugarCarga=data.lugar_carga or 1,
+                idLugarCarga=data.lugar_carga,
                 UnidadNegocio=data.cod_un or 1,
-                personal=data.cod_operador or 1,
+                personal=data.cod_operador,
                 idtabla=str(new_id),
                 tabla="tablero_produccion",
-                tipo_mov="E",  # Egreso: el combustible sale del panol hacia el movil
+                tipo_mov="E",
                 _usuario="web",
                 _fecha=now.date(),
                 _hora=now.strftime("%H:%M:%S"),
-                remito=data.remito or "",
-                remito2=data.remito2 or "",
-                remito3=data.remito3 or "",
+                remito=data.remito.strip(),
+                remito2=data.remito2.strip(),
+                remito3=data.remito3.strip(),
+                form_uuid=data.form_uuid,
             )
             db.add(carga)
 

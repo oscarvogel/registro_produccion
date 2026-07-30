@@ -153,13 +153,17 @@ Los campos requeridos deben tener valores mayores a 0.
 
 Registrar combustible y aceites cuando correspondan.
 
+Cuando se carga combustible, completar litros, KM u horometro real y al menos
+el Remito 1. El parte crea el egreso de stock; no repetir el abastecimiento en
+`Carga de Combustible`.
+
 Si el proceso incluye sistema de corte, completar los datos solicitados de espada, puntera, cadena, pinon o cantidad de cadenas segun aplique.
 
 ### Paso 8: Ubicacion y Referencia
 
 Completar:
 
-- `Lugar de Carga`, si existe para la unidad.
+- `Lugar de Carga`, obligatorio cuando el parte incluye combustible.
 - `Acta`.
 - `Predio`.
 - `Rodal` o `Rodal manual`.

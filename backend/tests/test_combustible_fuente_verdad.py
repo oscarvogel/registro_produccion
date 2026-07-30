@@ -1,0 +1,228 @@
+import asyncio
+from contextlib import contextmanager
+from datetime import date
+from types import SimpleNamespace
+
+import pytest
+from pydantic import ValidationError
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.api.routes import combustible, produccion
+from app.core.database import Base
+from app.models.carga_comb import CargaComb
+from app.models.lugar_carga import LugarCarga
+from app.models.lugar_carga_unidad_negocio import LugarCargaUnidadNegocio
+from app.models.movil import Movil
+from app.models.personal_unidad_negocio import PersonalUnidadNegocio
+from app.models.produccion import TableroProduccion
+from app.schemas.combustible import CargaCombustibleCreate
+from app.schemas.produccion import TableroProduccionCreate
+
+
+@pytest.fixture
+def db():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(
+        engine,
+        tables=[
+            Movil.__table__,
+            PersonalUnidadNegocio.__table__,
+            LugarCarga.__table__,
+            LugarCargaUnidadNegocio.__table__,
+            TableroProduccion.__table__,
+            CargaComb.__table__,
+        ],
+    )
+    session = sessionmaker(bind=engine)()
+    session.add(
+        Movil(
+            idMovil=10,
+            Patente="TEST-10",
+            Detalle="FORWA-N°2",
+            idUnidadNegocio=1,
+            activo=1,
+        )
+    )
+    session.add(PersonalUnidadNegocio(idPersonal=5, idUnidadNegocio=1))
+    session.add(
+        LugarCarga(
+            idLugarCarga=42,
+            Detalle="Pañol COSECHA CTL",
+            activo=1,
+            unidad_negocio=1,
+        )
+    )
+    session.add(
+        LugarCargaUnidadNegocio(
+            idLugarCarga=42,
+            unidad_negocio=1,
+            activo=True,
+        )
+    )
+    session.commit()
+    try:
+        yield session
+    finally:
+        session.close()
+        engine.dispose()
+
+
+def _user():
+    return SimpleNamespace(
+        idPersonal=5,
+        Nombre="Operador Test",
+        unidad_negocio=1,
+    )
+
+
+def _payload(form_uuid: str) -> CargaCombustibleCreate:
+    return CargaCombustibleCreate(
+        form_uuid=form_uuid,
+        fecha=date(2026, 7, 29),
+        id_movil=10,
+        litros=160,
+        km=14855,
+        id_lugar_carga=42,
+        id_tipo_comb=1,
+        remito="R-0001",
+        remito2="R-0002",
+        remito3="R-0003",
+        observaciones="Carga real de prueba",
+    )
+
+
+def test_schema_requires_a_real_km_or_hour_meter_reading():
+    with pytest.raises(ValidationError):
+        CargaCombustibleCreate(
+            form_uuid="carga-1",
+            fecha=date(2026, 7, 29),
+            id_movil=10,
+            litros=160,
+            km=0,
+            id_lugar_carga=42,
+            remito="R-0001",
+        )
+
+
+def test_combustible_endpoint_writes_a_standalone_inventory_movement(db):
+    result = asyncio.run(
+        combustible.create_carga_combustible(
+            _payload("carga-fisica-1"),
+            db=db,
+            user=_user(),
+        )
+    )
+
+    rows = db.query(CargaComb).all()
+    assert len(rows) == 1
+    row = rows[0]
+    assert result.id_carga == row.idCargaComb
+    assert row.tipo_mov == "E"
+    assert row.tabla == "carga_combustible"
+    assert row.KM == 14855
+    assert float(row.Litros) == 160
+    assert row.idLugarCarga == 42
+    assert row.idTipoComb == 1
+    assert row.remito == "R-0001"
+    assert row.remito2 == "R-0002"
+    assert row.remito3 == "R-0003"
+    assert row.form_uuid == "carga-fisica-1"
+
+
+def test_retrying_the_same_form_uuid_is_idempotent(db):
+    first = asyncio.run(
+        combustible.create_carga_combustible(
+            _payload("carga-fisica-reintentada"),
+            db=db,
+            user=_user(),
+        )
+    )
+    second = asyncio.run(
+        combustible.create_carga_combustible(
+            _payload("carga-fisica-reintentada"),
+            db=db,
+            user=_user(),
+        )
+    )
+
+    assert second.id_carga == first.id_carga
+    assert db.query(CargaComb).count() == 1
+
+
+def test_same_explicit_event_id_cannot_be_written_again_from_the_other_flow(
+    db,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        produccion,
+        "_validate_restricted_payload",
+        lambda *_args, **_kwargs: None,
+    )
+
+    @contextmanager
+    def no_lock(*_args, **_kwargs):
+        yield
+
+    monkeypatch.setattr(produccion, "_form_submission_lock", no_lock)
+
+    production_payload = TableroProduccionCreate(
+        fecha=date(2026, 7, 29),
+        form_uuid="abastecimiento-compartido",
+        cod_operador=5,
+        cod_equipo=10,
+        cod_un=1,
+        combustible=160,
+        km_combustible=14855,
+        lugar_carga=42,
+        remito="R-0001",
+    )
+    asyncio.run(
+        produccion.create_produccion(
+            production_payload,
+            db=db,
+            user=_user(),
+        )
+    )
+
+    result = asyncio.run(
+        combustible.create_carga_combustible(
+            _payload("abastecimiento-compartido"),
+            db=db,
+            user=_user(),
+        )
+    )
+
+    rows = db.query(CargaComb).all()
+    assert len(rows) == 1
+    assert rows[0].tabla == "tablero_produccion"
+    assert result.id_carga == rows[0].idCargaComb
+
+
+def test_identical_real_loads_with_different_ids_are_allowed(db):
+    first = asyncio.run(
+        combustible.create_carga_combustible(
+            _payload("carga-fisica-a"),
+            db=db,
+            user=_user(),
+        )
+    )
+    second = asyncio.run(
+        combustible.create_carga_combustible(
+            _payload("carga-fisica-b"),
+            db=db,
+            user=_user(),
+        )
+    )
+
+    assert second.id_carga != first.id_carga
+    assert db.query(CargaComb).count() == 2
+
+
+def test_form_uuid_matches_the_database_contract():
+    assert CargaComb.__table__.c.form_uuid.type.length == 36
+    constraint_names = {
+        constraint.name
+        for constraint in CargaComb.__table__.constraints
+    }
+    assert "uq_cargacomb_personal_form_uuid" in constraint_names
