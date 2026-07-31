@@ -1,11 +1,14 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import inspect
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.models.carga_comb import CargaComb
+from app.models.lugar_carga import LugarCarga
+from app.models.lugar_carga_unidad_negocio import LugarCargaUnidadNegocio
 from app.models.movil import Movil
 from app.models.personal import Personal
 from app.models.personal_unidad_negocio import PersonalUnidadNegocio
@@ -41,6 +44,41 @@ def _user_unidad_ids(db: Session, user: Personal) -> list[int]:
     return ids
 
 
+def _table_exists(db: Session, table_name: str) -> bool:
+    try:
+        return inspect(db.get_bind()).has_table(table_name)
+    except SQLAlchemyError:
+        return False
+
+
+def _lugar_carga_habilitado(db: Session, lugar_id: int, unidad_id: int) -> bool:
+    lugar = (
+        db.query(LugarCarga)
+        .filter(
+            LugarCarga.idLugarCarga == lugar_id,
+            LugarCarga.activo == 1,
+        )
+        .first()
+    )
+    if not lugar:
+        return False
+
+    if _table_exists(db, "lugar_carga_unidad_negocio"):
+        vinculo = (
+            db.query(LugarCargaUnidadNegocio)
+            .filter(
+                LugarCargaUnidadNegocio.idLugarCarga == lugar_id,
+                LugarCargaUnidadNegocio.unidad_negocio == unidad_id,
+                LugarCargaUnidadNegocio.activo.is_(True),
+            )
+            .first()
+        )
+        if vinculo:
+            return True
+
+    return int(lugar.unidad_negocio or 0) == unidad_id
+
+
 def _to_movil_response(row: Movil) -> CombustibleMovilResponse:
     return CombustibleMovilResponse(
         idMovil=row.idMovil,
@@ -62,6 +100,12 @@ def _to_carga_response(row: CargaComb, movil: Movil, user: Personal) -> CargaCom
         unidad_negocio=int(row.UnidadNegocio or 0),
         litros=float(row.Litros or 0),
         km=int(row.KM or 0),
+        id_lugar_carga=int(row.idLugarCarga or 0),
+        id_tipo_comb=int(row.idTipoComb or 0),
+        remito=row.remito or "",
+        remito2=row.remito2 or "",
+        remito3=row.remito3 or "",
+        form_uuid=row.form_uuid or "",
         observaciones=row.observaciones,
     )
 
@@ -104,13 +148,36 @@ async def create_carga_combustible(
             detail="No podes registrar combustible para un movil de otra unidad de negocio",
         )
 
+    existing = (
+        db.query(CargaComb)
+        .filter(
+            CargaComb.personal == user.idPersonal,
+            CargaComb.form_uuid == payload.form_uuid,
+        )
+        .first()
+    )
+    if existing:
+        existing_movil = (
+            db.query(Movil)
+            .filter(Movil.idMovil == existing.idMovil)
+            .first()
+        )
+        return _to_carga_response(existing, existing_movil or movil, user)
+
+    if not _lugar_carga_habilitado(db, payload.id_lugar_carga, movil_unidad):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Lugar de carga no encontrado o no habilitado para la unidad de negocio",
+        )
+
     now = datetime.now()
     row = CargaComb(
         idMovil=payload.id_movil,
-        idTipoComb=1,
+        idTipoComb=payload.id_tipo_comb,
         Fecha=payload.fecha,
         KM=payload.km,
         Litros=payload.litros,
+        idLugarCarga=payload.id_lugar_carga,
         UnidadNegocio=movil_unidad,
         personal=user.idPersonal,
         tipo_mov="E",
@@ -118,9 +185,32 @@ async def create_carga_combustible(
         _usuario="web",
         _fecha=now.date(),
         _hora=now.strftime("%H:%M:%S"),
+        remito=payload.remito.strip(),
+        remito2=payload.remito2.strip(),
+        remito3=payload.remito3.strip(),
+        form_uuid=payload.form_uuid,
         observaciones=(payload.observaciones or "").strip(),
     )
     db.add(row)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = (
+            db.query(CargaComb)
+            .filter(
+                CargaComb.personal == user.idPersonal,
+                CargaComb.form_uuid == payload.form_uuid,
+            )
+            .first()
+        )
+        if existing:
+            existing_movil = (
+                db.query(Movil)
+                .filter(Movil.idMovil == existing.idMovil)
+                .first()
+            )
+            return _to_carga_response(existing, existing_movil or movil, user)
+        raise
     db.refresh(row)
     return _to_carga_response(row, movil, user)

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from datetime import date
 
 
@@ -117,6 +117,7 @@ class TableroProduccionCreate(BaseModel):
     hr_inicio: float = 0
     hr_fin: float = 0
     combustible: int = 0
+    km_combustible: int = Field(default=0, ge=0)
     aceite_cadena: int = 0
     aceite_hidraulico: int = 0
     aceite_motor: int = 0
@@ -156,6 +157,21 @@ class TableroProduccionCreate(BaseModel):
     remito: str = Field(default="", max_length=12)
     remito2: str = Field(default="", max_length=12)
     remito3: str = Field(default="", max_length=12)
+
+    @model_validator(mode="after")
+    def validate_combustible_movement(self):
+        if self.combustible <= 0:
+            return self
+
+        if not self.form_uuid.strip():
+            raise ValueError("El combustible requiere una identidad estable del formulario")
+        if self.km_combustible <= 0:
+            raise ValueError("El combustible requiere un kilometraje u horometro mayor a cero")
+        if self.lugar_carga <= 0:
+            raise ValueError("El combustible requiere un lugar de carga")
+        if not self.remito.strip():
+            raise ValueError("El combustible requiere al menos el Remito 1")
+        return self
 
 
 # --- Mis Registros (vista operador) ---

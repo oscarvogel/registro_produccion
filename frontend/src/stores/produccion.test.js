@@ -225,11 +225,23 @@ describe('produccion sync offline', () => {
     api.post.mockRejectedValueOnce(new Error('connection reset after commit'))
     const store = useProduccionStore()
 
-    const result = await store.submitProduccion({ fecha: '2026-07-21' })
+    const result = await store.submitProduccion({
+      fecha: '2026-07-21',
+      combustible: 160,
+      km_combustible: 14855,
+      lugar_carga: 42,
+      remito: 'R-0001',
+    })
 
     const postedPayload = api.post.mock.calls[0][1]
     expect(api.post.mock.calls[0][0]).toBe('/api/produccion/')
     expect(postedPayload.form_uuid).toBeTruthy()
+    expect(postedPayload).toEqual(expect.objectContaining({
+      combustible: 160,
+      km_combustible: 14855,
+      lugar_carga: 42,
+      remito: 'R-0001',
+    }))
     expect(queuePendingProductionRecord).toHaveBeenCalledWith(postedPayload)
     expect(result).toEqual({ offline: true })
   })

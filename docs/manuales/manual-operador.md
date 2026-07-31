@@ -140,7 +140,9 @@ Usar este paso para registrar combustible y consumos asociados cuando correspond
 
 Campos habituales:
 
-- `Combustible`.
+- `Combustible` en litros.
+- `KM / Horometro al cargar`.
+- `Remito 1` obligatorio y hasta dos remitos adicionales.
 - `Aceite cadena`.
 - `Aceite hidraulico`.
 - `Aceite motor`.
@@ -148,13 +150,15 @@ Campos habituales:
 - `Aceite embrague`.
 - Datos del sistema de corte, cuando el proceso lo solicita.
 
-Si no se cargo combustible, dejar el control desactivado o en 0.
+Si se informa combustible, el parte genera tambien el egreso de stock. No se
+debe repetir ese abastecimiento en `Carga de Combustible`. Si no se cargo
+combustible, dejar el control desactivado o en 0.
 
 ### Paso 8: Ubicacion y Referencia
 
 Completar:
 
-- `Lugar de Carga`, si esta disponible para la unidad.
+- `Lugar de Carga`, obligatorio cuando el parte incluye combustible.
 - `Acta`.
 - `Predio`.
 - `Rodal` desde la lista o `Rodal manual`.

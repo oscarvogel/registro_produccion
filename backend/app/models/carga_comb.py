@@ -1,9 +1,16 @@
-from sqlalchemy import Column, Integer, String, Date, Numeric, SmallInteger
+from sqlalchemy import Column, Integer, String, Date, Numeric, SmallInteger, UniqueConstraint
 from app.core.database import Base
 
 
 class CargaComb(Base):
     __tablename__ = "cargacomb"
+    __table_args__ = (
+        UniqueConstraint(
+            "personal",
+            "form_uuid",
+            name="uq_cargacomb_personal_form_uuid",
+        ),
+    )
 
     idCargaComb = Column(Integer, primary_key=True, autoincrement=True)
     idMovil = Column(Integer, nullable=False, default=0)
@@ -30,3 +37,4 @@ class CargaComb(Base):
     remito3 = Column(String(12), nullable=True)
     observaciones = Column(String(200), nullable=True, default="")
     ajuste_stock = Column(SmallInteger, nullable=True, default=0)
+    form_uuid = Column(String(36), nullable=True)
