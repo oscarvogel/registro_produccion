@@ -158,6 +158,21 @@
                   </div>
                 </Transition>
               </section>
+
+              <router-link
+                v-for="item in trailingItems"
+                :key="item.key"
+                :to="item.to"
+                :class="navItemClass(isItemActive(item))"
+                :title="sidebarCollapsed ? item.label : undefined"
+                exact-active-class="!border-[#10B981]/45 !bg-[#0F2A1E] !text-white"
+                @click="mobileMenuOpen = false"
+              >
+                <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
+                  <AppIcon :name="item.icon" size="sm" class="shrink-0" />
+                  <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ item.label }}</span>
+                </span>
+              </router-link>
             </div>
           </nav>
 
@@ -250,6 +265,7 @@ import { useTheme } from '@/composables/useTheme'
 import OfflineBanner from '@/components/ui/OfflineBanner.vue'
 import ToastHost from '@/components/ToastHost.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import { createSidebarNavigation } from '@/config/navigation'
 
 const router = useRouter()
 const route = useRoute()
@@ -261,14 +277,12 @@ const mobileMenuOpen = ref(false)
 const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === '1')
 const openSections = reactive({
   operacion: false,
-  catalogos: false,
   combustible: false,
   produccion: false,
 })
 
 const isAdmin = computed(() => authStore.isAdmin)
 const isEncargado = computed(() => authStore.user?.encargado === 1)
-const canViewDashboard = computed(() => isAdmin.value || isEncargado.value)
 const backendConnectionLabel = computed(() => {
   if (!connectivityStore.isOnline) return 'Sin conexión'
   if (connectivityStore.pendingInitialHealthCheck) return 'Verificando servidor'
@@ -296,66 +310,14 @@ const userInitials = computed(() => {
 const themeToggleLabel = computed(() => (isDark.value ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'))
 const themeStatusLabel = computed(() => (isDark.value ? 'Modo oscuro' : 'Modo claro'))
 
-const primaryItems = computed(() => [
-  { key: 'home', label: 'Inicio', icon: 'home', to: { name: 'home' } },
-  { key: 'manuales', label: 'Manuales', icon: 'manual', to: { name: 'manuales' } },
-])
-
-const navSections = computed(() => {
-  const sections = []
-
-  if (canViewDashboard.value || isAdmin.value) {
-    const operacionItems = []
-    if (canViewDashboard.value) {
-      operacionItems.push({ key: 'dashboard', label: 'Dashboard Operativo', icon: 'dashboard', to: { name: 'dashboard' } })
-    }
-    if (isAdmin.value) {
-      operacionItems.push(
-        { key: 'admin-dashboard', label: 'Dashboard Producción', icon: 'dashboard', to: { name: 'admin-dashboard' } },
-        { key: 'personal', label: 'Personal', icon: 'personnel', to: { name: 'admin-crud', params: { entity: 'personal' } } },
-        { key: 'moviles', label: 'Moviles', icon: 'machine', to: { name: 'admin-crud', params: { entity: 'moviles' } } },
-        { key: 'asignaciones', label: 'Asignaciones Operativas', icon: 'assignment', to: { name: 'admin-crud', params: { entity: 'asignaciones' } } },
-      )
-    }
-    sections.push({ key: 'operacion', label: 'Operacion', items: operacionItems })
-  }
-
-  if (isAdmin.value) {
-    sections.push({
-      key: 'catalogos',
-      label: 'Catálogos',
-      items: [
-        { key: 'unidades', label: 'Unidades de Negocio', icon: 'unit', to: { name: 'admin-crud', params: { entity: 'unidades-negocio' } } },
-        { key: 'tipos', label: 'Tipos de Proceso', icon: 'process', to: { name: 'admin-crud', params: { entity: 'tipos-proceso' } } },
-        { key: 'lugares', label: 'Lugares de Carga', icon: 'location', to: { name: 'admin-crud', params: { entity: 'lugares-carga' } } },
-        { key: 'predios', label: 'Predios', icon: 'field', to: { name: 'admin-crud', params: { entity: 'predios' } } },
-        { key: 'rodales', label: 'Rodales', icon: 'plot', to: { name: 'admin-crud', params: { entity: 'rodales' } } },
-        { key: 'actas', label: 'Actas', icon: 'records', to: { name: 'admin-crud', params: { entity: 'actas' } } },
-        { key: 'acceso', label: 'Configuración de Acceso', icon: 'settings', to: { name: 'admin-configuracion' } },
-      ],
-    })
-  }
-
-  sections.push({
-    key: 'combustible',
-    label: 'Combustible',
-    items: [
-      { key: 'carga-combustible', label: 'Carga de Combustible', icon: 'fuel', to: { name: 'combustible' } },
-    ],
-  })
-
-  const produccionItems = [
-    { key: 'carga-produccion', label: 'Carga de Producción', icon: 'production', to: { name: 'produccion' } },
-    { key: 'pendientes', label: 'Pendientes', icon: 'pending', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
-  ]
-
-  if (!isEncargado.value || isAdmin.value) {
-    produccionItems.push({ key: 'mis-registros', label: 'Mis Registros', icon: 'records', to: { name: 'mis-registros' } })
-  }
-
-  sections.push({ key: 'produccion', label: 'Producción', items: produccionItems })
-  return sections
-})
+const sidebarNavigation = computed(() => createSidebarNavigation({
+  isAdmin: isAdmin.value,
+  isEncargado: isEncargado.value,
+  pendingCount: produccionStore.pendingCount,
+}))
+const primaryItems = computed(() => sidebarNavigation.value.primaryItems)
+const navSections = computed(() => sidebarNavigation.value.sections)
+const trailingItems = computed(() => sidebarNavigation.value.trailingItems)
 
 function toggleSection(key) {
   openSections[key] = !openSections[key]
@@ -395,6 +357,7 @@ function isSectionActive(section) {
 }
 
 function isItemActive(item) {
+  if (item.activeRoutes?.includes(route.name)) return true
   if (item.to.name === 'admin-crud') {
     return route.name === 'admin-crud' && route.params.entity === item.to.params.entity
   }

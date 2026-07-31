@@ -53,8 +53,9 @@ Secciones de menu disponibles:
 | Seccion | Pantallas |
 | --- | --- |
 | `Inicio` | Panel operativo general y accesos rapidos. |
-| `Operacion` | `Dashboard Operativo`, `Personal`, `Moviles`, `Asignaciones Operativas`. |
-| `Catalogos` | `Unidades de Negocio`, `Tipos de Proceso`, `Lugares de Carga`, `Predios`, `Rodales`, `Configuracion de Acceso`. |
+| `Administracion` | Centro administrativo para personas, equipos, catalogos y accesos. |
+| `Operacion` | `Dashboard Operativo` y `Dashboard Produccion`. |
+| `Combustible` | Cargas de combustible sin parte de produccion. |
 | `Produccion` | `Carga de Produccion`, `Pendientes`, `Mis Registros`. |
 | `Configuracion` | Instalacion de app y cierre de sesion. |
 
@@ -120,6 +121,9 @@ El dashboard admin incluye:
 Si no hay datos, ampliar el rango de fechas o revisar que existan registros cargados.
 
 ## 5. Gestion operativa y catalogos
+
+Entrar desde `Administracion`. El centro administrativo agrupa personas,
+equipos, asignaciones, catalogos productivos y configuracion de acceso.
 
 Las pantallas de gestion comparten una estructura:
 
@@ -235,7 +239,7 @@ Los rodales se usan al completar `Ubicacion y Referencia` en la carga de producc
 
 ## 6. Asignaciones operativas
 
-Entrar desde `Operacion > Asignaciones Operativas`.
+Entrar desde `Administracion > Asignaciones operativas`.
 
 La pantalla incluye un panel rapido para asignar:
 
@@ -258,7 +262,7 @@ Tambien se puede editar o eliminar asignaciones existentes desde la tabla.
 
 ## 7. Configuracion de acceso
 
-Entrar desde `Catalogos > Configuracion de Acceso`.
+Entrar desde `Administracion > Configuracion de acceso`.
 
 Esta pantalla permite habilitar o deshabilitar `Acceso Admin` para otros usuarios.
 
@@ -292,6 +296,10 @@ El formulario mantiene los mismos 9 pasos:
 9. Revision.
 
 Como admin, revisar especialmente unidad, operador, equipo y proceso antes de guardar, ya que una carga manual puede afectar reportes globales.
+
+Si el parte incluye combustible, completar litros, KM u horometro real, lugar
+de carga y al menos el Remito 1. Ese parte ya genera el egreso de stock; la
+seccion `Carga de Combustible` queda solo para abastecimientos sin parte.
 
 ### Pendientes
 
