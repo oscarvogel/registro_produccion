@@ -61,37 +61,107 @@
       />
 
       <div v-else class="space-y-3" data-testid="registros-content">
-        <DataTable
-          :rows="store.registros"
-          :columns="columns"
-          :loading="false"
-          empty-text="Sin registros para los filtros aplicados"
-          row-key="id"
+        <div class="hidden md:block">
+          <DataTable
+            :rows="store.registros"
+            :columns="columns"
+            :loading="false"
+            empty-text="Sin registros para los filtros aplicados"
+            row-key="id"
+          >
+            <template #cell-fecha="{ value }">{{ formatFecha(value) }}</template>
+            <template #cell-operacion="{ value }">{{ value || 'Producción' }}</template>
+            <template #cell-equipo="{ value }">{{ value || 'Sin equipo' }}</template>
+            <template #cell-operador="{ value }">{{ value || 'Sin operador' }}</template>
+            <template #cell-combustible="{ value }">
+              <span :class="Number(value) > 0 ? 'font-extrabold text-warning-dark' : ''">
+                {{ formatNumero(value) }} lts
+              </span>
+            </template>
+            <template #cell-tn_despachadas="{ value }">{{ formatNumero(value) }} TN</template>
+            <template #cell-m3="{ value }">{{ formatNumero(value) }} m3</template>
+            <template #cell-has="{ value }">{{ formatNumero(value) }} has</template>
+            <template #cell-km_carreteo="{ value }">{{ formatNumero(value) }} km</template>
+            <template #cell-acciones="{ row }">
+              <button
+                type="button"
+                class="rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-bold text-neutral-700 hover:border-secondary/40"
+                @click="abrirDetalle(row.id)"
+                :data-testid="`abrir-detalle-${row.id}`"
+              >
+                Ver detalle
+              </button>
+            </template>
+          </DataTable>
+        </div>
+
+        <section
+          class="space-y-2 md:hidden"
+          data-testid="registros-cards"
         >
-          <template #cell-fecha="{ value }">{{ formatFecha(value) }}</template>
-          <template #cell-operacion="{ value }">{{ value || 'Producción' }}</template>
-          <template #cell-equipo="{ value }">{{ value || 'Sin equipo' }}</template>
-          <template #cell-operador="{ value }">{{ value || 'Sin operador' }}</template>
-          <template #cell-combustible="{ value }">
-            <span :class="Number(value) > 0 ? 'font-extrabold text-warning-dark' : ''">
-              {{ formatNumero(value) }} lts
-            </span>
-          </template>
-          <template #cell-tn_despachadas="{ value }">{{ formatNumero(value) }} TN</template>
-          <template #cell-m3="{ value }">{{ formatNumero(value) }} m3</template>
-          <template #cell-has="{ value }">{{ formatNumero(value) }} has</template>
-          <template #cell-km_carreteo="{ value }">{{ formatNumero(value) }} km</template>
-          <template #cell-acciones="{ row }">
-            <button
-              type="button"
-              class="rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-bold text-neutral-700 hover:border-secondary/40"
-              @click="abrirDetalle(row.id)"
-              :data-testid="`abrir-detalle-${row.id}`"
-            >
-              Ver detalle
-            </button>
-          </template>
-        </DataTable>
+          <article
+            v-for="record in store.registros"
+            :key="`card-${record.id}`"
+            v-motion-panel
+            class="app-card cursor-pointer rounded-xl p-3 transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+            :data-testid="`abrir-detalle-card-${record.id}`"
+            tabindex="0"
+            role="button"
+            :aria-label="`Ver detalle del registro ${record.operacion || 'Produccion'} del ${formatFecha(record.fecha)}`"
+            @click="abrirDetalle(record.id)"
+            @keydown.enter.prevent="abrirDetalle(record.id)"
+            @keydown.space.prevent="abrirDetalle(record.id)"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span class="inline-flex max-w-full rounded-lg bg-info-light px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-info-dark">
+                    <span class="truncate">{{ record.operacion || 'Producción' }}</span>
+                  </span>
+                  <span class="text-xs font-semibold text-neutral-400">{{ formatFecha(record.fecha) }}</span>
+                </div>
+                <p class="mt-1.5 truncate text-sm font-bold text-neutral-900">{{ record.equipo || 'Sin equipo' }}</p>
+                <p class="truncate text-xs font-semibold text-neutral-500">{{ record.operador || 'Sin operador' }}</p>
+              </div>
+              <span class="shrink-0 text-right text-[11px] font-bold text-neutral-500">
+                {{ formatHora(record.hr_inicio) }} – {{ formatHora(record.hr_fin) }}
+              </span>
+            </div>
+
+            <div class="mt-2.5 flex flex-wrap gap-1.5">
+              <span
+                v-if="Number(record.combustible) > 0"
+                class="rounded-lg bg-warning-light px-2 py-0.5 text-xs font-extrabold text-warning-dark"
+              >
+                ⛽ {{ formatNumero(record.combustible) }} lts
+              </span>
+              <span
+                v-if="Number(record.tn_despachadas) > 0"
+                class="rounded-lg border app-state-inactive px-2 py-0.5 text-xs font-extrabold text-neutral-700"
+              >
+                {{ formatNumero(record.tn_despachadas) }} TN
+              </span>
+              <span
+                v-if="Number(record.m3) > 0"
+                class="rounded-lg border app-state-inactive px-2 py-0.5 text-xs font-extrabold text-neutral-700"
+              >
+                {{ formatNumero(record.m3) }} m³
+              </span>
+              <span
+                v-if="Number(record.has) > 0"
+                class="rounded-lg border app-state-inactive px-2 py-0.5 text-xs font-extrabold text-neutral-700"
+              >
+                {{ formatNumero(record.has) }} has
+              </span>
+              <span
+                v-if="Number(record.km_carreteo) > 0"
+                class="rounded-lg border app-state-inactive px-2 py-0.5 text-xs font-extrabold text-neutral-700"
+              >
+                {{ formatNumero(record.km_carreteo) }} km
+              </span>
+            </div>
+          </article>
+        </section>
 
         <nav
           v-if="store.totalPages > 1"
@@ -240,6 +310,12 @@ function formatNumero(valor) {
   if (!Number.isFinite(n) || n === 0) return '0'
   if (Number.isInteger(n)) return n.toLocaleString('es-AR')
   return n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })
+}
+
+function formatHora(valor) {
+  const n = Number(valor)
+  if (!Number.isFinite(n) || n === 0) return '—'
+  return n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
 function abrirDetalle(id) {
