@@ -178,8 +178,9 @@
             <RecentRecordsPanel />
             <QuickActions
               :actions="adminActions"
-              :show-install="Boolean(pwaInstall?.deferredInstallPrompt?.value)"
-              @install="pwaInstall?.installApp"
+              :show-install="!isPwaStandalone"
+              :install-available="canInstallPwa"
+              @install="handlePwaInstallAction"
             />
           </aside>
         </section>
@@ -231,8 +232,9 @@
             <SyncCard />
             <QuickActions
               :actions="operatorSecondaryActions"
-              :show-install="Boolean(pwaInstall?.deferredInstallPrompt?.value)"
-              @install="pwaInstall?.installApp"
+              :show-install="!isPwaStandalone"
+              :install-available="canInstallPwa"
+              @install="handlePwaInstallAction"
             />
           </aside>
         </section>
@@ -249,6 +251,7 @@ import { useProduccionStore } from '@/stores/produccion'
 import { useMisRegistrosStore } from '@/stores/misRegistros'
 import { useAdminStore } from '@/stores/admin'
 import { useConnectivityStore } from '@/stores/connectivity'
+import { usePwaInstallStatus } from '@/composables/usePwaInstallStatus'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
 const authStore = useAuthStore()
@@ -258,6 +261,10 @@ const adminStore = useAdminStore()
 const connectivityStore = useConnectivityStore()
 const router = useRouter()
 const pwaInstall = inject('pwaInstall', null)
+const {
+  canInstall: canInstallPwa,
+  isStandalone: isPwaStandalone,
+} = usePwaInstallStatus(pwaInstall)
 const isOnline = computed(() => connectivityStore.isOnline)
 const backendReachable = computed(() => connectivityStore.isOnline && connectivityStore.isBackendUp)
 const backendConnectionLabel = computed(() => {
@@ -545,6 +552,7 @@ const QuickActions = defineComponent({
   props: {
     actions: { type: Array, required: true },
     showInstall: { type: Boolean, default: false },
+    installAvailable: { type: Boolean, default: false },
   },
   emits: ['install'],
   setup(props, { emit }) {
@@ -571,12 +579,23 @@ const QuickActions = defineComponent({
           onClick: () => emit('install'),
         }, h('span', [
           h('span', { class: 'block text-sm font-bold text-neutral-800' }, 'Instalar app'),
-          h('span', { class: 'block text-xs text-neutral-400' }, 'Acceso rapido y soporte offline.'),
+          h('span', { class: 'block text-xs text-neutral-400' }, props.installAvailable
+            ? 'Acceso rápido y soporte offline.'
+            : 'Ver opciones para este navegador.'),
         ])) : null,
       ]),
     ])
   },
 })
+
+function handlePwaInstallAction() {
+  if (canInstallPwa.value) {
+    pwaInstall?.installApp()
+    return
+  }
+
+  router.push({ name: 'configuracion' })
+}
 
 const LastPersonalRecord = defineComponent({
   setup() {
