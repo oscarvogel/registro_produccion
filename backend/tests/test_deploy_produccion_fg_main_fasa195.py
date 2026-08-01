@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import subprocess
 import tarfile
 from dataclasses import dataclass
@@ -31,6 +32,32 @@ def add_tar_text(archive: tarfile.TarFile, name: str, content: str) -> None:
     info = tarfile.TarInfo(name)
     info.size = len(payload)
     archive.addfile(info, io.BytesIO(payload))
+
+
+def write_deploy_package(path: Path, *, include_frontend_asset: bool = True) -> None:
+    with tarfile.open(path, "w:gz") as archive:
+        add_tar_text(archive, "backend/app/main.py", "APP = 'target'\n")
+        add_tar_text(archive, "backend/requirements.txt", "fastapi\n")
+        add_tar_text(
+            archive,
+            "frontend/dist/index.html",
+            '<div id="app"></div><script src="/assets/index-target.js"></script>\n',
+        )
+        if include_frontend_asset:
+            add_tar_text(
+                archive,
+                "frontend/dist/assets/index-target.js",
+                "console.log('target')\n",
+            )
+        add_tar_text(
+            archive,
+            "RELEASE_MANIFEST.txt",
+            "name=registro_produccion\n"
+            "commit=target-commit\n"
+            "short_commit=target\n"
+            "branch=main\n"
+            "built_at=2026-08-01T00:00:00Z\n",
+        )
 
 
 @dataclass
@@ -142,24 +169,7 @@ def deploy_harness(tmp_path: Path) -> DeployHarness:
         "branch=main\n",
         encoding="utf-8",
     )
-    with tarfile.open(tmp_path / "registro_produccion_deploy_target.tar.gz", "w:gz") as archive:
-        add_tar_text(archive, "backend/app/main.py", "APP = 'target'\n")
-        add_tar_text(archive, "backend/requirements.txt", "fastapi\n")
-        add_tar_text(
-            archive,
-            "frontend/dist/index.html",
-            '<div id="app"></div><script src="/assets/index-target.js"></script>\n',
-        )
-        add_tar_text(archive, "frontend/dist/assets/index-target.js", "console.log('target')\n")
-        add_tar_text(
-            archive,
-            "RELEASE_MANIFEST.txt",
-            "name=registro_produccion\n"
-            "commit=target-commit\n"
-            "short_commit=target\n"
-            "branch=main\n"
-            "built_at=2026-08-01T00:00:00Z\n",
-        )
+    write_deploy_package(tmp_path / "registro_produccion_deploy_target.tar.gz")
 
     write_fake(fake_bin / "hostname", "printf '%s\\n' fg-ubuntu")
     write_fake(fake_bin / "flock", "printf 'flock %s\\n' \"$*\" >>\"$CALL_LOG\"")
@@ -218,15 +228,8 @@ case "$*" in
     printf '%s\n' target-image-id
     ;;
   "tag old-image-id registro_produccion:rollback-"*) : ;;
-  "tag registro_produccion:target-commit registro_produccion:latest")
-    touch "$FAKE_STATE_DIR/target-tagged"
-    ;;
-  "tag old-image-id registro_produccion:latest")
-    rm -f "$FAKE_STATE_DIR/target-tagged"
-    touch "$FAKE_STATE_DIR/rollback-tagged"
-    ;;
-  "compose -f docker-compose.yml up -d --no-build --no-deps --force-recreate produccion_fg")
-    if [[ -f "$FAKE_STATE_DIR/rollback-tagged" ]]; then
+  "compose -f docker-compose.yml -f "*" up -d --no-build --no-deps --force-recreate produccion_fg")
+    if grep -q 'registro_produccion:rollback-' "$5"; then
       rm -f "$FAKE_STATE_DIR/target-deployed"
       [[ "${FAKE_FAIL_ROLLBACK:-0}" != "1" ]]
     else
@@ -290,6 +293,17 @@ def test_check_aborts_when_range_contains_db_migrations(deploy_harness: DeployHa
     assert "database migrations require a separate procedure" in result.stderr
 
 
+def test_check_rejects_package_when_referenced_frontend_asset_is_missing(
+    deploy_harness: DeployHarness,
+):
+    write_deploy_package(deploy_harness.package, include_frontend_asset=False)
+
+    result = deploy_harness.run("--check")
+
+    assert result.returncode != 0
+    assert "package frontend asset not found" in result.stderr
+
+
 def test_deploy_requires_yes_when_non_interactive(deploy_harness: DeployHarness):
     result = deploy_harness.run("--deploy")
 
@@ -302,10 +316,12 @@ def test_deploy_updates_only_produccion_fg(deploy_harness: DeployHarness):
     result = deploy_harness.run("--deploy", "--yes")
 
     assert result.returncode == 0, result.stderr
-    assert (
-        "docker compose -f docker-compose.yml up -d --no-build --no-deps "
-        "--force-recreate produccion_fg"
-    ) in deploy_harness.calls
+    assert re.search(
+        r"docker compose -f docker-compose\.yml -f \S+ up -d --no-build "
+        r"--no-deps --force-recreate produccion_fg",
+        deploy_harness.calls,
+    )
+    assert "registro_produccion:latest" not in deploy_harness.calls
     assert "force-recreate indufor\n" not in deploy_harness.calls
     assert "force-recreate indufor_demo\n" not in deploy_harness.calls
 
@@ -329,7 +345,8 @@ def test_failed_health_restores_image_frontend_and_manifest(
     result = deploy_harness.run("--deploy", "--yes", fail_target_health=True)
 
     assert result.returncode != 0
-    assert "docker tag old-image-id registro_produccion:latest" in deploy_harness.calls
+    assert "docker tag old-image-id registro_produccion:latest" not in deploy_harness.calls
+    assert deploy_harness.calls.count("--force-recreate produccion_fg") == 2
     assert deploy_harness.manifest["status"] == "rolled_back"
     assert (deploy_harness.app_parent / "frontend" / "index.html").read_text(
         encoding="utf-8"
@@ -353,7 +370,8 @@ def test_neighbor_invariant_failure_triggers_rollback(deploy_harness: DeployHarn
 
     assert result.returncode != 0
     assert "indufor changed during deploy" in result.stderr
-    assert "docker tag old-image-id registro_produccion:latest" in deploy_harness.calls
+    assert "docker tag old-image-id registro_produccion:latest" not in deploy_harness.calls
+    assert deploy_harness.calls.count("--force-recreate produccion_fg") == 2
     assert deploy_harness.manifest["status"] == "rolled_back"
 
 

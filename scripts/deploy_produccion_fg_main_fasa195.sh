@@ -67,6 +67,7 @@ if [[ "$mode" == "--check" && "$assume_yes" == true ]]; then
 fi
 
 tmp_dir=""
+compose_override=""
 manifest=""
 previous_image_id=""
 rollback_tag=""
@@ -80,6 +81,9 @@ deploy_started=false
 recovery_started=false
 
 cleanup() {
+  if [[ -n "$compose_override" && -f "$compose_override" ]]; then
+    rm -f "$compose_override"
+  fi
   if [[ -n "$tmp_dir" && -d "$tmp_dir" ]]; then
     rm -rf "$tmp_dir"
   fi
@@ -97,6 +101,18 @@ wait_healthy() {
   done
   printf 'ERROR: %s did not become healthy\n' "$CONTAINER" >&2
   return 1
+}
+
+write_compose_override() {
+  local image_ref="$1"
+  printf 'services:\n  %s:\n    image: "%s"\n' "$SERVICE" "$image_ref" >"$compose_override"
+}
+
+recreate_produccion_fg() {
+  local image_ref="$1"
+  write_compose_override "$image_ref"
+  docker compose -f docker-compose.yml -f "$compose_override" \
+    up -d --no-build --no-deps --force-recreate "$SERVICE"
 }
 
 recover_and_exit() {
@@ -137,9 +153,9 @@ recover_and_exit() {
   fi
 
   if [[ "$deploy_started" == true ]]; then
-    if ! docker tag "$previous_image_id" registro_produccion:latest ||
-       ! docker compose -f docker-compose.yml up -d --no-build --no-deps --force-recreate "$SERVICE" ||
-       ! wait_healthy; then
+    if ! recreate_produccion_fg "$rollback_tag" ||
+       ! wait_healthy ||
+       [[ "$(docker inspect -f '{{.Image}}' "$CONTAINER")" != "$previous_image_id" ]]; then
       printf 'ERROR: failed to restore produccion_fg image or health\n' >&2
       recovery_failed=true
     fi
@@ -204,6 +220,10 @@ preflight() {
   [[ -d "$tmp_dir/backend/app" ]] || fail "package backend missing"
   [[ -f "$tmp_dir/backend/requirements.txt" ]] || fail "package requirements missing"
   [[ -f "$tmp_dir/frontend/dist/index.html" ]] || fail "package frontend missing"
+  frontend_asset="$(grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' "$tmp_dir/frontend/dist/index.html" | head -1)"
+  [[ -n "$frontend_asset" ]] || fail "package frontend main asset not found"
+  [[ -f "$tmp_dir/frontend/dist/$frontend_asset" ]] ||
+    fail "package frontend asset not found: $frontend_asset"
 
   release_commit="$(awk -F= '$1 == "commit" {print $2}' "$tmp_dir/RELEASE_MANIFEST.txt" | tr -d '\r')"
   release_branch="$(awk -F= '$1 == "branch" {print $2}' "$tmp_dir/RELEASE_MANIFEST.txt" | tr -d '\r')"
@@ -259,6 +279,7 @@ fi
 
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$BACKUP_DIR"
+compose_override="$(mktemp)"
 manifest="$BACKUP_DIR/deploy_${timestamp}_${target_commit}.env"
 rollback_tag="registro_produccion:rollback-${timestamp}"
 previous_frontend="$APP_PARENT/frontend.previous-${timestamp}"
@@ -282,8 +303,8 @@ mkdir "$staging_frontend"
 cp -a "$tmp_dir/frontend/dist/." "$staging_frontend/"
 grep -qi '<div id="app"></div>' "$staging_frontend/index.html" ||
   fail "staged frontend does not contain app marker"
-frontend_asset="$(grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' "$staging_frontend/index.html" | head -1)"
-[[ -n "$frontend_asset" ]] || fail "staged frontend main asset not found"
+[[ -f "$staging_frontend/$frontend_asset" ]] ||
+  fail "staged frontend asset not found: $frontend_asset"
 
 trap handle_error ERR
 trap handle_signal INT TERM
@@ -295,9 +316,8 @@ docker run --rm "$target_image" python -m compileall -q /app
 docker run --rm "$target_image" python -c "import app.main"
 target_image_id="$(docker image inspect "$target_image" --format '{{.Id}}')"
 
-docker tag "$target_image" registro_produccion:latest
 deploy_started=true
-docker compose -f docker-compose.yml up -d --no-build --no-deps --force-recreate "$SERVICE"
+recreate_produccion_fg "$target_image"
 wait_healthy
 [[ "$(docker inspect -f '{{.Image}}' "$CONTAINER")" == "$target_image_id" ]] ||
   fail "running image does not match target image"
@@ -318,6 +338,8 @@ mv "$APP_PARENT/RELEASE_MANIFEST.next-${timestamp}.txt" "$APP_PARENT/RELEASE_MAN
 
 [[ "$(grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' "$APP_PARENT/frontend/index.html" | head -1)" == "$frontend_asset" ]] ||
   fail "published frontend asset does not match package"
+[[ -f "$APP_PARENT/frontend/$frontend_asset" ]] ||
+  fail "published frontend asset not found: $frontend_asset"
 wait_healthy
 
 indufor_after="$(docker inspect -f '{{.Id}}|{{.Image}}' registro_produccion_indufor)"

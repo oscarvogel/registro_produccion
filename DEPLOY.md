@@ -16,6 +16,8 @@ El procedimiento:
 - actualiza juntos el backend Docker y el frontend estático de
   `produccion_fg`;
 - construye una imagen inmutable etiquetada con el SHA completo;
+- asigna esa imagen únicamente a `produccion_fg` mediante un override temporal,
+  sin modificar la etiqueta `registro_produccion:latest` compartida;
 - crea backup, manifiesto y rollback automático;
 - valida el contenedor, el endpoint interno y el asset del frontend;
 - usa `docker compose ... --no-deps` para no recrear servicios vecinos.
@@ -54,6 +56,8 @@ puerto interno `18005`. Este flujo no modifica esa configuración.
 - PowerShell 7.
 - Python 3.12 con las dependencias de test del backend.
 - Node.js/npm con las dependencias del frontend.
+- Espacio temporal suficiente para materializar el commit e instalar sus
+  dependencias con `npm ci`.
 - SSH/SCP con el alias `fasa_195` configurado.
 
 ### En `fasa_195`
@@ -94,8 +98,12 @@ No continuar desde una rama de trabajo. El PR debe estar mergeado y visible en
 
 ## 2. Validar y generar el paquete
 
-El generador ejecuta tests del backend, tests del frontend y build Vite. También
-verifica que el paquete no contenga `.env` y escribe `RELEASE_MANIFEST.txt`.
+El generador materializa `HEAD` en un directorio temporal mediante
+`git archive`, instala el frontend con `npm ci` y ejecuta tests del backend,
+tests del frontend y build Vite sobre esa copia. El paquete se copia
+exclusivamente desde el commit materializado: archivos locales no trackeados o
+ignorados no pueden incorporarse. También verifica que el paquete no contenga
+`.env` y escribe `RELEASE_MANIFEST.txt`.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\build_deploy_package.ps1
@@ -107,6 +115,9 @@ Get-FileHash $package -Algorithm SHA256
 ```
 
 No usar `-AllowAnyBranch` ni `-SkipTests` para producción.
+
+La carpeta temporal se elimina siempre, tanto al terminar correctamente como
+ante un error.
 
 ## 3. Subir el paquete
 

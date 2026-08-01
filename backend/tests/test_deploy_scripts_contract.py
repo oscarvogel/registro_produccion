@@ -33,6 +33,9 @@ def test_windows_package_script_builds_manifested_package_without_env_files():
     required_fragments = [
         "git rev-parse HEAD",
         "git rev-parse origin/main",
+        "git archive --format=tar",
+        "$CleanSource",
+        "npm ci",
         "python -m pytest",
         "npm run test",
         "npm run build",
@@ -101,10 +104,14 @@ def test_produccion_fg_main_deploy_has_exclusive_safe_contract():
         "rollback_failed",
         "indufor_unchanged",
         "indufor_demo_unchanged",
+        "write_compose_override",
+        'image: "%s"',
+        '[[ -f "$tmp_dir/frontend/dist/$frontend_asset" ]]',
     ]
 
     missing = [fragment for fragment in required_fragments if fragment not in script]
     assert missing == []
+    assert "registro_produccion:latest" not in script
 
 
 def test_github_main_runbook_documents_safe_operator_flow():
@@ -132,6 +139,9 @@ def test_deploy_md_is_the_canonical_produccion_fg_runbook():
         "origin/main",
         "únicamente `produccion_fg`",
         "build_deploy_package.ps1",
+        "git archive",
+        "npm ci",
+        "registro_produccion:latest",
         "deploy_produccion_fg_main_fasa195.sh --check",
         "deploy_produccion_fg_main_fasa195.sh --deploy",
         "--no-deps",
@@ -142,6 +152,7 @@ def test_deploy_md_is_the_canonical_produccion_fg_runbook():
 
     missing = [fragment for fragment in required if fragment not in runbook]
     assert missing == []
+    assert "sin modificar la etiqueta `registro_produccion:latest`" in runbook
 
 
 def test_multiinstance_runbook_warns_against_normal_produccion_fg_deploy():
