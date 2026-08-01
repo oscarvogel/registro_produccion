@@ -1,346 +1,326 @@
-# Deploy en produccion (fasa_195)
+# Deploy de producción — `produccion_fg`
 
-Documento de referencia para deployar `registro_produccion` en el server
-`fasa_195` (192.168.0.195, user `ferreteria`, ssh key `~/.ssh/fasa_195`).
+> **Guía canónica.** Este es el procedimiento oficial para desplegar
+> únicamente `produccion_fg` en `fasa_195` desde `origin/main`.
 
-> Mantener este archivo vivo. Si el flujo cambia, actualizar.
+El objetivo es que una persona autorizada pueda ejecutar el despliegue sin
+conocer previamente la arquitectura y obtener evidencia suficiente para
+confirmar o revertir el cambio.
 
----
+## Alcance obligatorio
 
-## Arquitectura del server
+El procedimiento:
 
-`produccion.servinlgsm.com.ar` corre con **un solo backend** (container Docker)
-y un frontend estatico servido por nginx.
+- acepta exclusivamente un paquete construido desde el commit actual de
+  `origin/main`;
+- actualiza juntos el backend Docker y el frontend estático de
+  `produccion_fg`;
+- construye una imagen inmutable etiquetada con el SHA completo;
+- crea backup, manifiesto y rollback automático;
+- valida el contenedor, el endpoint interno y el asset del frontend;
+- usa `docker compose ... --no-deps` para no recrear servicios vecinos.
 
-| Componente | Ruta / puerto | Como se levanta | Quien lo usa |
-|---|---|---|---|
-| **Frontend** (HTML/JS/CSS) | `/var/www/html/django/produccion_fg/frontend/` | Copia desde el tarball | nginx sirve los assets estaticos |
-| **Backend container** | `127.0.0.1:18005` (Docker) | `docker compose -f /srv/apps/registro_produccion/docker-compose.yml up -d` | nginx hace proxy_pass a este |
+El procedimiento **no**:
 
-El **container Docker es el unico backend de produccion**. El nginx esta
-configurado para apuntar a el:
+- despliega ramas, tags ni commits que todavía no estén en `main`;
+- modifica `indufor` ni `indufor_demo`;
+- modifica Nginx, archivos `.env` o credenciales;
+- consulta ni modifica bases de datos;
+- aplica migraciones;
+- requiere `sudo`.
 
+Si el rango entre la revisión publicada y `origin/main` contiene archivos bajo
+`db_migrations/`, el preflight aborta. Ver [Migraciones](#migraciones).
+
+## Arquitectura vigente
+
+| Componente | Ruta o puerto | Publicación |
+|---|---|---|
+| Repo remoto | `/srv/apps/registro_produccion` | Checkout Git usado para construir la imagen |
+| Backend | `registro_produccion_produccion_fg` | Docker, host `127.0.0.1:18005` |
+| Frontend | `/var/www/html/django/produccion_fg/frontend/` | Archivos estáticos servidos por Nginx |
+| Manifiesto | `/var/www/html/django/produccion_fg/RELEASE_MANIFEST.txt` | Commit publicado |
+| Backups | `~/deploy-backups/registro_produccion/` | Imagen, frontend y manifiesto recuperables |
+
+Nginx publica `https://produccion.servinlgsm.com.ar/` y deriva `/api/*` al
+puerto interno `18005`. Este flujo no modifica esa configuración.
+
+## Requisitos
+
+### En la computadora local
+
+- Checkout limpio del repositorio.
+- Git y GitHub accesible como remoto `origin`.
+- PowerShell 7.
+- Python 3.12 con las dependencias de test del backend.
+- Node.js/npm con las dependencias del frontend.
+- SSH/SCP con el alias `fasa_195` configurado.
+
+### En `fasa_195`
+
+- Hostname `fg-ubuntu`.
+- Usuario autorizado `ferreteria`.
+- Acceso a Git, Docker, Compose, `curl`, `tar`, `flock` y `sha256sum`.
+- Permiso del usuario sobre Docker, el repo remoto y el directorio del
+  frontend.
+
+No hace falta `sudo`. No imprimir el contenido de ningún `.env`.
+
+## 1. Preparar `main` local
+
+Desde PowerShell:
+
+```powershell
+Set-Location D:\notebook\active\registro_produccion
+git status -sb
+git fetch --prune origin
+git switch main
+git pull --ff-only origin main
+
+$head = (git rev-parse HEAD).Trim()
+$originMain = (git rev-parse origin/main).Trim()
+if ($head -ne $originMain) {
+    throw "HEAD no coincide con origin/main"
+}
+
+$trackedChanges = git status --porcelain --untracked-files=no
+if ($trackedChanges) {
+    throw "Hay cambios trackeados sin commitear"
+}
 ```
-Browser
-   |
-   v
-nginx (443) -- /api/* --> 127.0.0.1:18005 (container Docker, produccion_fg)
-        \-- /*       --> /var/www/html/django/produccion_fg/frontend/
+
+No continuar desde una rama de trabajo. El PR debe estar mergeado y visible en
+`origin/main`.
+
+## 2. Validar y generar el paquete
+
+El generador ejecuta tests del backend, tests del frontend y build Vite. También
+verifica que el paquete no contenga `.env` y escribe `RELEASE_MANIFEST.txt`.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build_deploy_package.ps1
+
+$shortSha = (git rev-parse --short HEAD).Trim()
+$fullSha = (git rev-parse HEAD).Trim()
+$package = Resolve-Path "dist_deploy\registro_produccion_deploy_$shortSha.tar.gz"
+Get-FileHash $package -Algorithm SHA256
 ```
 
-> **Historico**: antes habia un segundo backend en el host (puerto 8005)
-> manejado por `/var/www/html/django/produccion_fg/restart.sh`. Ese script
-> esta marcado como DEPRECATED y no se usa mas. El proceso de host se
-> mantiene vivo por inercia pero nginx no lo apunta. Si queres limpiar
-> el server, mira la seccion "Limpiar el backend legacy del host" mas
-> abajo.
+No usar `-AllowAnyBranch` ni `-SkipTests` para producción.
 
-El `docker-compose.yml` en `/srv/apps/registro_produccion/docker-compose.yml`
-define el container. El `Dockerfile` copia `backend/` al container y arranca
-gunicorn en :8000. Docker mapea el :8000 del container al :18005 del host.
+## 3. Subir el paquete
 
-### Diagrama de directorios
-
-```
-/srv/apps/registro_produccion/    # SOURCE_DIR: repo git, codigo fuente del container
-├── docker-compose.yml
-├── Dockerfile
-├── backend/                       # lo que se copia al container
-├── db_migrations/                  # los SQL que corre el script de deploy
-├── deploy_produccion_fg.sh        # el script de deploy (auto-detecta Docker)
-├── AGENTS.md
-└── DEPLOY.md                      # este archivo
-
-/var/www/html/django/produccion_fg/  # APP_DIR: target del deploy, sirve solo el frontend
-├── frontend/                      # assets estaticos (nginx los sirve)
-├── backend/                       # LEGACY - no se usa mas, se puede borrar
-│   ├── venv/                      # LEGACY
-│   ├── .env                       # LEGACY (db url, sirve para las migraciones)
-│   └── app/                       # LEGACY
-├── restart.sh                     # DEPRECATED
-└── RELEASE_MANIFEST.txt           # manifest del ultimo deploy exitoso
+```powershell
+scp $package "fasa_195:/home/ferreteria/$($package.Path | Split-Path -Leaf)"
 ```
 
----
+Guardar el SHA256 local para compararlo con la salida del preflight.
 
-## Pre-flight checks
+## 4. Actualizar el checkout remoto
 
-Antes de tocar nada, verificar:
+Esto actualiza únicamente el checkout Git; todavía no cambia contenedores ni
+frontend publicado.
+
+```powershell
+ssh -o BatchMode=yes fasa_195
+```
+
+En el servidor:
 
 ```bash
-ssh -i ~/.ssh/fasa_195 ferreteria@fasa_195
-
-# 1. Estado actual del container
-docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' \
-  | grep produccion_fg
-
-# 2. Commit que esta corriendo realmente (deberia matchear origin/main)
-docker inspect registro_produccion_produccion_fg --format '{{.Config.Image}}'
-
-# 3. Que el repo del server este sincronizado
 cd /srv/apps/registro_produccion
 git status -sb
-git log --oneline -3
-
-# 4. Health del backend actual
-curl -fsS http://127.0.0.1:18005/health
+git fetch --prune origin
+git switch main
+git pull --ff-only origin main
+test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
 ```
 
-Si el commit del container no coincide con `origin/main` de GitHub, el
-container esta desactualizado. Hay que rebuild.
+Si el checkout no está limpio o el pull no es fast-forward, detenerse. No usar
+`git reset --hard` para forzar el procedimiento.
 
----
+## 5. Ejecutar el preflight
 
-## Flujo de deploy paso a paso
-
-### 1. Validar localmente
-
-Desde tu maquina local, en la rama `main` con el commit que queres deployar:
-
-```powershell
-cd D:\notebook\active\registro_produccion
-
-# Validar que el codigo compila y los tests pasan
-cd backend; py -3.12 -m pytest ; py -3.12 -m compileall app ; cd ..
-cd frontend; npx.cmd vitest run ; npx.cmd vite build ; cd ..
-
-# Armar el paquete de deploy
-powershell -ExecutionPolicy Bypass -File scripts\build_deploy_package.ps1
-# Output: dist_deploy/registro_produccion_deploy_<sha>.tar.gz
-```
-
-### 2. Subir el paquete al server
-
-```powershell
-scp -i $env:USERPROFILE\.ssh\fasa_195 `
-  dist_deploy\registro_produccion_deploy_<sha>.tar.gz `
-  ferreteria@fasa_195:/home/ferreteria/
-```
-
-### 3. Conectarse al server y hacer el deploy
-
-```powershell
-ssh -i $env:USERPROFILE\.ssh\fasa_195 -t ferreteria@fasa_195
-```
-
-Adentro del server:
+Reemplazar el nombre de ejemplo por el paquete generado en el paso 2:
 
 ```bash
-# 3a. Sincronizar el codigo fuente (esto trae TODO: backend, frontend, db_migrations)
 cd /srv/apps/registro_produccion
-git fetch origin
-git reset --hard origin/main
-git log --oneline -1   # confirmar que estamos en el commit deseado
+bash scripts/deploy_produccion_fg_main_fasa195.sh --check \
+  /home/ferreteria/registro_produccion_deploy_5ee50b0.tar.gz
+```
 
-# 3b. Aplicar migraciones DB (idempotentes, se pueden correr varias veces)
-#     El script apply_db_migrations del deploy_produccion_fg.sh lee las
-#     credenciales del .env del host y aplica los SQL de db_migrations.
-#     Lo corremos manualmente para tener control fino:
-DB="$(python3 -c "
-from urllib.parse import urlparse
-import re
-content = open('/var/www/html/django/produccion_fg/backend/.env').read()
-for line in content.splitlines():
-    m = re.match(r'^DATABASE_URL=(.*)', line.strip())
-    if m:
-        u = urlparse(m.group(1))
-        print(f'mysql -h{u.hostname} -P{u.port or 3306} -u{u.username} -p{u.password} {u.path.lstrip(\"/\")}')
-        break
-")"
-echo "Comando mysql: $DB"
+El modo `--check` puede ejecutar `git fetch`, inspeccionar Docker y extraer el
+paquete en un temporal. No construye imágenes, no recrea contenedores y no
+publica archivos.
 
-# Backup antes de migrar
-mysqldump $(echo $DB | sed 's/-p\([^ ]*\) /-p\1 /' | awk '{for(i=1;i<=NF;i++){if($i=="-p"){i++;continue}print $i}}') \
-  | gzip > /var/backups/registro_produccion/pre_migration_$(date +%Y%m%d_%H%M%S).sql.gz
+Debe terminar con:
 
-# Aplicar migraciones nuevas (revisar que no se aplicaron antes)
-for sql in /srv/apps/registro_produccion/db_migrations/*.sql; do
-  echo "==> Aplicando $(basename $sql)"
-  eval "$DB" < "$sql"
-done
+```text
+==> Preflight successful
+deployed_commit=...
+target_commit=...
+package_sha256=...
+```
 
-# 3c. Rebuild del container con el codigo nuevo
+Detenerse si:
+
+- el paquete no coincide con `origin/main`;
+- el checkout remoto no coincide con `origin/main`;
+- la revisión publicada no es ancestro de `origin/main`;
+- hay migraciones entre ambas revisiones;
+- el contenedor actual no está healthy;
+- faltan el frontend o el manifiesto actuales.
+
+## 6. Ejecutar el deploy
+
+### Interactivo, recomendado
+
+```bash
 cd /srv/apps/registro_produccion
-docker compose -f docker-compose.yml build produccion_fg
-
-# 3d. Re-deploy del container (sin dependencias para no tocar indufor)
-docker compose -f docker-compose.yml up -d --no-deps produccion_fg
-
-# 3e. Validar
-sleep 5
-curl -fsS http://127.0.0.1:18005/health
-echo
-echo "Commit del container:"
-docker inspect registro_produccion_produccion_fg --format '{{.Config.Image}}'
+bash scripts/deploy_produccion_fg_main_fasa195.sh --deploy \
+  /home/ferreteria/registro_produccion_deploy_5ee50b0.tar.gz
 ```
 
-### 4. Verificar en el browser
+Escribir exactamente `DEPLOY` cuando se solicite.
 
-1. Hard refresh en `https://produccion.servinlgsm.com.ar/` (Ctrl+Shift+R)
-2. Si el Service Worker del PWA tiene la version vieja cacheada, ir a
-   DevTools > Application > Service Workers > Unregister, despues
-   Storage > Clear site data.
-3. Probar el flujo nuevo (ej: Admin > Lugares de carga > Editar un lugar).
+### No interactivo
 
----
-
-## Troubleshooting
-
-### "Deployo pero los usuarios siguen viendo el codigo viejo"
-
-El deploy actualizo el backend del host (puerto 8005) pero NO el container
-Docker (puerto 18005). Verificar:
+Usar solamente después de revisar un `--check` exitoso:
 
 ```bash
-# Que el container este con la imagen nueva
-docker inspect registro_produccion_produccion_fg --format '{{.Config.Image}}'
-
-# Si la imagen no es la nueva, hacer rebuild + up
 cd /srv/apps/registro_produccion
-docker compose -f docker-compose.yml build produccion_fg
-docker compose -f docker-compose.yml up -d --no-deps produccion_fg
+bash scripts/deploy_produccion_fg_main_fasa195.sh --deploy --yes \
+  /home/ferreteria/registro_produccion_deploy_5ee50b0.tar.gz
 ```
 
-### "El frontend no se actualiza en el browser"
+El script construye la imagen, valida Python dentro de ella, recrea únicamente
+`produccion_fg` con `--no-deps`, espera health y después intercambia el
+frontend de forma atómica.
 
-1. Hard refresh (Ctrl+Shift+R).
-2. Si sigue igual, DevTools > Application > Service Workers > Unregister
-   + Storage > Clear site data.
-3. Verificar que el server este sirviendo la version nueva:
+## 7. Revisar la evidencia
 
-```bash
-curl -fsS http://127.0.0.1/ | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' | head -1
-# Comparar con el index.html que se genero en el build local
+Una ejecución correcta termina con estas claves:
+
+```text
+deploy_status=success
+target_commit=...
+target_image=registro_produccion:...
+target_image_id=sha256:...
+produccion_fg_health=healthy
+produccion_fg_health_url=http://127.0.0.1:18005/health
+frontend_asset=assets/index-....js
+indufor_unchanged=yes
+indufor_demo_unchanged=yes
+backup_dir=...
 ```
 
-### "Login tira 500 o la app no responde"
-
-Probar el backend directo:
+Comprobación adicional en el servidor:
 
 ```bash
+docker inspect registro_produccion_produccion_fg \
+  --format '{{.Image}}|{{.State.Health.Status}}'
 curl -fsS http://127.0.0.1:18005/health
-curl -fsS http://127.0.0.1:8005/health
+grep -E '^(commit|branch)=' \
+  /var/www/html/django/produccion_fg/RELEASE_MANIFEST.txt
 ```
 
-- Si `:18005` falla: container caido o codigo roto. Ver logs:
-  `docker logs registro_produccion_produccion_fg --tail 100`
-- Si `:8005` falla: irrelevante para produccion (no se usa), pero si
-  queres: `/var/www/html/django/produccion_fg/restart.sh`
+El campo `version` del health puede provenir del `.env` y quedar desactualizado.
+La evidencia autoritativa es el commit del manifiesto junto con el ID real de
+la imagen activa.
 
-### "El query a la DB falla con 'Unknown column'"
+## 8. Verificación pública y PWA
 
-Los `__tablename__` de los modelos SQLAlchemy no coinciden con los nombres
-reales de las tablas en la DB. Es un problema de alineacion, no del deploy.
-
-- Verificar con `DESCRIBE <tabla>` en la DB.
-- Si el modelo usa PascalCase pegado (`tableroproduccion`) y la DB tiene
-  snake_case (`tablero_produccion`), hay que actualizar el `__tablename__`
-  del modelo. No es parte del deploy, es un fix de modelo.
-
-### "El deploy script tira 'JSON decode error' en PowerShell"
-
-Cuando probas endpoints con `Invoke-RestMethod -Body @{...} -ContentType
-'application/json'` desde PowerShell, a veces no serializa bien. Workaround:
+La red de `fasa_195` no tiene hairpin NAT confiable. Verificar el sitio público
+desde la computadora local:
 
 ```powershell
-$body = @{dni='12345678'; password='mipass'} | ConvertTo-Json -Compress
-Invoke-RestMethod -Method Post -Uri 'http://localhost:8000/api/auth/login' `
-  -Body $body -ContentType 'application/json'
+$response = Invoke-WebRequest https://produccion.servinlgsm.com.ar/ -UseBasicParsing
+$response.StatusCode
+[regex]::Match($response.Content, 'assets/index-[A-Za-z0-9_-]+\.js').Value
 ```
 
-### "El deploy script reinicia el backend equivocado"
+Resultado esperado: HTTP 200 y el mismo `frontend_asset` informado por el
+deploy.
 
-El `deploy_produccion_fg.sh` actual reinicia el backend del **host**
-(puerto 8005), no el container (puerto 18005). Esto es un bug conocido.
-Workaround: hacer el rebuild + up del container manualmente, como se
-documenta arriba. Fix permanente pendiente en otro PR.
+Para la prueba funcional, pedir a una persona operadora que cierre y vuelva a
+abrir la aplicación. Si la PWA conserva la revisión anterior:
 
----
+1. hacer recarga completa;
+2. desregistrar el Service Worker;
+3. limpiar los datos del sitio;
+4. abrir nuevamente la aplicación.
 
-## Comandos utiles de diagnostico
+## Rollback
+
+El rollback es automático si falla la imagen, el health, el frontend, el
+manifiesto o las invariantes de servicios vecinos. Restaura:
+
+1. imagen/tag anterior de `produccion_fg`;
+2. contenedor anterior;
+3. frontend anterior;
+4. `RELEASE_MANIFEST.txt` anterior;
+5. health interno.
+
+El manifiesto del intento queda en `~/deploy-backups/registro_produccion/` con
+uno de estos estados:
+
+- `status=success`;
+- `status=rolled_back`;
+- `status=rollback_failed`.
+
+Si aparece `rollback_failed`, no improvisar cambios sobre Nginx, `.env`, bases
+o instancias vecinas. Conservar la salida y revisar el backup, el ID de imagen
+y el estado del contenedor.
+
+## Migraciones
+
+**No aplica migraciones.** El deploy normal aborta si detecta cambios bajo
+`db_migrations/` entre la revisión publicada y `origin/main`.
+
+Una migración requiere una tarea separada con:
+
+- revisión del SQL;
+- identificación explícita de la base de `produccion_fg`;
+- backup verificado;
+- aprobación específica antes de modificar datos;
+- validación y rollback propios.
+
+No agregar migraciones manuales al procedimiento de esta guía.
+
+## Diagnóstico rápido
+
+### El frontend sigue viejo
+
+Comparar el asset publicado con la salida del deploy:
 
 ```bash
-# Ver que container esta corriendo y con que imagen
-docker ps | grep produccion
-
-# Logs del container
-docker logs registro_produccion_produccion_fg --tail 100 -f
-
-# Ejecutar comando adentro del container
-docker exec -it registro_produccion_produccion_fg bash
-
-# Probar API desde el server
-curl -fsS http://127.0.0.1:18005/health
-curl -fsS http://127.0.0.1:8005/health
-
-# Probar API publica (sin hairpin NAT, falla por la red local)
-curl -fsS https://produccion.servinlgsm.com.ar/api/produccion/lugares-carga?un_id=1
-
-# Inspeccionar la respuesta del admin lugares-carga
-TOKEN=$(curl -fsS -H "Content-Type: application/json" \
-  -d '{"dni":"23347203","password":"7203"}' \
-  http://127.0.0.1:18005/api/auth/login \
-  | python3 -c 'import sys, json; print(json.load(sys.stdin)["access_token"])')
-curl -fsS -H "Authorization: Bearer $TOKEN" \
-  http://127.0.0.1:18005/api/admin/lugares-carga | python3 -m json.tool
-
-# Ver el nginx config del dominio
-cat /etc/nginx/sites-enabled/produccion.servinlgsm.com.ar
-
-# Ver la migracion que esta pendiente
-ls -la /srv/apps/registro_produccion/db_migrations/
+grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' \
+  /var/www/html/django/produccion_fg/frontend/index.html | head -1
 ```
 
----
+Si el servidor tiene el asset correcto, aplicar los pasos de PWA/Service
+Worker del apartado anterior.
 
-## Hairpin NAT
-
-El router de la red local **no tiene hairpin NAT** configurado. Esto
-significa que desde el server no podes hacer `curl
-https://produccion.servinlgsm.com.ar/` (la IP publica no resuelve de
-vuelta al server). Por eso todos los curls de este doc apuntan a
-`127.0.0.1` o a los puertos internos. La validacion de la URL publica
-la hace alguien desde fuera de la LAN.
-
----
-
-## Limpiar el backend legacy del host (opcional)
-
-Si queres que quede SOLO el container Docker, hay que matar el proceso
-del backend legacy que sigue corriendo en el host (puerto 8005). Eso se
-hace con sudo (no se puede desde el user `ferreteria`):
+### El contenedor no queda healthy
 
 ```bash
-# Conectado al server por ssh, con sudo:
-sudo kill -9 2683786     # PID del master gunicorn del backend legacy
-# Si no sabes el PID, busca:
-sudo ps -ef | grep 'bind 0.0.0.0:8005' | grep -v grep
-
-# Una vez muerto, opcionalmente borrar el codigo legacy del APP_DIR:
-sudo rm -rf /var/www/html/django/produccion_fg/backend/venv
-sudo rm -rf /var/www/html/django/produccion_fg/backend/app
-# Mantener backend/.env porque el script de deploy lo lee para las migraciones
-# Mantener frontend/ porque nginx lo sirve
-# restart.sh ya esta deprecado, se puede borrar sin drama
+docker inspect registro_produccion_produccion_fg \
+  --format '{{.Image}}|{{.State.Status}}|{{.State.Health.Status}}'
+docker logs registro_produccion_produccion_fg --tail 100
 ```
 
-Verificacion:
+No mostrar ni copiar secretos de los logs.
 
-```bash
-# Puerto 8005 deberia estar libre
-ss -tlnp | grep ':8005' || echo "OK: puerto 8005 libre"
-# Puerto 18005 (container) sigue respondiendo
-curl -fsS http://127.0.0.1:18005/health
-```
+### El preflight dice que producción no es ancestro de `main`
 
-## Pendiente
+Existe una revisión desplegada que todavía no fue mergeada o el historial
+divergió. Mergear primero el PR correcto o preparar un rollback explícito. No
+forzar el deploy.
 
-- [x] Fixear `deploy_produccion_fg.sh` para que detecte el modo Docker
-      y haga `git pull` + `docker compose build` + `docker compose up -d`
-      en vez de tocar el host. (Hecho)
-- [x] Marcar `restart.sh` como DEPRECATED. (Hecho)
-- [x] Actualizar `DEPLOY.md` con la nueva arquitectura. (Hecho)
-- [ ] Limpiar el backend legacy en :8005 (matar proceso y borrar venv/app
-      del APP_DIR). Requiere sudo en el server.
-- [ ] Alinear los `__tablename__` de los modelos legacy con la DB real
-      (snake_case). Es un PR aparte, no urgente.
+## Otros documentos
+
+- [`docs/DEPLOY_GITHUB_MAIN_RUNBOOK.md`](docs/DEPLOY_GITHUB_MAIN_RUNBOOK.md):
+  flujo multiinstancia que actualiza `indufor` y `produccion_fg`; no usar para
+  el deploy normal descrito aquí.
+- [`docs/DEMO_DEPLOY_RUNBOOK.md`](docs/DEMO_DEPLOY_RUNBOOK.md): entorno demo.
+- `README_DEPLOY.md`: referencia histórica de la migración Docker.

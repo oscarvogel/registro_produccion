@@ -125,6 +125,32 @@ def test_github_main_runbook_documents_safe_operator_flow():
     assert missing == []
 
 
+def test_deploy_md_is_the_canonical_produccion_fg_runbook():
+    runbook = read("DEPLOY.md")
+    required = [
+        "Guía canónica",
+        "origin/main",
+        "únicamente `produccion_fg`",
+        "build_deploy_package.ps1",
+        "deploy_produccion_fg_main_fasa195.sh --check",
+        "deploy_produccion_fg_main_fasa195.sh --deploy",
+        "--no-deps",
+        "No aplica migraciones",
+        "Service Worker",
+        "rollback_failed",
+    ]
+
+    missing = [fragment for fragment in required if fragment not in runbook]
+    assert missing == []
+
+
+def test_multiinstance_runbook_warns_against_normal_produccion_fg_deploy():
+    runbook = read("docs/DEPLOY_GITHUB_MAIN_RUNBOOK.md")
+
+    assert "NO usar para el deploy normal de `produccion_fg`" in runbook
+    assert "../DEPLOY.md" in runbook
+
+
 def test_production_deploy_package_applies_idempotent_db_migrations():
     package_script = read("scripts/build_deploy_package.ps1")
     deploy_script = read("deploy_produccion_fg.sh")

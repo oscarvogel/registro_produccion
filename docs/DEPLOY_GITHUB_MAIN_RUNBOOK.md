@@ -1,5 +1,9 @@
 # Deploy desde GitHub main
 
+> **Flujo multiinstancia. NO usar para el deploy normal de `produccion_fg`.**
+> El procedimiento canónico y exclusivo de producción está en
+> [`DEPLOY.md`](../DEPLOY.md).
+
 ## Alcance
 
 `scripts/deploy_main_fasa195.sh` actualiza exclusivamente los servicios Docker
