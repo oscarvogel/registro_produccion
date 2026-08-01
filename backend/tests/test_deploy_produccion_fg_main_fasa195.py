@@ -69,6 +69,7 @@ class DeployHarness:
         mode: str,
         *extra_arguments: str,
         target_commit: str = "target-commit",
+        source_head: str = "target-commit",
         deployed_is_ancestor: bool = True,
         changed_files: str = "",
         git_status: str = "",
@@ -85,6 +86,7 @@ class DeployHarness:
                 "CALL_LOG": bash_path(self.root / "calls.log"),
                 "FAKE_STATE_DIR": bash_path(self.root),
                 "FAKE_TARGET_COMMIT": target_commit,
+                "FAKE_SOURCE_HEAD": source_head,
                 "FAKE_DEPLOYED_IS_ANCESTOR": "1" if deployed_is_ancestor else "0",
                 "FAKE_CHANGED_FILES": changed_files,
                 "FAKE_GIT_STATUS": git_status,
@@ -164,6 +166,7 @@ case "$*" in
   "status --porcelain") printf '%s' "${FAKE_GIT_STATUS:-}" ;;
   "fetch --prune origin") : ;;
   "rev-parse origin/main") printf '%s\n' "${FAKE_TARGET_COMMIT:-target-commit}" ;;
+  "rev-parse HEAD") printf '%s\n' "${FAKE_SOURCE_HEAD:-target-commit}" ;;
   "merge-base --is-ancestor deployed-commit "*)
     [[ "${FAKE_DEPLOYED_IS_ANCESTOR:-1}" == "1" ]]
     ;;
@@ -249,6 +252,13 @@ def test_check_rejects_diverged_or_newer_production(deploy_harness: DeployHarnes
 
     assert result.returncode != 0
     assert "deployed commit is not an ancestor" in result.stderr
+
+
+def test_check_rejects_source_checkout_not_at_origin_main(deploy_harness: DeployHarness):
+    result = deploy_harness.run("--check", source_head="older-main")
+
+    assert result.returncode != 0
+    assert "source checkout does not match origin/main" in result.stderr
 
 
 def test_check_aborts_when_range_contains_db_migrations(deploy_harness: DeployHarness):
