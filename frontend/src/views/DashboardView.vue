@@ -28,7 +28,7 @@
             <AppIcon name="download" size="sm" />
             Exportar CSV
           </button>
-          <button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-extrabold text-on-primary transition-colors hover:bg-primary-dark" @click="router.push({ name: 'mis-registros' })">
+          <button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-extrabold text-on-primary transition-colors hover:bg-primary-dark" @click="abrirDetalle">
             <AppIcon name="records" size="sm" />
             Ver detalle
           </button>
@@ -263,7 +263,7 @@
               placeholder="Todos los procesos"
               selectedDisplay="input"
             />
-            <button type="button" class="min-h-10 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-bold text-neutral-600 hover:border-secondary/40" @click="router.push({ name: 'mis-registros' })">
+            <button type="button" class="min-h-10 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-bold text-neutral-600 hover:border-secondary/40" @click="abrirDetalle">
               Abrir registros
             </button>
           </div>
@@ -524,6 +524,17 @@ function handleRelogin() {
 
 async function refreshDashboard() {
   await store.fetchAll()
+}
+
+/** Issue #104: navega al listado de registros pasando los filtros activos como query. */
+function abrirDetalle() {
+  const query = {}
+  if (store.filtros.un_id) query.un_id = store.filtros.un_id
+  if (store.filtros.tipo_proceso_key) query.tipo_proceso_key = store.filtros.tipo_proceso_key
+  if (store.filtros.movil_id) query.movil_id = store.filtros.movil_id
+  if (store.filtros.fecha_desde) query.fecha_desde = store.filtros.fecha_desde
+  if (store.filtros.fecha_hasta) query.fecha_hasta = store.filtros.fecha_hasta
+  router.push({ name: 'dashboard-registros', query })
 }
 
 async function setDateFilter(field, value) {

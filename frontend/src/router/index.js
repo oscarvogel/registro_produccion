@@ -27,6 +27,12 @@ const routes = [
     meta: { requiresAuth: true, requiresEncargado: true },
   },
   {
+    path: '/dashboard/registros',
+    name: 'dashboard-registros',
+    component: () => import('../views/DashboardRegistrosView.vue'),
+    meta: { requiresAuth: true, requiresEncargado: true },
+  },
+  {
     path: '/mis-registros',
     name: 'mis-registros',
     component: () => import('../views/OperadorView.vue'),

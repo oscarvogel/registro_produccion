@@ -738,13 +738,23 @@ async def get_mis_registros(
     user: Personal = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(TableroProduccion).filter(
-        TableroProduccion.cod_operador == user.idPersonal
+    """Historial personal del operador autenticado (issue #104 refactor).
+
+    Aislado a ``cod_operador == user.idPersonal`` por diseño: el operador
+    nunca puede ver registros de otro operador aunque manipule query params.
+    Reutiliza el helper compartido ``_resolve_records_query`` del modulo de
+    dashboard para aplicar los filtros de fechas y mantener una sola fuente
+    de verdad sobre cómo se filtra un registro por Unidad/Tipo/Móvil/Fechas.
+    """
+    from app.api.routes.dashboard import _resolve_records_query
+
+    query = _resolve_records_query(
+        db, user,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        only_self=True,
+        self_cod_operador=user.idPersonal,
     )
-    if fecha_desde:
-        query = query.filter(TableroProduccion.fecha >= fecha_desde)
-    if fecha_hasta:
-        query = query.filter(TableroProduccion.fecha <= fecha_hasta)
 
     rows = query.order_by(TableroProduccion.fecha.desc(), TableroProduccion.id.desc()).all()
 
