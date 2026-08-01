@@ -76,6 +76,7 @@ class DeployHarness:
         fail_target_health: bool = False,
         fail_rollback: bool = False,
         change_indufor_after_deploy: bool = False,
+        fail_frontend_publish: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
         env.update(
@@ -96,6 +97,7 @@ class DeployHarness:
                 "FAKE_CHANGE_INDUFOR_AFTER_DEPLOY": (
                     "1" if change_indufor_after_deploy else "0"
                 ),
+                "FAKE_FAIL_FRONTEND_PUBLISH": "1" if fail_frontend_publish else "0",
             }
         )
         script = REPO_ROOT / "scripts/deploy_produccion_fg_main_fasa195.sh"
@@ -236,6 +238,16 @@ esac
     )
     write_fake(fake_bin / "curl", "printf 'curl %s\\n' \"$*\" >>\"$CALL_LOG\"")
     write_fake(fake_bin / "sleep", ":")
+    write_fake(
+        fake_bin / "mv",
+        r'''
+printf 'mv %s\n' "$*" >>"$CALL_LOG"
+if [[ "${FAKE_FAIL_FRONTEND_PUBLISH:-0}" == "1" && "$1" == *"/frontend.next-"* && "$2" == */frontend ]]; then
+  exit 1
+fi
+exec /usr/bin/mv "$@"
+''',
+    )
 
     return DeployHarness(tmp_path)
 
@@ -342,4 +354,16 @@ def test_neighbor_invariant_failure_triggers_rollback(deploy_harness: DeployHarn
     assert result.returncode != 0
     assert "indufor changed during deploy" in result.stderr
     assert "docker tag old-image-id registro_produccion:latest" in deploy_harness.calls
+    assert deploy_harness.manifest["status"] == "rolled_back"
+
+
+def test_partial_frontend_switch_restores_previous_frontend(
+    deploy_harness: DeployHarness,
+):
+    result = deploy_harness.run("--deploy", "--yes", fail_frontend_publish=True)
+
+    assert result.returncode != 0
+    assert (deploy_harness.app_parent / "frontend" / "index.html").read_text(
+        encoding="utf-8"
+    ) == "old frontend"
     assert deploy_harness.manifest["status"] == "rolled_back"

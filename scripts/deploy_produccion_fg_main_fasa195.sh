@@ -74,8 +74,8 @@ previous_frontend=""
 failed_frontend=""
 previous_manifest=""
 failed_manifest=""
-frontend_switched=false
-manifest_switched=false
+frontend_previous_created=false
+manifest_previous_created=false
 deploy_started=false
 recovery_started=false
 
@@ -112,17 +112,25 @@ recover_and_exit() {
 
   printf 'ERROR: deploy failed; starting rollback\n' >&2
 
-  if [[ "$manifest_switched" == true ]]; then
-    if ! mv "$APP_PARENT/RELEASE_MANIFEST.txt" "$failed_manifest" ||
-       ! mv "$previous_manifest" "$APP_PARENT/RELEASE_MANIFEST.txt"; then
+  if [[ "$manifest_previous_created" == true ]]; then
+    if [[ -f "$APP_PARENT/RELEASE_MANIFEST.txt" ]] &&
+       ! mv "$APP_PARENT/RELEASE_MANIFEST.txt" "$failed_manifest"; then
+      printf 'ERROR: failed to preserve failed release manifest\n' >&2
+      recovery_failed=true
+    fi
+    if ! mv "$previous_manifest" "$APP_PARENT/RELEASE_MANIFEST.txt"; then
       printf 'ERROR: failed to restore release manifest\n' >&2
       recovery_failed=true
     fi
   fi
 
-  if [[ "$frontend_switched" == true ]]; then
-    if ! mv "$APP_PARENT/frontend" "$failed_frontend" ||
-       ! mv "$previous_frontend" "$APP_PARENT/frontend"; then
+  if [[ "$frontend_previous_created" == true ]]; then
+    if [[ -d "$APP_PARENT/frontend" ]] &&
+       ! mv "$APP_PARENT/frontend" "$failed_frontend"; then
+      printf 'ERROR: failed to preserve failed frontend\n' >&2
+      recovery_failed=true
+    fi
+    if ! mv "$previous_frontend" "$APP_PARENT/frontend"; then
       printf 'ERROR: failed to restore frontend\n' >&2
       recovery_failed=true
     fi
@@ -295,8 +303,8 @@ wait_healthy
   fail "running image does not match target image"
 
 mv "$APP_PARENT/frontend" "$previous_frontend"
+frontend_previous_created=true
 mv "$staging_frontend" "$APP_PARENT/frontend"
-frontend_switched=true
 
 printf '%s\n' \
   "name=registro_produccion" \
@@ -305,8 +313,8 @@ printf '%s\n' \
   "branch=$BRANCH" \
   "built_at=$timestamp" >"$APP_PARENT/RELEASE_MANIFEST.next-${timestamp}.txt"
 mv "$APP_PARENT/RELEASE_MANIFEST.txt" "$previous_manifest"
+manifest_previous_created=true
 mv "$APP_PARENT/RELEASE_MANIFEST.next-${timestamp}.txt" "$APP_PARENT/RELEASE_MANIFEST.txt"
-manifest_switched=true
 
 [[ "$(grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' "$APP_PARENT/frontend/index.html" | head -1)" == "$frontend_asset" ]] ||
   fail "published frontend asset does not match package"
