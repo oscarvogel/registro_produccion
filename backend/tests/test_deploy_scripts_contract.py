@@ -84,6 +84,29 @@ def test_github_main_docker_deploy_has_safe_contract():
     assert missing == []
 
 
+def test_produccion_fg_main_deploy_has_exclusive_safe_contract():
+    script = read("scripts/deploy_produccion_fg_main_fasa195.sh")
+    required_fragments = [
+        'REMOTE="origin"',
+        'BRANCH="main"',
+        'SERVICE="produccion_fg"',
+        "--check",
+        "--deploy",
+        "--yes",
+        "git merge-base --is-ancestor",
+        "db_migrations",
+        "--no-deps",
+        "frontend.next",
+        "frontend.previous",
+        "rollback_failed",
+        "indufor_unchanged",
+        "indufor_demo_unchanged",
+    ]
+
+    missing = [fragment for fragment in required_fragments if fragment not in script]
+    assert missing == []
+
+
 def test_github_main_runbook_documents_safe_operator_flow():
     runbook = read("docs/DEPLOY_GITHUB_MAIN_RUNBOOK.md")
     required = [
