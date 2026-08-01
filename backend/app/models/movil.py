@@ -39,4 +39,7 @@ class Movil(Base):
     estadistica = Column(SmallInteger, nullable=False, default=1)
     codigo_gestya = Column(String(150), nullable=False, default="")
     movil_asociado = Column(Integer, nullable=False, default=0)
+    usa_planificacion = Column(SmallInteger, nullable=False, default=0)
+    codigo_fg = Column(String(50), nullable=False, default="")
+    modelo_normalizado = Column(String(80), nullable=False, default="")
     observaciones = Column(Text, nullable=True)
