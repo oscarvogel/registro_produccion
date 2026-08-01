@@ -33,6 +33,9 @@ def test_windows_package_script_builds_manifested_package_without_env_files():
     required_fragments = [
         "git rev-parse HEAD",
         "git rev-parse origin/main",
+        "git archive --format=tar",
+        "$CleanSource",
+        "npm ci",
         "python -m pytest",
         "npm run test",
         "npm run build",
@@ -84,6 +87,33 @@ def test_github_main_docker_deploy_has_safe_contract():
     assert missing == []
 
 
+def test_produccion_fg_main_deploy_has_exclusive_safe_contract():
+    script = read("scripts/deploy_produccion_fg_main_fasa195.sh")
+    required_fragments = [
+        'REMOTE="origin"',
+        'BRANCH="main"',
+        'SERVICE="produccion_fg"',
+        "--check",
+        "--deploy",
+        "--yes",
+        "git merge-base --is-ancestor",
+        "db_migrations",
+        "--no-deps",
+        "frontend.next",
+        "frontend.previous",
+        "rollback_failed",
+        "indufor_unchanged",
+        "indufor_demo_unchanged",
+        "write_compose_override",
+        'image: "%s"',
+        '[[ -f "$tmp_dir/frontend/dist/$frontend_asset" ]]',
+    ]
+
+    missing = [fragment for fragment in required_fragments if fragment not in script]
+    assert missing == []
+    assert "registro_produccion:latest" not in script
+
+
 def test_github_main_runbook_documents_safe_operator_flow():
     runbook = read("docs/DEPLOY_GITHUB_MAIN_RUNBOOK.md")
     required = [
@@ -100,6 +130,36 @@ def test_github_main_runbook_documents_safe_operator_flow():
 
     missing = [fragment for fragment in required if fragment not in runbook]
     assert missing == []
+
+
+def test_deploy_md_is_the_canonical_produccion_fg_runbook():
+    runbook = read("DEPLOY.md")
+    required = [
+        "Guía canónica",
+        "origin/main",
+        "únicamente `produccion_fg`",
+        "build_deploy_package.ps1",
+        "git archive",
+        "npm ci",
+        "registro_produccion:latest",
+        "deploy_produccion_fg_main_fasa195.sh --check",
+        "deploy_produccion_fg_main_fasa195.sh --deploy",
+        "--no-deps",
+        "No aplica migraciones",
+        "Service Worker",
+        "rollback_failed",
+    ]
+
+    missing = [fragment for fragment in required if fragment not in runbook]
+    assert missing == []
+    assert "sin modificar la etiqueta `registro_produccion:latest`" in runbook
+
+
+def test_multiinstance_runbook_warns_against_normal_produccion_fg_deploy():
+    runbook = read("docs/DEPLOY_GITHUB_MAIN_RUNBOOK.md")
+
+    assert "NO usar para el deploy normal de `produccion_fg`" in runbook
+    assert "../DEPLOY.md" in runbook
 
 
 def test_production_deploy_package_applies_idempotent_db_migrations():
