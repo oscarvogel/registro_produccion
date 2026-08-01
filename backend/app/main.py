@@ -2,6 +2,7 @@ import logging
 import re
 from datetime import datetime, timezone
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -17,6 +18,49 @@ app = FastAPI(title=settings.PROJECT_NAME)
 logger = logging.getLogger(__name__)
 SAFE_DATABASE_ERROR_DETAIL = "No se pudieron cargar los datos necesarios. Actualiza e intenta nuevamente."
 SAFE_SERVER_ERROR_DETAIL = "No se pudo completar la operacion. Intenta nuevamente en unos minutos."
+SAFE_VALIDATION_ERROR_DETAIL = "Los datos enviados no son validos. Revisa los campos del formulario e intenta nuevamente."
+
+# Pydantic 2.x wraps custom `ValueError(...)` raised inside validators as
+# "Value error, <message>". Strip the prefix so the user-facing toast gets a
+# clean sentence instead of a cryptic Pydantic tag.
+_VALUE_ERROR_PREFIX = "Value error, "
+
+
+def _humanize_validation_error(exc: RequestValidationError) -> str:
+    """Build a single, user-friendly sentence for a Pydantic validation error.
+
+    Priority:
+      1. Any custom `ValueError` raised from a model validator (e.g. combustible
+         business rules) — these messages are already written in Spanish.
+      2. The first typed validation error rendered into a short Spanish message
+         via a small map of common Pydantic error types.
+      3. The generic fallback so we never leak a raw Pydantic payload to the UI.
+    """
+    errors = exc.errors() or []
+    for err in errors:
+        if err.get("type") == "value_error":
+            msg = str(err.get("msg") or "").strip()
+            if msg.startswith(_VALUE_ERROR_PREFIX):
+                msg = msg[len(_VALUE_ERROR_PREFIX):]
+            if msg:
+                return msg
+
+    type_messages = {
+        "int_parsing": "uno de los campos numericos no es un numero valido",
+        "float_parsing": "uno de los campos numericos no es un numero valido",
+        "missing": "faltan datos obligatorios del formulario",
+        "string_too_long": "uno de los textos excede el tamano maximo permitido",
+        "string_type": "uno de los campos esperaba texto",
+        "greater_than_equal": "uno de los campos numericos es menor al minimo permitido",
+        "greater_than": "uno de los campos numericos debe ser mayor a cero",
+        "json_invalid": "el cuerpo de la solicitud no tiene un formato valido",
+    }
+    for err in errors:
+        translated = type_messages.get(err.get("type", ""))
+        if translated:
+            return translated
+
+    return SAFE_VALIDATION_ERROR_DETAIL
 
 # CORS
 app.add_middleware(
@@ -48,6 +92,27 @@ async def database_exception_handler(request: Request, exc: SQLAlchemyError):
     return JSONResponse(
         status_code=503,
         content={"detail": SAFE_DATABASE_ERROR_DETAIL},
+        headers=_cors_headers_for_request(request),
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Convert Pydantic validation failures into a single, user-friendly string.
+
+    The default FastAPI handler returns the raw error list, which previously
+    leaked Pydantic internals (URLs to docs, internal field names, full input
+    payload) to the operator-facing toast.
+    """
+    logger.warning(
+        "Validation error while processing %s %s: %s",
+        request.method,
+        request.url.path,
+        exc.errors(),
+    )
+    return JSONResponse(
+        status_code=422,
+        content={"detail": _humanize_validation_error(exc)},
         headers=_cors_headers_for_request(request),
     )
 
