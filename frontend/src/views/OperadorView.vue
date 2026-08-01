@@ -94,7 +94,14 @@
             v-for="record in store.registros"
             :key="record.id"
             v-motion-panel
-            class="app-card rounded-xl p-3.5"
+            class="app-card cursor-pointer rounded-xl p-3.5 transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+            :data-testid="`operador-registro-${record.id}`"
+            tabindex="0"
+            role="button"
+            :aria-label="`Ver detalle del registro ${record.operacion || 'Produccion'} del ${formatFecha(record.fecha)}`"
+            @click="abrirDetalle(record.id)"
+            @keydown.enter.prevent="abrirDetalle(record.id)"
+            @keydown.space.prevent="abrirDetalle(record.id)"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
@@ -131,6 +138,8 @@
         </EmptyState>
       </template>
     </div>
+
+    <RecordDetailModal v-model="detalleOpen" :registro-id="detalleId" />
   </div>
 </template>
 
@@ -144,10 +153,18 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import FilterBar from '@/components/ui/FilterBar.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import RecordDetailModal from '@/components/registros/RecordDetailModal.vue'
 
 const authStore = useAuthStore()
 const store = useMisRegistrosStore()
 const activePreset = ref('month')
+const detalleOpen = ref(false)
+const detalleId = ref(null)
+
+function abrirDetalle(id) {
+  detalleId.value = id
+  detalleOpen.value = true
+}
 
 const datePresets = [
   { key: 'today', label: 'Hoy' },
