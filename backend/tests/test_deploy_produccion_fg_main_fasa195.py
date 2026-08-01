@@ -75,6 +75,7 @@ class DeployHarness:
         git_status: str = "",
         fail_target_health: bool = False,
         fail_rollback: bool = False,
+        change_indufor_after_deploy: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
         env.update(
@@ -92,6 +93,9 @@ class DeployHarness:
                 "FAKE_GIT_STATUS": git_status,
                 "FAKE_FAIL_TARGET_HEALTH": "1" if fail_target_health else "0",
                 "FAKE_FAIL_ROLLBACK": "1" if fail_rollback else "0",
+                "FAKE_CHANGE_INDUFOR_AFTER_DEPLOY": (
+                    "1" if change_indufor_after_deploy else "0"
+                ),
             }
         )
         script = REPO_ROOT / "scripts/deploy_produccion_fg_main_fasa195.sh"
@@ -185,7 +189,11 @@ case "$*" in
     printf '%s\n' produccion_fg
     ;;
   "inspect -f {{.Id}}|{{.Image}} registro_produccion_indufor")
-    printf '%s\n' indufor-container-id\|indufor-image-id
+    if [[ -f "$FAKE_STATE_DIR/target-deployed" && "${FAKE_CHANGE_INDUFOR_AFTER_DEPLOY:-0}" == "1" ]]; then
+      printf '%s\n' changed-indufor-container\|changed-indufor-image
+    else
+      printf '%s\n' indufor-container-id\|indufor-image-id
+    fi
     ;;
   "inspect -f {{.Id}}|{{.Image}} registro_produccion_indufor_demo")
     printf '%s\n' demo-container-id\|demo-image-id
@@ -324,3 +332,14 @@ def test_failed_rollback_is_reported_truthfully(deploy_harness: DeployHarness):
     assert result.returncode != 0
     assert deploy_harness.manifest["status"] == "rollback_failed"
     assert "rollback failed" in result.stderr
+
+
+def test_neighbor_invariant_failure_triggers_rollback(deploy_harness: DeployHarness):
+    result = deploy_harness.run(
+        "--deploy", "--yes", change_indufor_after_deploy=True
+    )
+
+    assert result.returncode != 0
+    assert "indufor changed during deploy" in result.stderr
+    assert "docker tag old-image-id registro_produccion:latest" in deploy_harness.calls
+    assert deploy_harness.manifest["status"] == "rolled_back"
