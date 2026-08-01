@@ -3,6 +3,11 @@ import api from '@/services/api'
 import db from '@/services/db'
 import { ensurePendingIdentity, queuePendingProductionRecord } from '@/services/pendingRecords'
 import { useToastStore } from '@/stores/toast'
+import {
+  extractApiErrorMessage,
+  extractValidationErrorMessage,
+  normalizeProduccionPayload,
+} from '@/utils/apiError'
 
 const ensureArray = (value) => (Array.isArray(value) ? value : [])
 const CATALOG_TTL_MS = 5 * 60 * 1000
@@ -268,10 +273,10 @@ export const useProduccionStore = defineStore('produccion', {
     async submitProduccion(formData) {
       this.submitting = true
       this.error = null
-      const submissionPayload = {
+      const submissionPayload = normalizeProduccionPayload({
         ...formData,
         form_uuid: formData.form_uuid || createFormUuid(),
-      }
+      })
       try {
         // If offline, queue locally instead of posting
         if (!navigator.onLine) {
@@ -298,8 +303,12 @@ export const useProduccionStore = defineStore('produccion', {
           )
           return { offline: true }
         }
-        this.error = err.response?.data?.detail || 'Error al guardar el registro'
-        useToastStore().error('No se pudo guardar', this.error)
+        const isValidation = err.response?.status === 422
+        const message = isValidation
+          ? extractValidationErrorMessage(err, 'No se pudo guardar el registro. Revisa los datos del formulario.')
+          : extractApiErrorMessage(err, 'No se pudo guardar el registro')
+        this.error = message
+        useToastStore().error('No se pudo guardar', message)
         throw err
       } finally {
         this.submitting = false
@@ -343,7 +352,10 @@ export const useProduccionStore = defineStore('produccion', {
             const status = err?.response?.status
 
             if (isPermanentSyncError(status)) {
-              const detail = err.response?.data?.detail || 'Error permanente al sincronizar el registro'
+              const detail = extractApiErrorMessage(
+                err,
+                'Error permanente al sincronizar el registro',
+              )
               await db.pendingRecords.update(record.id, {
                 synced: 1,
                 syncStatus: 'failed',
@@ -359,7 +371,10 @@ export const useProduccionStore = defineStore('produccion', {
               syncStatus: 'pending',
               syncError: [401, 403].includes(status)
                 ? 'La sesión debe validarse nuevamente antes de enviar.'
-                : err.response?.data?.detail || 'Error transitorio. Se reintentará automáticamente.',
+                : extractApiErrorMessage(
+                    err,
+                    'Error transitorio. Se reintentará automáticamente.',
+                  ),
             })
           }
         }

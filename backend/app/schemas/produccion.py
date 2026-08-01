@@ -1,5 +1,65 @@
+from typing import Any
+
 from pydantic import BaseModel, Field, model_validator
 from datetime import date
+
+
+# Numeric fields that the frontend can send as an empty string or null when
+# the operator clears a "number" input. We coerce those to 0 instead of
+# rejecting the whole payload with a raw `int_parsing` error.
+_NUMERIC_FIELDS: tuple[str, ...] = (
+    "cod_operador",
+    "cod_equipo",
+    "hr_inicio",
+    "hr_fin",
+    "combustible",
+    "km_combustible",
+    "aceite_cadena",
+    "aceite_hidraulico",
+    "aceite_motor",
+    "aceite_transmision",
+    "aceite_embrague",
+    "m3",
+    "carros",
+    "tn_despachadas",
+    "has",
+    "produccion",
+    "plantas",
+    "mtrs_recorridos",
+    "km_carreteo",
+    "km_perfilado",
+    "hr_disposicion",
+    "hrs_no_op",
+    "espada",
+    "puntera",
+    "cadena",
+    "pinon",
+    "cantidad_cadenas",
+    "pies_16",
+    "pies_14",
+    "pies_12",
+    "pies_10",
+    "pulpable",
+    "lugar_carga",
+    "codigo_tabla",
+    "id_tipo_comb",
+)
+
+
+def _coerce_empty_numeric(data: Any) -> Any:
+    """Treat empty strings / null in numeric fields as `0` before Pydantic
+    validation runs. Without this, `v-model.number` on a cleared number input
+    produces `""` and the request fails with a raw `int_parsing` error.
+    """
+    if not isinstance(data, dict):
+        return data
+    for field in _NUMERIC_FIELDS:
+        if field not in data:
+            continue
+        value = data[field]
+        if value is None or (isinstance(value, str) and value.strip() == ""):
+            data[field] = 0
+    return data
 
 
 # --- Operador ---
@@ -157,6 +217,11 @@ class TableroProduccionCreate(BaseModel):
     remito: str = Field(default="", max_length=12)
     remito2: str = Field(default="", max_length=12)
     remito3: str = Field(default="", max_length=12)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_blank_numeric_fields(cls, data: Any) -> Any:
+        return _coerce_empty_numeric(data)
 
     @model_validator(mode="after")
     def validate_combustible_movement(self):
