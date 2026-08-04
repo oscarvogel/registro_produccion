@@ -17,14 +17,29 @@ export default defineConfig({
                             // until they manually hard-reload.
       devOptions: { enabled: true },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      // The head tags required for installability (theme-color, iOS apple-
+      // mobile-web-app-*, apple-touch-icon) live in index.html. We keep them
+      // there instead of using headHTML/headMeta because the option in
+      // vite-plugin-pwa 1.x is silently ignored on this project; the
+      // committed index.html is the source of truth and is easier to audit.
+      // The manifest stays in this config because it is the structured
+      // JSON the browser reads at install time.
       manifest: {
+        // `id` is required by the modern PWA spec (Chrome 96+). Without it
+        // some browsers treat the app as a duplicate and skip the install
+        // prompt entirely.
+        id: '/',
         name: 'Registro de Producción',
         short_name: 'Producción',
         description: 'Sistema de registro de producción forestal',
         theme_color: '#143d23',
         background_color: '#f5f5f5',
+        // es-AR matches the app's primary locale. Chrome uses the manifest
+        // lang to decide UI strings for the install dialog.
+        lang: 'es-AR',
         display: 'standalone',
         start_url: '/',
+        scope: '/',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
