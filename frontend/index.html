@@ -4,6 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro Producción</title>
+    <!--
+      PWA installability tags. Chrome Android uses theme-color to evaluate
+      whether the PWA meets the "engagement" criteria that gate the
+      beforeinstallprompt event. iOS Safari does not implement
+      beforeinstallprompt at all - the only path to a home-screen icon on
+      iPhone is the manual Share > Add to Home Screen flow, and these
+      apple-mobile-web-app-* tags control how that icon looks and behaves.
+    -->
+    <meta name="theme-color" content="#143d23">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Producción">
+    <link rel="apple-touch-icon" href="/pwa-192x192.png">
     <script>
       (function () {
         var key = 'registro_theme'
