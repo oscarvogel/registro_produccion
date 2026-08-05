@@ -164,6 +164,35 @@ async def create_carga_combustible(
         )
         return _to_carga_response(existing, existing_movil or movil, user)
 
+    # Issue #124 (parte 2): ademas del dedupe por form_uuid (idempotencia del
+    # mismo formulario), bloqueamos cargas con la misma clave natural
+    # (idMovil, Fecha, Litros, remito, tipo_mov='E') para el mismo operador.
+    # Esto cubre el doble submit desde la UI (doble click, doble tab, retry
+    # de red) que genera form_uuids distintos pero la misma carga.
+    if payload.remito:
+        natural_key_dup = (
+            db.query(CargaComb)
+            .filter(
+                CargaComb.personal == user.idPersonal,
+                CargaComb.idMovil == payload.id_movil,
+                CargaComb.Fecha == payload.fecha,
+                CargaComb.Litros == payload.litros,
+                CargaComb.remito == payload.remito,
+                CargaComb.tipo_mov == "E",
+            )
+            .first()
+        )
+        if natural_key_dup:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"Ya existe una carga de {payload.litros} L del movil "
+                    f"{payload.id_movil} con remito {payload.remito} en "
+                    f"{payload.fecha} (id carga {natural_key_dup.idCargaComb}). "
+                    f"No se duplica el egreso de stock."
+                ),
+            )
+
     if not _lugar_carga_habilitado(db, payload.id_lugar_carga, movil_unidad):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

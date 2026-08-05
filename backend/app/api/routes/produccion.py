@@ -703,6 +703,37 @@ async def create_produccion(
         # El abastecimiento asociado al parte se registra en la misma
         # transaccion: el parte y el egreso de stock nacen o fallan juntos.
         if data.combustible > 0:
+            # Issue #124 (parte 2): dedupe por clave natural antes del
+            # insert. Si ya existe una carga con la misma combinacion
+            # (movil, fecha, litros, remito, tipo_mov='E') para el mismo
+            # operador, abortamos para no duplicar el egreso de stock.
+            # Cubre doble submit desde la UI (doble click, doble tab,
+            # retry de red) que genera form_uuids distintos.
+            if data.remito:
+                existing_carga = (
+                    db.query(CargaComb)
+                    .filter(
+                        CargaComb.personal == data.cod_operador,
+                        CargaComb.idMovil == data.cod_equipo,
+                        CargaComb.Fecha == data.fecha,
+                        CargaComb.Litros == data.combustible,
+                        CargaComb.remito == data.remito,
+                        CargaComb.tipo_mov == "E",
+                    )
+                    .first()
+                )
+                if existing_carga:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            f"Ya existe una carga de {data.combustible} L "
+                            f"del movil {data.cod_equipo} con remito "
+                            f"{data.remito} en {data.fecha} "
+                            f"(id carga {existing_carga.idCargaComb}). "
+                            f"No se duplica el egreso de stock."
+                        ),
+                    )
+
             now = datetime.now()
             carga = CargaComb(
                 idMovil=data.cod_equipo,

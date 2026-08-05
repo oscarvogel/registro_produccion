@@ -199,24 +199,31 @@ def test_same_explicit_event_id_cannot_be_written_again_from_the_other_flow(
     assert result.id_carga == rows[0].idCargaComb
 
 
-def test_identical_real_loads_with_different_ids_are_allowed(db):
-    first = asyncio.run(
+def test_identical_real_loads_with_different_ids_are_rejected(db):
+    """Issue #124 (parte 2): dos cargas con el mismo (movil, fecha, litros,
+    remito) y mismo operador se consideran la misma carga fisica aunque
+    tengan form_uuids distintos. La segunda debe rebotar con 409 para no
+    duplicar el egreso de stock.
+    """
+    from fastapi import HTTPException
+
+    asyncio.run(
         combustible.create_carga_combustible(
             _payload("carga-fisica-a"),
             db=db,
             user=_user(),
         )
     )
-    second = asyncio.run(
-        combustible.create_carga_combustible(
-            _payload("carga-fisica-b"),
-            db=db,
-            user=_user(),
+    with pytest.raises(HTTPException) as excinfo:
+        asyncio.run(
+            combustible.create_carga_combustible(
+                _payload("carga-fisica-b"),
+                db=db,
+                user=_user(),
+            )
         )
-    )
-
-    assert second.id_carga != first.id_carga
-    assert db.query(CargaComb).count() == 2
+    assert excinfo.value.status_code == 409
+    assert db.query(CargaComb).count() == 1
 
 
 def test_form_uuid_matches_the_database_contract():
@@ -293,3 +300,81 @@ def test_combustible_endpoint_persiste_remito_normalizado(db):
 
     row = db.query(CargaComb).one()
     assert row.remito == "000000011278"
+
+
+# ─── Issue #124 (parte 2): dedupe por clave natural ─────────────────────
+
+
+def test_combustible_endpoint_rechaza_carga_duplicada_con_otro_form_uuid(db):
+    """Cubre el doble submit del mismo operador: dos form_uuids distintos
+    para la misma carga fisica. La segunda llamada debe rebotar con 409.
+    """
+    first = CargaCombustibleCreate(
+        form_uuid="carga-original",
+        fecha=date(2026, 7, 29),
+        id_movil=10,
+        litros=160,
+        km=14855,
+        id_lugar_carga=42,
+        id_tipo_comb=1,
+        remito="000000011278",
+    )
+    asyncio.run(
+        combustible.create_carga_combustible(
+            first, db=db, user=_user()
+        )
+    )
+
+    # Misma carga, distinto form_uuid (retry de red, doble click, etc.).
+    duplicate = CargaCombustibleCreate(
+        form_uuid="carga-retry",
+        fecha=date(2026, 7, 29),
+        id_movil=10,
+        litros=160,
+        km=14856,  # KM puede variar
+        id_lugar_carga=42,
+        id_tipo_comb=1,
+        remito="000000011278",
+    )
+
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as excinfo:
+        asyncio.run(
+            combustible.create_carga_combustible(
+                duplicate, db=db, user=_user()
+            )
+        )
+    assert excinfo.value.status_code == 409
+    assert "Ya existe una carga" in excinfo.value.detail
+
+    # Solo se persiste la primera.
+    assert db.query(CargaComb).count() == 1
+
+
+def test_combustible_endpoint_permite_cargas_distintas(db):
+    """Cargas con la misma fecha y movil pero distinto remito son legitimas."""
+    a = CargaCombustibleCreate(
+        form_uuid="carga-a",
+        fecha=date(2026, 7, 29),
+        id_movil=10,
+        litros=160,
+        km=14855,
+        id_lugar_carga=42,
+        id_tipo_comb=1,
+        remito="000000011278",
+    )
+    b = CargaCombustibleCreate(
+        form_uuid="carga-b",
+        fecha=date(2026, 7, 29),
+        id_movil=10,
+        litros=160,
+        km=14855,
+        id_lugar_carga=42,
+        id_tipo_comb=1,
+        remito="000000011279",  # remito distinto
+    )
+    asyncio.run(combustible.create_carga_combustible(a, db=db, user=_user()))
+    asyncio.run(combustible.create_carga_combustible(b, db=db, user=_user()))
+
+    assert db.query(CargaComb).count() == 2
