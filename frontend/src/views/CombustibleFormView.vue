@@ -170,6 +170,7 @@ import SectionCard from '@/components/SectionCard.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import { normalizeRemito } from '@/utils/remito'
 
 const authStore = useAuthStore()
 const store = useCombustibleStore()
@@ -261,9 +262,9 @@ async function submit() {
       km: Number(form.km),
       id_lugar_carga: Number(form.id_lugar_carga),
       id_tipo_comb: 1,
-      remito: form.remito.trim(),
-      remito2: form.remito2.trim(),
-      remito3: form.remito3.trim(),
+      remito: normalizeRemito(form.remito) ?? form.remito.trim(),
+      remito2: normalizeRemito(form.remito2) ?? form.remito2.trim(),
+      remito3: normalizeRemito(form.remito3) ?? form.remito3.trim(),
       observaciones: form.observaciones?.trim() || null,
     })
     successMessage.value = `Carga registrada para ${carga.movil}.`

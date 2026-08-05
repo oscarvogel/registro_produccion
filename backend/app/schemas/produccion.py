@@ -1,7 +1,9 @@
 from typing import Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from datetime import date
+
+from app.core.remito import normalize_remito
 
 
 # Numeric fields that the frontend can send as an empty string or null when
@@ -217,6 +219,19 @@ class TableroProduccionCreate(BaseModel):
     remito: str = Field(default="", max_length=12)
     remito2: str = Field(default="", max_length=12)
     remito3: str = Field(default="", max_length=12)
+
+    @field_validator("remito", "remito2", "remito3")
+    @classmethod
+    def validate_remito(cls, value: str) -> str:
+        # Issue #124: normalizar el remito al formato canonico (12 digitos
+        # para valores puramente numericos) para evitar que el mismo
+        # comprobante aparezca dos veces en Control de combustible.
+        if value is None or value == "":
+            return ""
+        try:
+            return normalize_remito(value)
+        except ValueError:
+            raise
 
     @model_validator(mode="before")
     @classmethod

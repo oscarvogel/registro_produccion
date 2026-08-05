@@ -226,3 +226,68 @@ def test_form_uuid_matches_the_database_contract():
         for constraint in CargaComb.__table__.constraints
     }
     assert "uq_cargacomb_personal_form_uuid" in constraint_names
+
+
+# ─── Issue #124: normalizacion de remito a formato canonico ────────────────
+
+
+@pytest.mark.parametrize(
+    ("entrada", "esperado"),
+    [
+        ("1", "000000000001"),
+        ("11278", "000000011278"),
+        ("011278", "000000011278"),
+        ("000000011278", "000000011278"),
+        ("R-0001", "R-0001"),
+    ],
+)
+def test_schema_combustible_normaliza_remito(entrada, esperado):
+    payload = CargaCombustibleCreate(
+        form_uuid="carga-1",
+        fecha=date(2026, 7, 29),
+        id_movil=10,
+        litros=160,
+        km=14855,
+        id_lugar_carga=42,
+        remito=entrada,
+    )
+    assert payload.remito == esperado
+
+
+def test_schema_combustible_rechaza_remito_con_caracteres_invalidos():
+    with pytest.raises(ValidationError, match="letras, numeros y guion"):
+        CargaCombustibleCreate(
+            form_uuid="carga-1",
+            fecha=date(2026, 7, 29),
+            id_movil=10,
+            litros=160,
+            km=14855,
+            id_lugar_carga=42,
+            remito="11.278",
+        )
+
+
+def test_combustible_endpoint_persiste_remito_normalizado(db):
+    """Si el operador tipea ``11278`` (sin padding), el endpoint debe
+    guardar ``000000011278`` para no chocar con cargas equivalentes
+    que ya estaban en la base con el formato padded.
+    """
+    payload = CargaCombustibleCreate(
+        form_uuid="carga-con-remito-corto",
+        fecha=date(2026, 7, 29),
+        id_movil=10,
+        litros=160,
+        km=14855,
+        id_lugar_carga=42,
+        id_tipo_comb=1,
+        remito="11278",
+    )
+
+    asyncio.run(
+        combustible.create_carga_combustible(
+            payload, db=db, user=_user()
+        )
+    )
+
+    row = db.query(CargaComb).one()
+    assert row.remito == "000000011278"

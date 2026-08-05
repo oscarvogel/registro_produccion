@@ -977,6 +977,7 @@ import AppIcon from '@/components/ui/AppIcon.vue'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
 import { cleanLocationValues, getLocationRequirements, shouldShowActaPredioFields } from '@/services/actaPredioRules'
 import { focusInside } from '@/utils/focusInside'
+import { normalizeRemito } from '@/utils/remito'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1795,9 +1796,15 @@ async function handleSubmit() {
       hr_fin: form.hr_fin,
       combustible: form.combustible,
       km_combustible: cargoCombustible.value ? Number(form.km_combustible) : 0,
-      remito: cargoCombustible.value ? String(form.remito ?? '').trim() : '',
-      remito2: cargoCombustible.value ? String(form.remito2 ?? '').trim() : '',
-      remito3: cargoCombustible.value ? String(form.remito3 ?? '').trim() : '',
+      remito: cargoCombustible.value
+        ? (normalizeRemito(form.remito) ?? String(form.remito ?? '').trim())
+        : '',
+      remito2: cargoCombustible.value
+        ? (normalizeRemito(form.remito2) ?? String(form.remito2 ?? '').trim())
+        : '',
+      remito3: cargoCombustible.value
+        ? (normalizeRemito(form.remito3) ?? String(form.remito3 ?? '').trim())
+        : '',
       aceite_cadena: form.aceite_cadena,
       aceite_hidraulico: form.aceite_hidraulico,
       aceite_motor: form.aceite_motor,
