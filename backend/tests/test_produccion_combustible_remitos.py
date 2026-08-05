@@ -89,6 +89,71 @@ def test_schema_rejects_remito_longer_than_twelve_chars(field):
         )
 
 
+# ─── Issue #124: normalizacion de remito a formato canonico ────────────────
+
+
+@pytest.mark.parametrize(
+    ("entrada", "esperado"),
+    [
+        ("1", "000000000001"),
+        ("11278", "000000011278"),
+        ("011278", "000000011278"),
+        ("000000011278", "000000011278"),
+        ("21325", "000000021325"),
+        ("R-0001", "R-0001"),
+        # Formato hifenado: PPPP-DDDDDDDD
+        ("99-99999", "009900099999"),
+        ("02-1335", "000200001335"),
+        ("0000002-1335", "000200001335"),
+    ],
+)
+def test_schema_normaliza_remito_numerico_y_alfanumerico(entrada, esperado):
+    payload = TableroProduccionCreate(
+        fecha=date(2026, 7, 28),
+        combustible=0,
+        remito=entrada,
+    )
+    assert payload.remito == esperado
+
+
+@pytest.mark.parametrize(
+    ("remito2", "remito3", "exp2", "exp3"),
+    [
+        ("11278", "21325", "000000011278", "000000021325"),
+        ("R-0002", "R-0003", "R-0002", "R-0003"),
+        ("", "", "", ""),
+    ],
+)
+def test_schema_normaliza_remito2_y_remito3(remito2, remito3, exp2, exp3):
+    payload = TableroProduccionCreate(
+        fecha=date(2026, 7, 28),
+        combustible=0,
+        remito2=remito2,
+        remito3=remito3,
+    )
+    assert payload.remito2 == exp2
+    assert payload.remito3 == exp3
+
+
+def test_schema_rechaza_remito_con_caracteres_invalidos():
+    with pytest.raises(ValidationError, match="letras, numeros y guion"):
+        TableroProduccionCreate(
+            fecha=date(2026, 7, 28),
+            combustible=0,
+            remito="11.278",
+        )
+
+
+def test_schema_rechaza_remito_numerico_con_mas_de_12_digitos():
+    # El max_length=12 del schema lo corta antes de llegar a mi validador.
+    with pytest.raises(ValidationError, match="at most 12 characters"):
+        TableroProduccionCreate(
+            fecha=date(2026, 7, 28),
+            combustible=0,
+            remito="1234567890123",
+        )
+
+
 # ─── Route: persistencia de remitos ────────────────────────────────────────
 
 
@@ -219,3 +284,65 @@ def test_schema_rejects_fuel_without_remito():
             lugar_carga=42,
             remito="",
         )
+
+
+# ─── Issue #124: el endpoint persiste el remito ya normalizado ─────────────
+
+
+def test_create_persists_normalized_remito_in_part_and_carga(monkeypatch):
+    db = FakeDb()
+    _bypass_external_deps(monkeypatch)
+
+    payload = TableroProduccionCreate(
+        fecha=date(2026, 7, 28),
+        form_uuid="parte-con-remito-corto",
+        UN="BIOMASA FRESA",
+        cod_un=1,
+        cod_equipo=10,
+        cod_operador=5,
+        combustible=150,
+        km_combustible=14855,
+        lugar_carga=42,
+        id_tipo_comb=2,
+        remito="11278",  # entra sin padding
+        remito2="21325",  # idem
+        remito3="R-0003",  # alfanumerico: se conserva
+    )
+
+    asyncio.run(produccion.create_produccion(payload, db=db, user=SimpleNamespace()))
+
+    tablero = db.added[0]
+    carga = db.added[1]
+    assert tablero.remito == "000000011278"
+    assert tablero.remito2 == "000000021325"
+    assert tablero.remito3 == "R-0003"
+    assert carga.remito == "000000011278"
+    assert carga.remito2 == "000000021325"
+    assert carga.remito3 == "R-0003"
+
+
+def test_create_persists_hyphenated_remito_in_part_and_carga(monkeypatch):
+    """`02-1335` debe guardarse como `000200001335` (4 + 8 digitos)."""
+    db = FakeDb()
+    _bypass_external_deps(monkeypatch)
+
+    payload = TableroProduccionCreate(
+        fecha=date(2026, 7, 28),
+        form_uuid="parte-con-remito-hifenado",
+        UN="BIOMASA FRESA",
+        cod_un=1,
+        cod_equipo=10,
+        cod_operador=5,
+        combustible=150,
+        km_combustible=14855,
+        lugar_carga=42,
+        id_tipo_comb=2,
+        remito="02-1335",
+    )
+
+    asyncio.run(produccion.create_produccion(payload, db=db, user=SimpleNamespace()))
+
+    tablero = db.added[0]
+    carga = db.added[1]
+    assert tablero.remito == "000200001335"
+    assert carga.remito == "000200001335"

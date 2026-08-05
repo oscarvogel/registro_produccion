@@ -1,6 +1,8 @@
 from datetime import date
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.remito import normalize_remito
+
 
 class CombustibleMovilResponse(BaseModel):
     idMovil: int
@@ -22,13 +24,26 @@ class CargaCombustibleCreate(BaseModel):
     remito3: str = Field(default="", max_length=12)
     observaciones: str | None = None
 
-    @field_validator("form_uuid", "remito")
+    @field_validator("form_uuid")
     @classmethod
-    def validate_required_text(cls, value: str) -> str:
+    def validate_form_uuid(cls, value: str) -> str:
         normalized = value.strip()
         if not normalized:
             raise ValueError("El valor no puede estar vacío")
         return normalized
+
+    @field_validator("remito", "remito2", "remito3")
+    @classmethod
+    def validate_remito(cls, value: str) -> str:
+        # Issue #124: normalizar el remito al formato canonico (12 digitos
+        # para valores puramente numericos) para evitar que el mismo
+        # comprobante aparezca dos veces en Control de combustible.
+        if value is None or value == "":
+            return ""
+        try:
+            return normalize_remito(value)
+        except ValueError:
+            raise
 
 
 class CargaCombustibleResponse(BaseModel):
