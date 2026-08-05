@@ -84,6 +84,38 @@ def test_rechaza_remito_alfanumerico_mayor_a_12_caracteres():
         normalize_remito("R-00012345678")  # 13 chars
 
 
+# ─── Normalizacion de remitos hifenados (formato PPPP-DDDDDDDD) ────────────
+
+
+@pytest.mark.parametrize(
+    ("entrada", "esperado"),
+    [
+        # Caso reportado por el usuario: 2-5 -> 4+8 con padding.
+        ("99-99999", "009900099999"),
+        ("02-1335", "000200001335"),
+        ("02-1344", "000200001344"),
+        # Variantes con padding previo en la primera parte.
+        ("0000002-1335", "000200001335"),
+        ("0000002-1344", "000200001344"),
+        # Casos limite justos (4 y 8 sin padding).
+        ("9999-99999999", "999999999999"),
+        ("1-1", "000100000001"),  # padding agresivo pero valido
+    ],
+)
+def test_normaliza_remitos_hifenados_al_formato_canonico(entrada, esperado):
+    assert normalize_remito(entrada) == esperado
+
+
+def test_rechaza_prefijo_hifenado_mayor_a_4_digitos():
+    with pytest.raises(ValueError, match="anterior al guion"):
+        normalize_remito("99999-1234")
+
+
+def test_rechaza_sufijo_hifenado_mayor_a_8_digitos():
+    with pytest.raises(ValueError, match="posterior al guion"):
+        normalize_remito("12-123456789")
+
+
 # ─── Constantes y helper de consulta ───────────────────────────────────────
 
 
@@ -96,7 +128,9 @@ def test_constante_max_length_coincide_con_columna():
 def test_is_canonical_true_para_valores_ya_normalizados():
     assert is_canonical("000000011278") is True
     assert is_canonical("R-0001") is True
+    assert is_canonical("009900099999") is True
     assert is_canonical("") is False
     assert is_canonical(None) is False
     assert is_canonical("11278") is False  # no paddeado
     assert is_canonical("11.278") is False  # caracter invalido
+    assert is_canonical("02-1335") is False  # hifenado, no canonico

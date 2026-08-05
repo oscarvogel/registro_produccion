@@ -101,6 +101,10 @@ def test_schema_rejects_remito_longer_than_twelve_chars(field):
         ("000000011278", "000000011278"),
         ("21325", "000000021325"),
         ("R-0001", "R-0001"),
+        # Formato hifenado: PPPP-DDDDDDDD
+        ("99-99999", "009900099999"),
+        ("02-1335", "000200001335"),
+        ("0000002-1335", "000200001335"),
     ],
 )
 def test_schema_normaliza_remito_numerico_y_alfanumerico(entrada, esperado):
@@ -315,3 +319,30 @@ def test_create_persists_normalized_remito_in_part_and_carga(monkeypatch):
     assert carga.remito == "000000011278"
     assert carga.remito2 == "000000021325"
     assert carga.remito3 == "R-0003"
+
+
+def test_create_persists_hyphenated_remito_in_part_and_carga(monkeypatch):
+    """`02-1335` debe guardarse como `000200001335` (4 + 8 digitos)."""
+    db = FakeDb()
+    _bypass_external_deps(monkeypatch)
+
+    payload = TableroProduccionCreate(
+        fecha=date(2026, 7, 28),
+        form_uuid="parte-con-remito-hifenado",
+        UN="BIOMASA FRESA",
+        cod_un=1,
+        cod_equipo=10,
+        cod_operador=5,
+        combustible=150,
+        km_combustible=14855,
+        lugar_carga=42,
+        id_tipo_comb=2,
+        remito="02-1335",
+    )
+
+    asyncio.run(produccion.create_produccion(payload, db=db, user=SimpleNamespace()))
+
+    tablero = db.added[0]
+    carga = db.added[1]
+    assert tablero.remito == "000200001335"
+    assert carga.remito == "000200001335"

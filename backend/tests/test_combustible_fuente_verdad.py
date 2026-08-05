@@ -239,6 +239,8 @@ def test_form_uuid_matches_the_database_contract():
         ("011278", "000000011278"),
         ("000000011278", "000000011278"),
         ("R-0001", "R-0001"),
+        ("99-99999", "009900099999"),
+        ("02-1335", "000200001335"),
     ],
 )
 def test_schema_combustible_normaliza_remito(entrada, esperado):

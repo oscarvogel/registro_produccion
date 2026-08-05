@@ -55,15 +55,40 @@ describe('normalizeRemito', () => {
   })
 })
 
+describe('normalizeRemito - formato hifenado', () => {
+  it.each([
+    ['99-99999', '009900099999'],
+    ['02-1335', '000200001335'],
+    ['0000002-1335', '000200001335'],
+    ['9999-99999999', '999999999999'],
+  ])('normaliza %s a %s', (entrada, esperado) => {
+    expect(normalizeRemito(entrada)).toBe(esperado)
+  })
+
+  it('pasa a mayusculas la parte alfanumerica del guion', () => {
+    expect(normalizeRemito('r-0001')).toBe('R-0001')
+  })
+
+  it('devuelve null si el prefijo hifenado tiene mas de 4 digitos', () => {
+    expect(normalizeRemito('99999-1234')).toBeNull()
+  })
+
+  it('devuelve null si el sufijo hifenado tiene mas de 8 digitos', () => {
+    expect(normalizeRemito('12-123456789')).toBeNull()
+  })
+})
+
 describe('isCanonicalRemito', () => {
   it('devuelve true para valores ya normalizados', () => {
     expect(isCanonicalRemito('000000011278')).toBe(true)
     expect(isCanonicalRemito('R-0001')).toBe(true)
+    expect(isCanonicalRemito('009900099999')).toBe(true)
   })
 
   it('devuelve false para valores sin normalizar', () => {
     expect(isCanonicalRemito('11278')).toBe(false)
     expect(isCanonicalRemito('11.278')).toBe(false)
+    expect(isCanonicalRemito('02-1335')).toBe(false)
   })
 
   it('devuelve false para valores vacios o nulos', () => {
