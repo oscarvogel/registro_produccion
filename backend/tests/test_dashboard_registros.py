@@ -271,6 +271,56 @@ def test_get_registro_detalle_admin_no_filtra_por_un(monkeypatch):
     assert verify_called == []
 
 
+def test_get_registro_detalle_acepta_nulls_en_campos_opcionales(monkeypatch):
+    """Issue #127: si la fila tiene NULLs en los 11 campos opcionales que
+    el schema ``RegistroDetail`` declara con default, el endpoint debe
+    responder 200 con el detalle (Pydantic aplica el default) en lugar de
+    devolver 500 por ValidationError.
+    """
+    # Fila con todos los campos opcionales en None (caso real en prod).
+    row = SimpleNamespace(
+        id=45302,
+        cod_un=106,
+        # los 11 campos del bug:
+        parcela=None,
+        giro_pinon=None,
+        remito_proveedor=None,
+        remito_fgpy=None,
+        nombre_chofer=None,
+        cliente_camion=None,
+        origen_camion=None,
+        destino_camion=None,
+        usuario=None,
+        hora_inicio_viaje=None,
+        hora_fin_viaje=None,
+    )
+    db = FakeDb(rows=[row])
+    user = SimpleNamespace(idPersonal=1, is_admin=1, encargado=0)
+    verify_called = []
+
+    monkeypatch.setattr(dashboard, "_verify_un", lambda *a, **k: verify_called.append(a))
+
+    import asyncio
+    # Antes del fix: pydantic_core._pydantic_core.ValidationError -> 500.
+    # Despues del fix: RegistroDetail con los NULLs preservados (los 11
+    # campos quedaron Optional[...] = None). El frontend ya renderiza
+    # None como "-" via formatCampo.
+    result = asyncio.run(dashboard.get_registro_detalle(45302, user=user, db=db))
+    assert result is not None
+    assert result.id == 45302
+    assert result.parcela is None
+    assert result.giro_pinon is None
+    assert result.remito_proveedor is None
+    assert result.remito_fgpy is None
+    assert result.nombre_chofer is None
+    assert result.cliente_camion is None
+    assert result.origen_camion is None
+    assert result.destino_camion is None
+    assert result.usuario is None
+    assert result.hora_inicio_viaje is None
+    assert result.hora_fin_viaje is None
+
+
 # ─── list_registros (estructura) ──────────────────────────────────────────
 
 
