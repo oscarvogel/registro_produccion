@@ -19,7 +19,7 @@
 
     <div v-else-if="detalle" class="space-y-4" data-testid="record-detail-content">
       <section
-        v-for="grupo in grupos"
+        v-for="grupo in gruposVisibles"
         :key="grupo.titulo"
         class="rounded-lg border border-neutral-200 p-3"
       >
@@ -73,6 +73,23 @@ const descripcion = computed(() => {
   const equipo = detalle.value.equipo || 'Sin equipo'
   const operador = detalle.value.operador || 'Sin operador'
   return `${operador} - ${equipo}`
+})
+
+/** Devuelve true si el valor se considera "vacio" y debe ocultarse del modal. */
+function campoVacio(valor) {
+  return valor === null || valor === undefined || valor === '' || valor === '0' || valor === 0
+}
+
+/** Filtra los grupos para mostrar solo los campos con dato cargado.
+ *  Si un grupo queda sin campos visibles, tambien se oculta. */
+const gruposVisibles = computed(() => {
+  if (!detalle.value) return []
+  return grupos
+    .map((grupo) => ({
+      ...grupo,
+      campos: grupo.campos.filter((campo) => !campoVacio(detalle.value[campo.key])),
+    }))
+    .filter((grupo) => grupo.campos.length > 0)
 })
 
 const grupos = [
