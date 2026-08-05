@@ -865,9 +865,10 @@
             v-for="item in revisionItems"
             :key="item.label"
             class="app-surface-muted rounded-lg border px-3 py-2.5"
+            :class="{ 'border-error/60 bg-error-light/30': item.highlight }"
           >
             <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">{{ item.label }}</p>
-            <p class="mt-1 text-sm font-extrabold text-neutral-900">{{ item.value }}</p>
+            <p class="mt-1 text-sm font-extrabold text-neutral-900" :class="{ 'text-error-dark': item.highlight }">{{ item.value }}</p>
           </div>
         </div>
       </SectionCard>
@@ -1328,6 +1329,16 @@ const revisionItems = computed(() => [
   { label: 'Proceso', value: tipoProcesoNombre.value || 'Pendiente' },
   { label: 'Horario', value: `${form.hr_inicio || '-'} a ${form.hr_fin || '-'}` },
   { label: 'Producción', value: `${resolveProduccion() || 0} ${resolveUnidadProduccion() || ''}`.trim() },
+  {
+    label: 'Hs No Operativas',
+    value: form.hrs_no_op > 0 ? form.hrs_no_op : '-',
+    highlight: form.hrs_no_op > 0 && !form.motivo_no_op,
+  },
+  {
+    label: 'Motivo (no op)',
+    value: form.motivo_no_op || (form.hrs_no_op > 0 ? '⚠️ Pendiente' : '-'),
+    highlight: form.hrs_no_op > 0 && !form.motivo_no_op,
+  },
   { label: 'Ubicación', value: [form.acta ? `Acta ${form.acta}` : '', getPredioNombre(form.predio_id), getRodalNombre()].filter(Boolean).join(' / ') || 'Pendiente' },
 ])
 
