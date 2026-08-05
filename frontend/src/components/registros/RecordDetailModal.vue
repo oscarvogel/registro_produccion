@@ -51,8 +51,6 @@ import { useDashboardRegistrosStore } from '@/stores/dashboardRegistros'
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   registroId: { type: [Number, null], default: null },
-  /** Si true, consume el detalle ya cargado del store. Si false, dispara fetchDetalle. */
-  useStore: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -192,7 +190,7 @@ function formatNumero(valor) {
 watch(
   () => [props.modelValue, props.registroId],
   async ([open, id]) => {
-    if (open && id && !props.useStore) {
+    if (open && id) {
       await store.fetchDetalle(id)
     } else if (!open) {
       store.clearDetalle()
