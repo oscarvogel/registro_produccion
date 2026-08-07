@@ -52,20 +52,69 @@
           </div>
         </div>
 
-        <template v-if="pwaInstall?.deferredInstallPrompt?.value">
-          <AppButton block @click="pwaInstall.installApp()">
-            <AppIcon name="download" :stroke-width="2.5" />
-            Instalar App
-          </AppButton>
+        <template v-if="isPwaStandalone">
+          <div
+            data-testid="pwa-installed-message"
+            class="app-surface-muted flex w-full items-center gap-3 rounded-lg border px-3.5 py-2.5"
+          >
+            <AppIcon name="success" :stroke-width="2.5" class="flex-shrink-0 text-success" />
+            <span class="text-sm font-semibold text-neutral-600">
+              Ya tenés la app instalada en tu pantalla de inicio.
+            </span>
+          </div>
         </template>
 
         <template v-else>
-          <div class="app-surface-muted flex w-full items-center gap-3 rounded-lg border px-3.5 py-2.5">
-            <AppIcon name="success" :stroke-width="2.5" class="flex-shrink-0 text-success" />
-            <span class="text-sm text-neutral-600">
-              La aplicación ya está instalada o la instalación no está disponible en este navegador.
-            </span>
+          <AppButton
+            v-if="canInstallPwa"
+            data-testid="pwa-install-button"
+            block
+            @click="pwaInstall?.installApp()"
+          >
+            <AppIcon name="download" :stroke-width="2.5" />
+            Instalar App
+          </AppButton>
+
+          <div
+            v-else
+            data-testid="pwa-manual-install"
+            class="app-surface-muted w-full rounded-lg border px-3.5 py-3"
+          >
+            <div class="flex items-start gap-3">
+              <AppIcon
+                name="warning"
+                :stroke-width="2.5"
+                class="mt-0.5 flex-shrink-0 text-warning-dark"
+              />
+              <div class="min-w-0 text-sm text-neutral-600">
+                <p class="font-bold text-neutral-800">
+                  {{ isXiaomiBrowser
+                    ? 'Mi Browser no ofrece el botón automático de instalación.'
+                    : 'Este navegador no ofrece el botón automático de instalación.'
+                  }}
+                </p>
+                <p class="mt-1">Podés agregar la app manualmente:</p>
+                <ol class="mt-2 list-decimal space-y-1 pl-5">
+                  <li>Tocá el menú <span aria-label="tres puntos verticales">⋮</span> del navegador.</li>
+                  <li>Elegí <strong>Agregar a la pantalla de inicio</strong>.</li>
+                  <li>Confirmá el acceso directo.</li>
+                </ol>
+              </div>
+            </div>
           </div>
+
+          <a
+            data-testid="chrome-play-link"
+            :href="CHROME_PLAY_STORE_URL"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="app-button-soft mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border px-3.5 py-2.5 text-center text-sm font-bold transition hover:-translate-y-px hover:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/20 active:translate-y-0"
+          >
+            <AppIcon name="download" size="sm" />
+            <span>
+              Si no podés instalar la app desde este navegador, instalá Chrome desde Google Play
+            </span>
+          </a>
         </template>
       </section>
 
@@ -88,14 +137,23 @@ import { inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
+import {
+  CHROME_PLAY_STORE_URL,
+  usePwaInstallStatus,
+} from '@/composables/usePwaInstallStatus'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const pwaInstall = inject('pwaInstall')
+const pwaInstall = inject('pwaInstall', null)
 const { isDark, toggleTheme } = useTheme()
+const {
+  canInstall: canInstallPwa,
+  isStandalone: isPwaStandalone,
+  isXiaomiBrowser,
+} = usePwaInstallStatus(pwaInstall)
 
 function handleLogout() {
   authStore.logout()
