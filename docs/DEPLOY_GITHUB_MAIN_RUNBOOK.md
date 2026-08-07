@@ -4,6 +4,11 @@
 > Cubre **backend** (containers `indufor` + `produccion_fg`) y **frontend**
 > (estáticos de `produccion_fg` servidos por Nginx).
 > El commit debe estar mergeado en `origin/main` antes de empezar.
+> ⚠️ **NO usar para el deploy normal de `produccion_fg`**. Este runbook cubre
+> el flujo **multi-instance** (backend `indufor` + `produccion_fg` + frontend
+> estático) desde `origin/main`. Para el deploy acotado y periódico de
+> `produccion_fg` (solo backend + frontend), usar
+> [`DEPLOY.md`](../DEPLOY.md) y `scripts/deploy_produccion_fg_main_fasa195.sh`.
 
 ## Resumen
 
