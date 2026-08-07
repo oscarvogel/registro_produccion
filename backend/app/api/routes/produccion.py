@@ -519,6 +519,42 @@ async def list_actas(db: Session = Depends(get_db)):
     return unique_rows
 
 
+# ─── Rodales por Acta (issue #133) ───
+# Devuelve la union de los rodales vinculados a un acta (mismo `numero` puede
+# tener varias filas con distintos `rodal_id` en la tabla `actas`).
+@router.get("/actas/{acta_numero}/rodales", response_model=List[RodalResponse])
+async def list_rodales_por_acta(acta_numero: str, db: Session = Depends(get_db)):
+    numero = str(acta_numero or "").strip()
+    if not numero:
+        return []
+    if not _table_exists(db, "actas") or not _table_exists(db, "rodales"):
+        return []
+
+    # 1) Reunir los rodal_id de TODAS las filas de actas con este numero
+    acta_rows = (
+        db.query(Acta.rodal_id)
+        .filter(Acta.numero == numero)
+        .all()
+    )
+    rodal_ids: set[int] = {
+        int(row.rodal_id) for row in acta_rows if row.rodal_id
+    }
+    if not rodal_ids:
+        return []
+
+    # 2) Cargar la info de cada Rodal
+    rows = (
+        db.query(Rodal)
+        .filter(Rodal.idRodal.in_(rodal_ids))
+        .order_by(Rodal.Rodal)
+        .all()
+    )
+    return [
+        RodalResponse(idRodal=r.idRodal, rodal=r.Rodal, idPredio=r.idPredio)
+        for r in rows
+    ]
+
+
 # ─── Predios ───
 @router.get("/predios", response_model=List[PredioResponse])
 async def list_predios(db: Session = Depends(get_db)):

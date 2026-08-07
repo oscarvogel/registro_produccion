@@ -139,6 +139,51 @@ describe('produccion catalogos offline', () => {
       expect.objectContaining({ _suppressErrorToast: true }),
     )
   })
+
+  // ─── Issue #133: rodales por acta ───
+
+  it('fetchRodalesPorActa pide los rodales vinculados al acta seleccionada', async () => {
+    api.get.mockResolvedValueOnce({
+      data: [
+        { idRodal: 10, rodal: '01', idPredio: 1 },
+        { idRodal: 11, rodal: '94', idPredio: 2 },
+      ],
+    })
+    const store = useProduccionStore()
+
+    await store.fetchRodalesPorActa('7900001260')
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/produccion/actas/7900001260/rodales',
+      expect.objectContaining({ _suppressErrorToast: true }),
+    )
+    expect(store.rodales).toEqual([
+      { idRodal: 10, rodal: '01', idPredio: 1 },
+      { idRodal: 11, rodal: '94', idPredio: 2 },
+    ])
+    expect(store.catalogStatus.rodales.state).toBe('success')
+  })
+
+  it('fetchRodalesPorActa codifica el numero por si trae caracteres especiales', async () => {
+    api.get.mockResolvedValueOnce({ data: [] })
+    const store = useProduccionStore()
+
+    await store.fetchRodalesPorActa('123 456/ABC')
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/produccion/actas/123%20456%2FABC/rodales',
+      expect.any(Object),
+    )
+  })
+
+  it('fetchRodalesPorActa no llama a la API si el numero esta vacio', async () => {
+    const store = useProduccionStore()
+
+    const result = await store.fetchRodalesPorActa('')
+
+    expect(api.get).not.toHaveBeenCalled()
+    expect(result).toBeNull()
+  })
 })
 
 describe('produccion sync offline', () => {

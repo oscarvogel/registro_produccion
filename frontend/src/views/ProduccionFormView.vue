@@ -800,17 +800,17 @@
 
           <div v-if="requiereRodal" class="mt-3">
             <AutocompleteField
-              v-if="store.rodales.length > 0"
+              v-if="rodalesVisibles.length > 0"
               label="Rodal"
               v-model="form.rodal_id"
-              :items="store.rodales"
+              :items="rodalesVisibles"
               labelKey="rodal"
               valueKey="idRodal"
               placeholder="— Buscar rodal —"
               :loading="catalogLoading('rodales')"
               :error="catalogError('rodales')"
               :errorMessage="catalogErrorMessage('rodales')"
-              emptyMessage="Sin rodales configurados para este predio"
+              emptyMessage="Sin rodales configurados para este acta"
               :stale="catalogStale('rodales')"
             />
             <div v-else-if="catalogHasError('rodales')" class="app-surface-muted rounded-lg border p-3 text-sm text-neutral-600">
@@ -1261,6 +1261,17 @@ const rodalCompleto = computed(() => {
   return String(form.rodal_manual ?? '').trim().length > 0
 })
 
+// Issue #133: si hay Acta elegida, los rodales visibles son los vinculados
+// al acta; si ademas hay Predio elegido, se filtra por idPredio (interseccion).
+// Si no hay Acta, mantiene el comportamiento por Predio.
+const rodalesVisibles = computed(() => {
+  const lista = store.rodales || []
+  if (!actaNormalizada.value) return lista
+  const predioId = Number(form.predio_id || 0)
+  if (!predioId) return lista
+  return lista.filter((r) => Number(r.idPredio) === predioId)
+})
+
 const ubicacionValida = computed(() => {
   if (!ubicacionOperativaRequerida.value) return true
   if (requiereActa.value && (!actaNormalizada.value || actaNormalizada.value === '0')) return false
@@ -1579,10 +1590,24 @@ function onTipoProcesoChange() {
 async function onPredioChange() {
   form.rodal_id = ''
   form.rodal_manual = ''
-  if (form.predio_id) {
+  // Issue #133: si hay Acta elegida, los rodales ya fueron cargados
+  // por el watcher de ``actaNormalizada``. Solo reseteamos el form;
+  // la interseccion con Predio la hace ``rodalesVisibles``.
+  if (!actaNormalizada.value && form.predio_id) {
     await store.fetchRodales(form.predio_id)
   }
 }
+
+// Issue #133: al cambiar el Acta, recargar los rodales vinculados.
+// Reset del Rodal seleccionado + fetch de la nueva lista.
+watch(actaNormalizada, async (nuevo, anterior) => {
+  if (nuevo === anterior) return
+  form.rodal_id = ''
+  form.rodal_manual = ''
+  if (nuevo) {
+    await store.fetchRodalesPorActa(nuevo)
+  }
+})
 
 // ─── Watch combustible toggle ───
 watch(cargoCombustible, (val) => {

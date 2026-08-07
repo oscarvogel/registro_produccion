@@ -249,6 +249,21 @@ export const useProduccionStore = defineStore('produccion', {
       })
     },
 
+    // Issue #133: lista de rodales vinculados al Acta seleccionada.
+    // El dropdown del parte usa esta lista cuando hay un Acta elegida;
+    // si ademas hay un Predio elegido, se filtra client-side.
+    async fetchRodalesPorActa(actaNumero) {
+      const numero = (actaNumero || '').toString().trim()
+      if (!numero) return null
+      return this.fetchCatalog({
+        catalog: 'rodales',
+        target: 'rodales',
+        url: `/api/produccion/actas/${encodeURIComponent(numero)}/rodales`,
+        scope: `acta:${numero}`,
+        skipWhenMissingScope: true,
+      })
+    },
+
     async fetchLugaresCarga(unId) {
       return this.fetchCatalog({
         catalog: 'lugaresCarga',
