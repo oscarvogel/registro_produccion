@@ -59,6 +59,7 @@ export const useProduccionStore = defineStore('produccion', {
     unidadesNegocio: [],
     tiposProceso: [],
     todosLosTipos: [],
+    selectedUnId: null,
     movilAsignado: null,
     actas: [],
     predios: [],
@@ -183,6 +184,7 @@ export const useProduccionStore = defineStore('produccion', {
     },
 
     async fetchTiposProceso(unId) {
+      this.selectedUnId = unId || null
       return this.fetchCatalog({
         catalog: 'tiposProceso',
         target: 'tiposProceso',
@@ -205,7 +207,8 @@ export const useProduccionStore = defineStore('produccion', {
       this.movilAsignado = null
       if (!operadorId) return
       try {
-        const { data } = await api.get(`/api/produccion/movil-by-operador/${operadorId}`)
+        const params = this.selectedUnId ? { un_id: this.selectedUnId } : undefined
+        const { data } = await api.get(`/api/produccion/movil-by-operador/${operadorId}`, { params })
         this.movilAsignado = data
       } catch (err) {
         console.error('Error loading movil:', err)
@@ -213,13 +216,42 @@ export const useProduccionStore = defineStore('produccion', {
     },
 
     async fetchAsignaciones(operadorId) {
-      return this.fetchCatalog({
+      if (!operadorId) {
+        this.asignaciones = []
+        return []
+      }
+
+      const allowedProcessIds = new Set(
+        ensureArray(this.tiposProceso)
+          .map((tipo) => Number(tipo.id))
+          .filter((id) => Number.isInteger(id) && id > 0),
+      )
+      const scope = `${operadorId}:un:${this.selectedUnId || 'all'}`
+      const items = await this.fetchCatalog({
         catalog: 'asignaciones',
         target: 'asignaciones',
         url: `/api/produccion/asignaciones/${operadorId}`,
-        scope: operadorId,
-        skipWhenMissingScope: true,
+        params: this.selectedUnId ? { un_id: this.selectedUnId } : undefined,
+        scope,
+        skipWhenMissingScope: false,
       })
+
+      // Defensa adicional del frontend: una asignacion nunca puede inyectar
+      // un proceso que no figure en el catalogo habilitado de la UN actual.
+      // Esto tambien protege contra cache vieja/offline.
+      if (['success', 'empty'].includes(this.catalogStatus.tiposProceso?.state)) {
+        const filtered = ensureArray(items).filter((asig) => {
+          const processId = Number(asig.idProceso)
+          return Number.isInteger(processId) && allowedProcessIds.has(processId)
+        })
+        this.asignaciones = filtered
+        if (filtered.length !== items.length) {
+          await this.saveCatalogCache('asignaciones', scope, filtered)
+        }
+        return filtered
+      }
+
+      return items
     },
 
     async fetchActas() {
