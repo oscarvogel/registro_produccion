@@ -224,6 +224,18 @@ def _tipo_proceso_habilitado(db: Session, tipo_proceso_id: int, unidad_id: int) 
 
 
 def _validate_restricted_payload(data: TableroProduccionCreate, user: Personal, db: Session) -> None:
+    # Issue #137: la relacion UN -> tipo de proceso es una restriccion dura
+    # para todos los usuarios, no solo para encargados Full Tree.
+    if (
+        data.cod_un
+        and data.codigo_tabla
+        and not _tipo_proceso_habilitado(db, int(data.codigo_tabla), int(data.cod_un))
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="El tipo de proceso no esta habilitado para la unidad de negocio seleccionada",
+        )
+
     restricted = _restricted_unidad_ids(user, db)
     if restricted is None:
         return
@@ -237,9 +249,6 @@ def _validate_restricted_payload(data: TableroProduccionCreate, user: Personal, 
     movil = db.query(Movil).filter(Movil.idMovil == data.cod_equipo, Movil.activo == 1).first()
     if not movil or not _movil_belongs_to_any_unidad(db, movil, restricted):
         raise HTTPException(status_code=403, detail="El movil no esta habilitado para Full Tree")
-
-    if data.codigo_tabla and not _tipo_proceso_habilitado(db, data.codigo_tabla, int(data.cod_un)):
-        raise HTTPException(status_code=403, detail="El tipo de proceso no esta habilitado para Full Tree")
 
 
 # ─── Operadores activos (filtrados por unidad de negocio) ───
@@ -269,7 +278,13 @@ async def list_operadores(
             nombre=r.Nombre,
             dni=r.dni,
             encargado=r.encargado,
-            tipo_de_proceso_id=r.tipo_de_proceso_id,
+            tipo_de_proceso_id=(
+                r.tipo_de_proceso_id
+                if not un_id
+                or not r.tipo_de_proceso_id
+                or _tipo_proceso_habilitado(db, int(r.tipo_de_proceso_id), int(un_id))
+                else None
+            ),
             unidad_ids=unit_ids_by_person.get(int(r.idPersonal), []),
         )
         for r in rows
@@ -348,14 +363,15 @@ async def list_all_tipos_proceso(
 @router.get("/asignaciones/{operador_id}", response_model=List[AsignacionOperativaResponse])
 async def list_asignaciones(
     operador_id: int,
+    un_id: int | None = None,
     db: Session = Depends(get_db),
     user: Personal = Depends(get_current_user),
 ):
-    """Devuelve todas las asignaciones (movil + proceso) del operador."""
+    """Devuelve asignaciones compatibles con la unidad seleccionada."""
     if not _table_exists(db, "asignaciones_operativas") or not _table_exists(db, "moviles"):
         return []
 
-    allowed_ids = _allowed_unidad_ids(user, db)
+    allowed_ids = _allowed_unidad_ids(user, db, un_id)
     if allowed_ids and not _personal_belongs_to_any_unidad(db, operador_id, allowed_ids):
         return []
 
@@ -398,11 +414,12 @@ async def list_asignaciones(
 @router.get("/movil-by-operador/{operador_id}", response_model=MovilResponse | None)
 async def get_movil_by_operador(
     operador_id: int,
+    un_id: int | None = None,
     db: Session = Depends(get_db),
     user: Personal = Depends(get_current_user),
 ):
     today = date.today()
-    allowed_ids = _allowed_unidad_ids(user, db)
+    allowed_ids = _allowed_unidad_ids(user, db, un_id)
     if allowed_ids and not _personal_belongs_to_any_unidad(db, operador_id, allowed_ids):
         return None
 
