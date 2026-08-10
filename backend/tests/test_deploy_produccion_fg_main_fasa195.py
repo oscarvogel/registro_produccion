@@ -2,11 +2,18 @@ import io
 import os
 import re
 import subprocess
+import sys
 import tarfile
 from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+
+
+pytestmark = pytest.mark.skipif(
+    sys.platform != "win32",
+    reason="Test designed for Windows Git Bash (bash.exe + drive-letter paths).",
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
