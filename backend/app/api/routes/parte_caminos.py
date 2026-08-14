@@ -27,6 +27,10 @@ _CAMINOS_LOCATION_REQUIREMENTS = {
 }
 
 
+def _clean_text(value: str | None) -> str:
+    return str(value or "").strip()
+
+
 def _response_from_rows(form_uuid: str, rows: list[TableroProduccion]) -> ParteCaminosResponse:
     return ParteCaminosResponse(
         form_uuid=form_uuid,
@@ -151,6 +155,13 @@ async def create_parte_caminos(
     if not unidad or (unidad.Nombre or "").strip().lower() != "caminos":
         raise HTTPException(status_code=422, detail="El parte multi-proceso solo esta habilitado para la UN Caminos")
 
+    form_uuid = _clean_text(data.form_uuid)
+    unidad_nombre = _clean_text(unidad.Nombre) or _clean_text(data.UN)
+    equipo = _clean_text(data.equipo)
+    operador = _clean_text(data.operador)
+    motivo_no_op = _clean_text(data.motivo_no_op)
+    observaciones = _clean_text(data.observaciones)
+
     _validate_hours_warning(data)
 
     process_ids = [int(item.tipo_proceso_id) for item in data.procesos]
@@ -172,14 +183,18 @@ async def create_parte_caminos(
     # a bypass for Full Tree restrictions or unidadnegocio_tipo_proceso.
     for proceso in data.procesos:
         tipo = tipos_by_id[int(proceso.tipo_proceso_id)]
-        _validate_location(tipo, proceso.predio, proceso.acta, proceso.rodal)
+        predio = _clean_text(proceso.predio)
+        acta = _clean_text(proceso.acta)
+        rodal = _clean_text(proceso.rodal)
+        tipo_nombre = _clean_text(tipo.nombre)
+        _validate_location(tipo, predio, acta, rodal)
         validation_payload = TableroProduccionCreate(
-            form_uuid=data.form_uuid,
-            UN=unidad.Nombre or data.UN,
-            operacion=tipo.nombre,
+            form_uuid=form_uuid,
+            UN=unidad_nombre,
+            operacion=tipo_nombre,
             fecha=data.fecha,
-            equipo=data.equipo,
-            operador=data.operador,
+            equipo=equipo,
+            operador=operador,
             cod_operador=data.cod_operador,
             cod_equipo=data.cod_equipo,
             cod_un=data.cod_un,
@@ -192,14 +207,14 @@ async def create_parte_caminos(
             aceite_motor=data.aceite_motor,
             aceite_transmision=data.aceite_transmision,
             aceite_embrague=data.aceite_embrague,
-            acta=proceso.acta,
-            rodal=proceso.rodal,
-            predio=proceso.predio,
+            acta=acta,
+            rodal=rodal,
+            predio=predio,
             km_perfilado=proceso.km_perfilado,
             hr_disposicion=proceso.hr_disposicion,
             hrs_no_op=data.hrs_no_op,
-            motivo_no_op=data.motivo_no_op,
-            observaciones=data.observaciones,
+            motivo_no_op=motivo_no_op,
+            observaciones=observaciones,
             lugar_carga=data.lugar_carga,
             tabla="tipo_de_proceso",
             codigo_tabla=tipo.id,
@@ -214,14 +229,14 @@ async def create_parte_caminos(
         existing_rows = (
             db.query(TableroProduccion)
             .filter(
-                TableroProduccion.form_uuid == data.form_uuid,
+                TableroProduccion.form_uuid == form_uuid,
                 TableroProduccion.cod_operador == data.cod_operador,
             )
             .order_by(TableroProduccion.id)
             .all()
         )
         if existing_rows:
-            return _response_from_rows(data.form_uuid, existing_rows)
+            return _response_from_rows(form_uuid, existing_rows)
 
         if data.combustible > 0 and data.remito:
             existing_carga = (
@@ -253,14 +268,15 @@ async def create_parte_caminos(
         try:
             for offset, proceso in enumerate(data.procesos, start=1):
                 tipo = tipos_by_id[int(proceso.tipo_proceso_id)]
+                tipo_nombre = _clean_text(tipo.nombre)
                 registro = TableroProduccion(
                     id=int(max_id) + offset,
-                    form_uuid=data.form_uuid,
-                    UN=unidad.Nombre or data.UN,
-                    operacion=tipo.nombre,
+                    form_uuid=form_uuid,
+                    UN=unidad_nombre,
+                    operacion=tipo_nombre,
                     fecha=data.fecha,
-                    equipo=data.equipo,
-                    operador=data.operador,
+                    equipo=equipo,
+                    operador=operador,
                     cod_operador=data.cod_operador,
                     cod_equipo=data.cod_equipo,
                     cod_un=data.cod_un,
@@ -272,15 +288,15 @@ async def create_parte_caminos(
                     aceite_motor=data.aceite_motor,
                     aceite_transmision=data.aceite_transmision,
                     aceite_embrague=data.aceite_embrague,
-                    acta=proceso.acta,
-                    rodal=proceso.rodal,
-                    predio=proceso.predio,
+                    acta=_clean_text(proceso.acta),
+                    rodal=_clean_text(proceso.rodal),
+                    predio=_clean_text(proceso.predio),
                     km_perfilado=proceso.km_perfilado,
                     hr_disposicion=proceso.hr_disposicion,
                     hr_remolque=proceso.hr_remolque,
                     hrs_no_op=data.hrs_no_op,
-                    motivo_no_op=data.motivo_no_op,
-                    observaciones=data.observaciones,
+                    motivo_no_op=motivo_no_op,
+                    observaciones=observaciones,
                     lugar_carga=data.lugar_carga,
                     tabla="tipo_de_proceso",
                     codigo_tabla=tipo.id,
@@ -319,14 +335,14 @@ async def create_parte_caminos(
                     remito=data.remito.strip(),
                     remito2=data.remito2.strip(),
                     remito3=data.remito3.strip(),
-                    form_uuid=data.form_uuid,
+                    form_uuid=form_uuid,
                 )
                 db.add(carga)
 
             db.commit()
             for row in rows:
                 db.refresh(row)
-            return _response_from_rows(data.form_uuid, rows)
+            return _response_from_rows(form_uuid, rows)
         except Exception:
             db.rollback()
             raise

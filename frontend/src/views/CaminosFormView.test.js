@@ -35,7 +35,7 @@ vi.mock('vue-router', () => ({
 vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({
     isAdmin: false,
-    userName: 'Operador Prueba',
+    userName: '  Operador Prueba  ',
     user: { idPersonal: 44, encargado: 0 },
   }),
 }))
@@ -48,10 +48,10 @@ import AutocompleteField from '@/components/AutocompleteField.vue'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
 import CaminosFormView from './CaminosFormView.vue'
 
-function mountView() {
+function mountView(unidad = { idUnidadNegocio: 7, nombre: 'Caminos' }) {
   return mount(CaminosFormView, {
     props: {
-      unidad: { idUnidadNegocio: 7, nombre: 'Caminos' },
+      unidad,
     },
     global: {
       stubs: {
@@ -138,6 +138,72 @@ describe('CaminosFormView', () => {
     expect(wrapper.vm.puedeAvanzar).toBe(false)
     expect(wrapper.text()).toContain('17 h de 14 h disponibles')
     expect(wrapper.text()).toContain('Reducí las horas de disposición/remolque')
+  })
+
+  it('sends a trimmed two-process payload without concatenating operations', async () => {
+    store.moviles = [{ idMovil: 10, detalle: '  FORWA-N°2  ', patente: '  PAT-001  ' }]
+    store.predios = [{ idPredio: 1, nombre: '  PUERTO BOSSETTI  ' }]
+    const wrapper = mountView({ idUnidadNegocio: 7, nombre: '  Caminos  ' })
+
+    wrapper.vm.form.fecha = '2026-08-14'
+    wrapper.vm.form.cod_equipo = 10
+    wrapper.vm.form.hr_inicio = 1
+    wrapper.vm.form.hr_fin = 20
+    wrapper.vm.form.observaciones = '  parte con dos procesos  '
+    wrapper.vm.procesos[0].tipo_proceso_id = 20
+    wrapper.vm.procesos[0].predio_id = 1
+    wrapper.vm.procesos[0].hr_disposicion = 12
+    wrapper.vm.agregarProceso()
+    wrapper.vm.procesos[1].tipo_proceso_id = 21
+    wrapper.vm.procesos[1].predio_id = 1
+    wrapper.vm.procesos[1].hr_remolque = 5
+    wrapper.vm.pasoActual = 8
+
+    await wrapper.vm.guardar()
+
+    expect(store.submitParteCaminos).toHaveBeenCalledTimes(1)
+    const payload = store.submitParteCaminos.mock.calls[0][0]
+    expect(payload).toMatchObject({
+      UN: 'Caminos',
+      equipo: 'FORWA-N°2 - PAT-001',
+      operador: 'Operador Prueba',
+      observaciones: 'parte con dos procesos',
+    })
+    expect(Array.isArray(payload.procesos)).toBe(true)
+    expect(payload.procesos).toHaveLength(2)
+    expect(payload.procesos).toEqual([
+      expect.objectContaining({ tipo_proceso_id: 20, predio: 'PUERTO BOSSETTI', hr_disposicion: 12 }),
+      expect.objectContaining({ tipo_proceso_id: 21, predio: 'PUERTO BOSSETTI', hr_remolque: 5 }),
+    ])
+    expect(payload.operacion).toBeUndefined()
+  })
+
+  it('trims acta and rodal in the process payload', async () => {
+    store.predios = [{ idPredio: 1, nombre: '  PUERTO BOSSETTI  ' }]
+    const wrapper = mountView({ idUnidadNegocio: 7, nombre: '  Caminos  ' })
+    const proceso = wrapper.vm.procesos[0]
+    store.rodales = [{ idRodal: 2, rodal: '  R-1  ' }]
+    wrapper.vm.rodalesPorProceso[proceso.key] = store.rodales
+
+    wrapper.vm.form.fecha = '2026-08-14'
+    wrapper.vm.form.cod_equipo = 10
+    wrapper.vm.form.hr_inicio = 1
+    wrapper.vm.form.hr_fin = 5
+    proceso.tipo_proceso_id = 9
+    proceso.predio_id = 1
+    proceso.acta = '  ACTA-1  '
+    proceso.rodal_id = 2
+    proceso.km_perfilado = 3
+    wrapper.vm.pasoActual = 8
+
+    await wrapper.vm.guardar()
+
+    const payload = store.submitParteCaminos.mock.calls[0][0]
+    expect(payload.procesos[0]).toMatchObject({
+      predio: 'PUERTO BOSSETTI',
+      acta: 'ACTA-1',
+      rodal: 'R-1',
+    })
   })
 
   it('loads Caminos-scoped catalogs when mounted', async () => {

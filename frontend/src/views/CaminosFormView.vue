@@ -329,6 +329,7 @@ function requiereRodal(p) { const n = nombreProceso(p.tipo_proceso_id).trim().to
 function predioNombre(id) { return store.predios.find(x => Number(x.idPredio) === Number(id))?.nombre || '' }
 function operadorNombre(id) { if (!canSelectOperador.value) return authStore.userName || ''; return store.operadores.find(x => Number(x.idPersonal) === Number(id))?.nombre || '' }
 function equipoSeleccionado() { return store.moviles.find(x => Number(x.idMovil) === Number(form.cod_equipo)) || null }
+function cleanText(value) { return String(value ?? '').trim() }
 function formatHoras(value) { return Number(value || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 }) }
 
 function rodalesDisponibles(proceso) {
@@ -409,10 +410,10 @@ async function guardar() {
   if (errorLocal.value) return
   const equipo = equipoSeleccionado()
   const payload = {
-    UN: props.unidad.nombre,
+    UN: cleanText(props.unidad.nombre),
     fecha: form.fecha,
-    equipo: equipo ? `${equipo.detalle} - ${equipo.patente}` : '',
-    operador: operadorNombre(form.cod_operador),
+    equipo: equipo ? [equipo.detalle, equipo.patente].map(cleanText).filter(Boolean).join(' - ') : '',
+    operador: cleanText(operadorNombre(form.cod_operador)),
     cod_operador: Number(form.cod_operador),
     cod_equipo: Number(form.cod_equipo),
     cod_un: Number(props.unidad.idUnidadNegocio),
@@ -434,9 +435,9 @@ async function guardar() {
     observaciones: String(form.observaciones || '').trim(),
     procesos: procesos.map(p => ({
       tipo_proceso_id: Number(p.tipo_proceso_id),
-      predio: requierePredio(p) ? predioNombre(p.predio_id) : '',
+      predio: requierePredio(p) ? cleanText(predioNombre(p.predio_id)) : '',
       acta: requiereActa(p) ? String(p.acta || '').trim() : '',
-      rodal: requiereRodal(p) ? rodalNombre(p) : '',
+      rodal: requiereRodal(p) ? cleanText(rodalNombre(p)) : '',
       km_perfilado: Number(p.km_perfilado || 0),
       hr_disposicion: Number(p.hr_disposicion || 0),
       hr_remolque: Number(p.hr_remolque || 0),
