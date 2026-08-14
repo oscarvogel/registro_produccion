@@ -63,6 +63,36 @@ def test_accepts_multi_process_payload():
     assert data.procesos[2].hr_remolque == 1.5
 
 
+def test_trims_historical_catalog_padding_before_length_validation():
+    padded_equipment = "SVW441 08-I 1114/48 MERCEDEZ BENZ" + (" " * 200)
+    data = ParteCaminosCreate.model_validate(
+        _base_payload(
+            equipo=padded_equipment,
+            operador="  ALFONSO VICTOR  ",
+            UN="  CAMINOS  ",
+            motivo_no_op="   ",
+            observaciones="  prueba real  ",
+            procesos=[
+                {
+                    "tipo_proceso_id": 20,
+                    "predio": "  PREDIO 1  ",
+                    "acta": "  A-1  ",
+                    "rodal": "  R-1  ",
+                    "hr_disposicion": 2,
+                }
+            ],
+        )
+    )
+
+    assert data.equipo == "SVW441 08-I 1114/48 MERCEDEZ BENZ"
+    assert data.operador == "ALFONSO VICTOR"
+    assert data.UN == "CAMINOS"
+    assert data.observaciones == "prueba real"
+    assert data.procesos[0].predio == "PREDIO 1"
+    assert data.procesos[0].acta == "A-1"
+    assert data.procesos[0].rodal == "R-1"
+
+
 def test_rejects_process_without_metric():
     with pytest.raises(ValidationError, match="al menos una metrica"):
         ParteCaminosCreate.model_validate(
