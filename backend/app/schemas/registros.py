@@ -16,6 +16,7 @@ from pydantic import BaseModel
 class RegistroListItem(BaseModel):
     """DTO de un registro individual o un parte agrupado de Caminos."""
     id: int
+    UN: str = ""
     fecha: Optional[date] = None
     operacion: str = ""
     equipo: str = ""
@@ -64,7 +65,6 @@ class RegistrosPagedResponse(BaseModel):
 
 class RegistroDetail(RegistroListItem):
     """DTO completo de un registro individual (issue #104)."""
-    UN: str = ""
     acta: str = ""
     rodal: str = ""
     predio: str = ""
