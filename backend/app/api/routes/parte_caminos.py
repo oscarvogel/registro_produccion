@@ -11,7 +11,7 @@ from app.models.personal import Personal
 from app.models.produccion import TableroProduccion
 from app.models.tipo_proceso import TipoDeProceso
 from app.models.unidad_negocio import UnidadNegocio
-from app.schemas.caminos_registros import CaminosMiRegistrosResponse, CaminosRegistroAgrupado
+from app.schemas.caminos_registros import CaminosMisRegistrosResponse, CaminosRegistroAgrupado
 from app.schemas.parte_caminos import ParteCaminosCreate, ParteCaminosResponse
 from app.schemas.produccion import TableroProduccionCreate
 
@@ -72,7 +72,7 @@ def _validate_hours_warning(data: ParteCaminosCreate) -> None:
     return None
 
 
-def _group_operator_rows(rows: list[TableroProduccion]) -> CaminosMiRegistrosResponse:
+def _group_operator_rows(rows: list[TableroProduccion]) -> CaminosMisRegistrosResponse:
     grouped: dict[str, list[TableroProduccion]] = {}
     for row in rows:
         key = (row.form_uuid or "").strip() or f"legacy:{row.id}"
@@ -114,10 +114,10 @@ def _group_operator_rows(rows: list[TableroProduccion]) -> CaminosMiRegistrosRes
         )
 
     registros.sort(key=lambda item: ((item.fecha or date.min), item.id), reverse=True)
-    return CaminosMiRegistrosResponse(registros=registros, child_ids=child_ids)
+    return CaminosMisRegistrosResponse(registros=registros, child_ids=child_ids)
 
 
-@router.get("/mis-registros", response_model=CaminosMiRegistrosResponse)
+@router.get("/mis-registros", response_model=CaminosMisRegistrosResponse)
 async def get_mis_registros_caminos(
     fecha_desde: date | None = None,
     fecha_hasta: date | None = None,
