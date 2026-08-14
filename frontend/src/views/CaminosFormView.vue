@@ -176,9 +176,26 @@
         </SectionCard>
 
         <SectionCard v-show="pasoActual === 6" title="Consumos">
-          <label class="mb-3 flex items-center gap-2 text-sm font-semibold">
-            <input v-model="cargaCombustible" type="checkbox" /> Se cargó combustible durante la jornada
-          </label>
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <span class="text-sm font-medium text-neutral-700">¿Se cargó combustible?</span>
+            <button
+              type="button"
+              role="switch"
+              :aria-checked="cargaCombustible"
+              @click="cargaCombustible = !cargaCombustible"
+              :class="[
+                'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200',
+                cargaCombustible ? 'bg-primary' : 'bg-neutral-300',
+              ]"
+            >
+              <span
+                :class="[
+                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200',
+                  cargaCombustible ? 'translate-x-6' : 'translate-x-1',
+                ]"
+              />
+            </button>
+          </div>
           <div v-if="cargaCombustible" class="grid gap-3 md:grid-cols-3">
             <InputField label="Litros" type="number" min="0" v-model.number="form.combustible" />
             <InputField label="Km / Horómetro" type="number" min="0" v-model.number="form.km_combustible" />
