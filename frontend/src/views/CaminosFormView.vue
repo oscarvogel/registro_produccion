@@ -17,13 +17,22 @@
             <span class="text-xs font-medium text-neutral-400">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
             <span class="text-xs font-semibold text-neutral-700">{{ pasos[pasoActual] }}</span>
           </div>
-          <div class="h-2 bg-neutral-200 rounded-full overflow-hidden"><div class="h-full bg-primary rounded-full transition-all" :style="{ width: `${((pasoActual + 1) / totalPasos) * 100}%` }"></div></div>
+          <div class="h-2 bg-neutral-200 rounded-full overflow-hidden">
+            <div class="h-full bg-primary rounded-full transition-all" :style="{ width: `${((pasoActual + 1) / totalPasos) * 100}%` }"></div>
+          </div>
         </div>
         <div class="hidden md:block">
           <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Carga guiada</p>
           <h2 class="mt-1 text-lg font-extrabold text-primary-dark">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</h2>
           <div class="mt-3 space-y-1.5">
-            <button v-for="(paso, i) in pasos" :key="paso" type="button" :disabled="i > pasoActual" @click="irAPaso(i)" :class="['flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors', i === pasoActual ? 'border-primary bg-primary/10 text-primary-dark' : i < pasoActual ? 'app-surface-muted text-neutral-700 hover:border-primary/40' : 'border-neutral-200 bg-transparent text-neutral-400']">
+            <button
+              v-for="(paso, i) in pasos"
+              :key="paso"
+              type="button"
+              :disabled="i > pasoActual"
+              @click="irAPaso(i)"
+              :class="['flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors', i === pasoActual ? 'border-primary bg-primary/10 text-primary-dark' : i < pasoActual ? 'app-surface-muted text-neutral-700 hover:border-primary/40' : 'border-neutral-200 bg-transparent text-neutral-400']"
+            >
               <span :class="['flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold', i < pasoActual ? 'bg-success text-white' : i === pasoActual ? 'bg-primary text-on-primary' : 'app-surface-muted text-neutral-500']">{{ i < pasoActual ? 'OK' : i + 1 }}</span>
               <span class="min-w-0 flex-1 truncate font-semibold">{{ paso }}</span>
             </button>
@@ -128,24 +137,36 @@
                 <AutocompleteField
                   v-if="requierePredio(proceso)"
                   label="Predio"
-                  v-model="proceso.predio_id"
+                  :modelValue="proceso.predio_id"
                   :items="store.predios"
                   labelKey="nombre"
                   valueKey="idPredio"
                   placeholder="— Escribí para buscar —"
                   emptyMessage="Sin predios configurados"
+                  @select="item => onPredioProcesoChange(proceso, item)"
                 />
                 <AutocompleteField
                   v-if="requiereActa(proceso)"
                   label="Acta"
-                  v-model="proceso.acta"
+                  :modelValue="proceso.acta"
                   :items="store.actas"
                   labelKey="numero"
                   valueKey="numero"
                   placeholder="— Escribí para buscar —"
                   emptyMessage="Sin actas configuradas"
+                  @select="item => onActaProcesoChange(proceso, item)"
                 />
-                <InputField v-if="requiereRodal(proceso)" label="Rodal" v-model="proceso.rodal" />
+                <AutocompleteField
+                  v-if="requiereRodal(proceso)"
+                  label="Rodal"
+                  v-model="proceso.rodal_id"
+                  :items="rodalesDisponibles(proceso)"
+                  labelKey="rodal"
+                  valueKey="idRodal"
+                  :disabled="requiereActa(proceso) && !proceso.acta"
+                  :placeholder="requiereActa(proceso) && !proceso.acta ? '— Primero seleccioná Acta —' : '— Escribí para buscar —'"
+                  emptyMessage="Sin rodales configurados para esta acta"
+                />
                 <InputField v-if="esProceso(proceso, 'PERFILADO')" label="KM perfilado" type="number" step="0.01" min="0" v-model.number="proceso.km_perfilado" />
                 <InputField v-if="esProceso(proceso, 'DISPOSICION')" label="Horas a disposición" type="number" step="0.01" min="0" v-model.number="proceso.hr_disposicion" />
                 <InputField v-if="esProceso(proceso, 'REMOLQUE')" label="Horas de remolque" type="number" step="0.01" min="0" v-model.number="proceso.hr_remolque" />
@@ -237,6 +258,7 @@ const today = new Date().toISOString().split('T')[0]
 const cargaCombustible = ref(false)
 const errorLocal = ref('')
 const pasoActual = ref(0)
+const rodalesPorProceso = reactive({})
 let processKey = 0
 const pasos = ['Contexto', 'Operador', 'Equipo', 'Proceso', 'Tiempo', 'Producción', 'Consumos', 'Observaciones', 'Revisión']
 const totalPasos = pasos.length
@@ -249,11 +271,16 @@ const movilesAutocomplete = computed(() => (store.moviles || []).map((movil) => 
 
 function nuevoProceso() {
   processKey += 1
-  return reactive({ key: processKey, tipo_proceso_id: 0, predio_id: 0, acta: '', rodal: '', km_perfilado: 0, hr_disposicion: 0, hr_remolque: 0 })
+  rodalesPorProceso[processKey] = []
+  return reactive({ key: processKey, tipo_proceso_id: 0, predio_id: 0, acta: '', rodal_id: 0, km_perfilado: 0, hr_disposicion: 0, hr_remolque: 0 })
 }
 const procesos = reactive([nuevoProceso()])
 function agregarProceso() { procesos.push(nuevoProceso()) }
-function quitarProceso(i) { if (procesos.length > 1) procesos.splice(i, 1) }
+function quitarProceso(i) {
+  if (procesos.length <= 1) return
+  const [quitado] = procesos.splice(i, 1)
+  if (quitado) delete rodalesPorProceso[quitado.key]
+}
 function tipoProceso(id) { return store.tiposProceso.find(x => Number(x.id) === Number(id)) || null }
 function nombreProceso(id) { return tipoProceso(id)?.nombre || '' }
 function esProceso(p, n) { return nombreProceso(p.tipo_proceso_id).trim().toUpperCase() === n }
@@ -266,12 +293,50 @@ function predioNombre(id) { return store.predios.find(x => Number(x.idPredio) ==
 function operadorNombre(id) { if (!canSelectOperador.value) return authStore.userName || ''; return store.operadores.find(x => Number(x.idPersonal) === Number(id))?.nombre || '' }
 function equipoSeleccionado() { return store.moviles.find(x => Number(x.idMovil) === Number(form.cod_equipo)) || null }
 
+function rodalesDisponibles(proceso) {
+  const lista = rodalesPorProceso[proceso.key] || []
+  const predioId = Number(proceso.predio_id || 0)
+  if (!predioId) return lista
+  return lista.filter((rodal) => Number(rodal.idPredio) === predioId)
+}
+
+function rodalNombre(proceso) {
+  const rodal = (rodalesPorProceso[proceso.key] || []).find(
+    (item) => Number(item.idRodal) === Number(proceso.rodal_id),
+  )
+  return rodal?.rodal || ''
+}
+
+async function onActaProcesoChange(proceso, item) {
+  proceso.acta = item?.numero || ''
+  proceso.rodal_id = 0
+  rodalesPorProceso[proceso.key] = []
+  if (!proceso.acta) return
+
+  const items = await store.fetchRodalesPorActa(proceso.acta)
+  rodalesPorProceso[proceso.key] = [...(items || store.rodales || [])]
+}
+
+async function onPredioProcesoChange(proceso, item) {
+  proceso.predio_id = Number(item?.idPredio || 0)
+  proceso.rodal_id = 0
+
+  // Cuando hay Acta, la fuente de verdad son los rodales vinculados al Acta;
+  // el Predio sólo restringe esa lista, igual que en el formulario habitual.
+  if (proceso.acta) return
+
+  rodalesPorProceso[proceso.key] = []
+  if (!proceso.predio_id || !requiereRodal(proceso)) return
+  const items = await store.fetchRodales(proceso.predio_id)
+  rodalesPorProceso[proceso.key] = [...(items || store.rodales || [])]
+}
+
 const procesosTiposValidos = computed(() => procesos.length > 0 && procesos.every(p => p.tipo_proceso_id > 0))
 const horasValidas = computed(() => Number(form.hr_inicio) > 0 && Number(form.hr_fin) > Number(form.hr_inicio))
 const produccionValida = computed(() => procesos.every(p => {
   if (requierePredio(p) && !p.predio_id) return false
   if (requiereActa(p) && !String(p.acta || '').trim()) return false
-  if (requiereRodal(p) && !String(p.rodal || '').trim()) return false
+  if (requiereRodal(p) && !Number(p.rodal_id || 0)) return false
   return Number(p.km_perfilado || 0) > 0 || Number(p.hr_disposicion || 0) > 0 || Number(p.hr_remolque || 0) > 0
 }))
 const consumosValidos = computed(() => !cargaCombustible.value || (Number(form.combustible) > 0 && Number(form.km_combustible) > 0 && Number(form.lugar_carga) > 0 && String(form.remito || '').trim().length > 0))
@@ -323,7 +388,7 @@ async function guardar() {
       tipo_proceso_id: Number(p.tipo_proceso_id),
       predio: requierePredio(p) ? predioNombre(p.predio_id) : '',
       acta: requiereActa(p) ? String(p.acta || '').trim() : '',
-      rodal: requiereRodal(p) ? String(p.rodal || '').trim() : '',
+      rodal: requiereRodal(p) ? rodalNombre(p) : '',
       km_perfilado: Number(p.km_perfilado || 0),
       hr_disposicion: Number(p.hr_disposicion || 0),
       hr_remolque: Number(p.hr_remolque || 0),
