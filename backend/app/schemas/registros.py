@@ -14,11 +14,7 @@ from pydantic import BaseModel
 
 
 class RegistroListItem(BaseModel):
-    """DTO de un registro individual para el listado paginado.
-
-    Contiene los campos clave que se muestran en la fila/tarjeta de la lista.
-    El detalle completo (RegistroDetail) se obtiene via GET /registros/{id}.
-    """
+    """DTO de un registro individual o un parte agrupado de Caminos."""
     id: int
     fecha: Optional[date] = None
     operacion: str = ""
@@ -41,11 +37,15 @@ class RegistroListItem(BaseModel):
     plantas: int = 0
     km_carreteo: float = 0
     km_perfilado: float = 0
+    hr_disposicion: float = 0
+    hr_remolque: float = 0
     mtrs_recorridos: int = 0
     remito: str = ""
     remito2: str = ""
     remito3: str = ""
     remito_bitren: str = ""
+    form_uuid: str = ""
+    procesos_count: int = 1
 
     class Config:
         from_attributes = True
@@ -63,13 +63,7 @@ class RegistrosPagedResponse(BaseModel):
 
 
 class RegistroDetail(RegistroListItem):
-    """DTO completo de un registro individual (issue #104).
-
-    Reune los campos que pueden llegar a ser utiles al operario/encargado que
-    consulta el detalle de una carga: ubicacion, metricas, consumos, remitos,
-    lubricantes, identificadores de produccion, etc. NO expone datos sensibles
-    (passwords, tokens, etc.).
-    """
+    """DTO completo de un registro individual (issue #104)."""
     UN: str = ""
     acta: str = ""
     rodal: str = ""
@@ -81,7 +75,6 @@ class RegistroDetail(RegistroListItem):
     unidad_produccion: str = ""
     tarifa: float = 0
     fijo: float = 0
-    hr_disposicion: float = 0
     km_camioneta: int = 0
     servicio_tercero: int = 0
     detalle_servicio: str = ""
