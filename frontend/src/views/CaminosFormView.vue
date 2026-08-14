@@ -1,0 +1,470 @@
+<template>
+  <div class="mx-auto max-w-7xl px-3 py-3 pb-[7rem] md:px-4 md:pt-4">
+    <div class="mb-3 flex items-center justify-between px-1">
+      <div class="flex items-center gap-2.5">
+        <button @click="$router.push({ name: 'home' })" class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-200 transition-colors">
+          <AppIcon name="back" />
+        </button>
+        <h1 class="text-2xl font-bold text-neutral-900 leading-none">Carga de Producción</h1>
+      </div>
+      <button class="p-2 text-neutral-500" type="button" aria-label="Más opciones"><AppIcon name="more" /></button>
+    </div>
+
+    <form class="md:grid md:grid-cols-[13.5rem_minmax(0,1fr)] md:items-start md:gap-3 xl:grid-cols-[14.5rem_minmax(0,1fr)]" novalidate @submit.prevent="guardar">
+      <aside class="app-card mb-4 rounded-xl p-3 md:sticky md:top-20 md:mb-0 md:p-2.5">
+        <div class="md:hidden">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-medium text-neutral-400">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
+            <span class="text-xs font-semibold text-neutral-700">{{ pasos[pasoActual] }}</span>
+          </div>
+          <div class="h-2 bg-neutral-200 rounded-full overflow-hidden">
+            <div class="h-full bg-primary rounded-full transition-all" :style="{ width: `${((pasoActual + 1) / totalPasos) * 100}%` }"></div>
+          </div>
+        </div>
+        <div class="hidden md:block">
+          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Carga guiada</p>
+          <h2 class="mt-1 text-lg font-extrabold text-primary-dark">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</h2>
+          <div class="mt-3 space-y-1.5">
+            <button
+              v-for="(paso, i) in pasos"
+              :key="paso"
+              type="button"
+              :disabled="i > pasoActual"
+              @click="irAPaso(i)"
+              :class="['flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors', i === pasoActual ? 'border-primary bg-primary/10 text-primary-dark' : i < pasoActual ? 'app-surface-muted text-neutral-700 hover:border-primary/40' : 'border-neutral-200 bg-transparent text-neutral-400']"
+            >
+              <span :class="['flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold', i < pasoActual ? 'bg-success text-white' : i === pasoActual ? 'bg-primary text-on-primary' : 'app-surface-muted text-neutral-500']">{{ i < pasoActual ? 'OK' : i + 1 }}</span>
+              <span class="min-w-0 flex-1 truncate font-semibold">{{ paso }}</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <div class="min-w-0 space-y-3">
+        <div class="app-card mb-3 rounded-xl p-3.5">
+          <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Carga en curso</p>
+          <p class="text-lg font-extrabold text-primary-dark">Estado: Sin guardar</p>
+          <div class="mt-2 grid grid-cols-1 gap-2 text-sm text-neutral-700 sm:grid-cols-2 lg:grid-cols-5">
+            <div><b>Fecha:</b> {{ form.fecha }}</div>
+            <div><b>UN:</b> {{ props.unidad.nombre }}</div>
+            <div><b>Operador:</b> {{ operadorNombre(form.cod_operador) || 'Pendiente' }}</div>
+            <div><b>Equipo:</b> {{ equipoSeleccionado()?.detalle || 'Pendiente' }}</div>
+            <div><b>Procesos:</b> {{ procesos.length }}</div>
+          </div>
+        </div>
+
+        <SectionCard v-show="pasoActual === 0" title="Contexto de Carga">
+          <p class="mb-3 text-sm text-neutral-500">Seleccioná el día correspondiente y verificá la unidad de negocio.</p>
+          <InputField label="Fecha" type="date" v-model="form.fecha" required />
+          <div class="mt-3">
+            <label class="block text-sm font-medium text-neutral-700 mb-1">Unidad de Negocio</label>
+            <div class="app-input flex w-full items-center justify-between rounded-xl border px-4 py-2.5">
+              <span class="font-semibold">{{ props.unidad.nombre }}</span>
+              <button type="button" class="text-sm font-semibold text-primary underline underline-offset-2" @click="$emit('back')">Cambiar</button>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard v-show="pasoActual === 1" title="Identificación del Operador">
+          <AutocompleteField
+            v-if="canSelectOperador"
+            label="Seleccionar Operador"
+            v-model="form.cod_operador"
+            :items="store.operadores"
+            labelKey="nombre"
+            valueKey="idPersonal"
+            placeholder="— Escribí para buscar —"
+            emptyMessage="Sin operadores configurados para esta unidad"
+          />
+          <div v-else>
+            <label class="mb-1 block text-sm font-medium">Operador</label>
+            <div class="app-input rounded-xl border px-4 py-2.5">{{ authStore.userName }}</div>
+          </div>
+        </SectionCard>
+
+        <SectionCard v-show="pasoActual === 2" title="Equipo / Maquinaria">
+          <AutocompleteField
+            label="Equipo / Máquina"
+            v-model="form.cod_equipo"
+            :items="movilesAutocomplete"
+            labelKey="buscadorLabel"
+            valueKey="idMovil"
+            placeholder="— Escribí código, equipo o patente —"
+            emptyMessage="Sin equipos configurados para esta unidad"
+          />
+        </SectionCard>
+
+        <SectionCard v-show="pasoActual === 3" title="Procesos / Actividades">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <p class="text-sm text-neutral-500">Agregá todas las tareas realizadas en la jornada.</p>
+            <button type="button" class="rounded-xl bg-primary px-3 py-2 text-sm font-bold text-on-primary" @click="agregarProceso">+ Agregar proceso</button>
+          </div>
+          <div class="space-y-3">
+            <div v-for="(proceso, index) in procesos" :key="proceso.key" class="rounded-xl border border-neutral-200 p-3">
+              <div class="mb-2 flex justify-between">
+                <b>Proceso {{ index + 1 }}</b>
+                <button v-if="procesos.length > 1" type="button" class="text-sm font-semibold text-error-dark" @click="quitarProceso(index)">Quitar</button>
+              </div>
+              <AutocompleteField
+                label="Tipo de Proceso"
+                v-model="proceso.tipo_proceso_id"
+                :items="procesosDisponibles(proceso)"
+                labelKey="nombre"
+                valueKey="id"
+                placeholder="— Escribí para buscar —"
+                emptyMessage="Sin procesos disponibles"
+              />
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard v-show="pasoActual === 4" title="Control de Tiempo">
+          <div class="grid grid-cols-2 gap-4">
+            <InputField label="Hora Inicio" type="number" step="0.01" min="0" v-model.number="form.hr_inicio" />
+            <InputField label="Hora Fin" type="number" step="0.01" min="0" v-model.number="form.hr_fin" />
+          </div>
+          <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <InputField label="Hs No Operativas" type="number" step="0.01" min="0" v-model.number="form.hrs_no_op" />
+            <AutocompleteField
+              v-model="form.motivo_no_op"
+              label="Motivo no operativo"
+              :items="motivosNoOperativos"
+              :disabled="Number(form.hrs_no_op || 0) <= 0"
+              :placeholder="Number(form.hrs_no_op || 0) > 0 ? 'Buscar motivo' : '— Sin horas no operativas —'"
+              emptyMessage="Sin motivos configurados"
+            />
+          </div>
+        </SectionCard>
+
+        <SectionCard v-show="pasoActual === 5" title="Datos de Producción">
+          <div class="space-y-3">
+            <div v-for="(proceso, index) in procesos" :key="proceso.key" class="rounded-xl border border-neutral-200 p-3">
+              <p class="mb-3 font-bold">{{ nombreProceso(proceso.tipo_proceso_id) || `Proceso ${index + 1}` }}</p>
+              <div class="grid gap-3 md:grid-cols-2">
+                <AutocompleteField
+                  v-if="requierePredio(proceso)"
+                  label="Predio"
+                  :modelValue="proceso.predio_id"
+                  :items="store.predios"
+                  labelKey="nombre"
+                  valueKey="idPredio"
+                  placeholder="— Escribí para buscar —"
+                  emptyMessage="Sin predios configurados"
+                  @select="item => onPredioProcesoChange(proceso, item)"
+                />
+                <AutocompleteField
+                  v-if="requiereActa(proceso)"
+                  label="Acta"
+                  :modelValue="proceso.acta"
+                  :items="store.actas"
+                  labelKey="numero"
+                  valueKey="numero"
+                  placeholder="— Escribí para buscar —"
+                  emptyMessage="Sin actas configuradas"
+                  @select="item => onActaProcesoChange(proceso, item)"
+                />
+                <AutocompleteField
+                  v-if="requiereRodal(proceso)"
+                  label="Rodal"
+                  v-model="proceso.rodal_id"
+                  :items="rodalesDisponibles(proceso)"
+                  labelKey="rodal"
+                  valueKey="idRodal"
+                  :disabled="requiereActa(proceso) && !proceso.acta"
+                  :placeholder="requiereActa(proceso) && !proceso.acta ? '— Primero seleccioná Acta —' : '— Escribí para buscar —'"
+                  emptyMessage="Sin rodales configurados para esta acta"
+                />
+                <InputField v-if="esProceso(proceso, 'PERFILADO')" label="KM perfilado" type="number" step="0.01" min="0" v-model.number="proceso.km_perfilado" />
+                <InputField v-if="esProceso(proceso, 'DISPOSICION')" label="Horas a disposición" type="number" step="0.01" min="0" v-model.number="proceso.hr_disposicion" />
+                <InputField v-if="esProceso(proceso, 'REMOLQUE')" label="Horas de remolque" type="number" step="0.01" min="0" v-model.number="proceso.hr_remolque" />
+              </div>
+            </div>
+            <div
+              v-if="totalHorasProcesos > 0"
+              :class="[
+                'rounded-xl border px-3 py-2.5 text-sm font-semibold',
+                horasProcesosValidas
+                  ? 'border-success/30 bg-success-light/30 text-success-dark'
+                  : 'border-error/30 bg-error-light/40 text-error-dark',
+              ]"
+            >
+              Horas asignadas a procesos: {{ formatHoras(totalHorasProcesos) }} h de {{ formatHoras(horasOperativasDisponibles) }} h disponibles.
+              <span v-if="!horasProcesosValidas"> Reducí las horas de disposición/remolque para continuar.</span>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard v-show="pasoActual === 6" title="Consumos">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <span class="text-sm font-medium text-neutral-700">¿Se cargó combustible?</span>
+            <button
+              type="button"
+              role="switch"
+              :aria-checked="cargaCombustible"
+              @click="cargaCombustible = !cargaCombustible"
+              :class="[
+                'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200',
+                cargaCombustible ? 'bg-primary' : 'bg-neutral-300',
+              ]"
+            >
+              <span
+                :class="[
+                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200',
+                  cargaCombustible ? 'translate-x-6' : 'translate-x-1',
+                ]"
+              />
+            </button>
+          </div>
+          <div v-if="cargaCombustible" class="grid gap-3 md:grid-cols-3">
+            <InputField label="Litros" type="number" min="0" v-model.number="form.combustible" />
+            <InputField label="Km / Horómetro" type="number" min="0" v-model.number="form.km_combustible" />
+            <AutocompleteField
+              label="Lugar de carga"
+              v-model="form.lugar_carga"
+              :items="store.lugaresCarga"
+              labelKey="detalle"
+              valueKey="idLugarCarga"
+              placeholder="— Escribí para buscar —"
+              emptyMessage="Sin lugares de carga configurados"
+            />
+            <InputField label="Remito 1" v-model="form.remito" />
+            <InputField label="Remito 2" v-model="form.remito2" />
+            <InputField label="Remito 3" v-model="form.remito3" />
+          </div>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <InputField label="Aceite cadena" type="number" min="0" v-model.number="form.aceite_cadena" />
+            <InputField label="Hidráulico" type="number" min="0" v-model.number="form.aceite_hidraulico" />
+            <InputField label="Motor" type="number" min="0" v-model.number="form.aceite_motor" />
+            <InputField label="Transmisión" type="number" min="0" v-model.number="form.aceite_transmision" />
+            <InputField label="Embrague" type="number" min="0" v-model.number="form.aceite_embrague" />
+          </div>
+        </SectionCard>
+
+        <SectionCard v-show="pasoActual === 7" title="Observaciones">
+          <textarea v-model="form.observaciones" rows="4" maxlength="150" :class="`${fieldClass} resize-none`" placeholder="Observaciones del parte" />
+        </SectionCard>
+
+        <SectionCard v-show="pasoActual === 8" title="Revisión y Confirmación">
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Unidad</small><p class="font-bold">{{ props.unidad.nombre }}</p></div>
+            <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Procesos</small><p class="font-bold">{{ procesos.map(p => nombreProceso(p.tipo_proceso_id)).filter(Boolean).join(' + ') || 'Pendiente' }}</p></div>
+            <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Equipo</small><p class="font-bold">{{ equipoSeleccionado()?.detalle || 'Pendiente' }}</p></div>
+            <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Horario</small><p class="font-bold">{{ form.hr_inicio }} a {{ form.hr_fin }}</p></div>
+          </div>
+        </SectionCard>
+
+        <div v-if="errorLocal" class="rounded-xl border border-error/30 bg-error-light/40 px-4 py-3 text-sm font-semibold text-error-dark">{{ errorLocal }}</div>
+        <div class="app-card hidden items-center justify-end gap-3 rounded-xl p-3.5 md:flex">
+          <button v-if="pasoActual > 0" type="button" class="app-button-soft rounded-xl border px-4 py-2.5 font-bold" @click="retroceder">Anterior</button>
+          <button v-if="pasoActual < totalPasos - 1" type="button" class="rounded-xl bg-primary px-5 py-2.5 font-extrabold text-on-primary disabled:opacity-40" :disabled="!puedeAvanzar" @click="avanzar">Siguiente</button>
+          <button v-else type="submit" class="rounded-xl bg-primary px-5 py-2.5 font-extrabold text-on-primary disabled:opacity-60" :disabled="store.submitting">{{ store.submitting ? 'Guardando...' : `Guardar parte (${procesos.length} proceso${procesos.length === 1 ? '' : 's'})` }}</button>
+        </div>
+      </div>
+
+      <div class="app-card-glass fixed bottom-0 left-0 right-0 z-30 px-3 py-3 md:hidden">
+        <div class="mx-auto flex max-w-2xl items-center gap-3">
+          <button v-if="pasoActual > 0" type="button" @click="retroceder" class="app-button-soft flex flex-1 items-center justify-center rounded-xl border px-4 py-3.5 font-semibold">Anterior</button>
+          <div v-else class="flex-1" />
+          <button v-if="pasoActual < totalPasos - 1" type="button" @click="avanzar" :disabled="!puedeAvanzar" class="flex flex-1 items-center justify-center rounded-xl bg-primary px-4 py-3.5 font-bold text-on-primary disabled:opacity-40">Siguiente</button>
+          <button v-else type="submit" :disabled="store.submitting" class="flex flex-1 items-center justify-center rounded-xl bg-primary px-4 py-3.5 font-bold text-on-primary disabled:opacity-60">{{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</template>
+
+<script setup>
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useProduccionStore } from '@/stores/produccion'
+import SectionCard from '@/components/SectionCard.vue'
+import InputField from '@/components/InputField.vue'
+import AutocompleteField from '@/components/AutocompleteField.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
+import motivosNoOperativos from '@/data/motivosNoOperativos.json'
+
+const props = defineProps({ unidad: { type: Object, required: true } })
+defineEmits(['back'])
+const router = useRouter()
+const authStore = useAuthStore()
+const store = useProduccionStore()
+const canSelectOperador = computed(() => authStore.isAdmin || authStore.user?.encargado === 1)
+const fieldClass = 'app-input w-full rounded-xl border px-4 py-2.5 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:bg-neutral-200 transition-colors'
+const today = new Date().toISOString().split('T')[0]
+const cargaCombustible = ref(false)
+const errorLocal = ref('')
+const pasoActual = ref(0)
+const rodalesPorProceso = reactive({})
+let processKey = 0
+const pasos = ['Contexto', 'Operador', 'Equipo', 'Proceso', 'Tiempo', 'Producción', 'Consumos', 'Observaciones', 'Revisión']
+const totalPasos = pasos.length
+const form = reactive({ fecha: today, cod_operador: canSelectOperador.value ? 0 : Number(authStore.user?.idPersonal || 0), cod_equipo: 0, hr_inicio: 0, hr_fin: 0, hrs_no_op: 0, motivo_no_op: '', combustible: 0, km_combustible: 0, lugar_carga: 0, remito: '', remito2: '', remito3: '', aceite_cadena: 0, aceite_hidraulico: 0, aceite_motor: 0, aceite_transmision: 0, aceite_embrague: 0, observaciones: '' })
+
+const movilesAutocomplete = computed(() => (store.moviles || []).map((movil) => ({
+  ...movil,
+  buscadorLabel: [movil.detalle, movil.patente ? `· ${movil.patente}` : '', movil.idMovil ? `· ID ${movil.idMovil}` : ''].filter(Boolean).join(' '),
+})))
+
+function nuevoProceso() {
+  processKey += 1
+  rodalesPorProceso[processKey] = []
+  return reactive({ key: processKey, tipo_proceso_id: 0, predio_id: 0, acta: '', rodal_id: 0, km_perfilado: 0, hr_disposicion: 0, hr_remolque: 0 })
+}
+const procesos = reactive([nuevoProceso()])
+function agregarProceso() { procesos.push(nuevoProceso()) }
+function quitarProceso(i) {
+  if (procesos.length <= 1) return
+  const [quitado] = procesos.splice(i, 1)
+  if (quitado) delete rodalesPorProceso[quitado.key]
+}
+function tipoProceso(id) { return store.tiposProceso.find(x => Number(x.id) === Number(id)) || null }
+function nombreProceso(id) { return tipoProceso(id)?.nombre || '' }
+function esProceso(p, n) { return nombreProceso(p.tipo_proceso_id).trim().toUpperCase() === n }
+function procesoUsado(id, key) { return procesos.some(x => x.key !== key && Number(x.tipo_proceso_id) === Number(id)) }
+function procesosDisponibles(proceso) { return (store.tiposProceso || []).filter(tipo => !procesoUsado(tipo.id, proceso.key) || Number(tipo.id) === Number(proceso.tipo_proceso_id)) }
+function requierePredio(p) { const n = nombreProceso(p.tipo_proceso_id).trim().toUpperCase(); return ['PERFILADO', 'DISPOSICION', 'REMOLQUE'].includes(n) || !!tipoProceso(p.tipo_proceso_id)?.requiere_predio }
+function requiereActa(p) { const n = nombreProceso(p.tipo_proceso_id).trim().toUpperCase(); if (n === 'PERFILADO') return true; if (['DISPOSICION', 'REMOLQUE'].includes(n)) return false; return !!tipoProceso(p.tipo_proceso_id)?.requiere_acta }
+function requiereRodal(p) { const n = nombreProceso(p.tipo_proceso_id).trim().toUpperCase(); if (n === 'PERFILADO') return true; if (['DISPOSICION', 'REMOLQUE'].includes(n)) return false; return !!tipoProceso(p.tipo_proceso_id)?.requiere_rodal }
+function predioNombre(id) { return store.predios.find(x => Number(x.idPredio) === Number(id))?.nombre || '' }
+function operadorNombre(id) { if (!canSelectOperador.value) return authStore.userName || ''; return store.operadores.find(x => Number(x.idPersonal) === Number(id))?.nombre || '' }
+function equipoSeleccionado() { return store.moviles.find(x => Number(x.idMovil) === Number(form.cod_equipo)) || null }
+function cleanText(value) { return String(value ?? '').trim() }
+function formatHoras(value) { return Number(value || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 }) }
+
+function rodalesDisponibles(proceso) {
+  const lista = rodalesPorProceso[proceso.key] || []
+  const predioId = Number(proceso.predio_id || 0)
+  if (!predioId) return lista
+  return lista.filter((rodal) => Number(rodal.idPredio) === predioId)
+}
+
+function rodalNombre(proceso) {
+  const rodal = (rodalesPorProceso[proceso.key] || []).find(
+    (item) => Number(item.idRodal) === Number(proceso.rodal_id),
+  )
+  return rodal?.rodal || ''
+}
+
+async function onActaProcesoChange(proceso, item) {
+  proceso.acta = item?.numero || ''
+  proceso.rodal_id = 0
+  rodalesPorProceso[proceso.key] = []
+  if (!proceso.acta) return
+
+  const items = await store.fetchRodalesPorActa(proceso.acta)
+  rodalesPorProceso[proceso.key] = [...(items || store.rodales || [])]
+}
+
+async function onPredioProcesoChange(proceso, item) {
+  proceso.predio_id = Number(item?.idPredio || 0)
+  proceso.rodal_id = 0
+
+  // Cuando hay Acta, la fuente de verdad son los rodales vinculados al Acta;
+  // el Predio sólo restringe esa lista, igual que en el formulario habitual.
+  if (proceso.acta) return
+
+  rodalesPorProceso[proceso.key] = []
+  if (!proceso.predio_id || !requiereRodal(proceso)) return
+  const items = await store.fetchRodales(proceso.predio_id)
+  rodalesPorProceso[proceso.key] = [...(items || store.rodales || [])]
+}
+
+const procesosTiposValidos = computed(() => procesos.length > 0 && procesos.every(p => p.tipo_proceso_id > 0))
+const horasValidas = computed(() => Number(form.hr_inicio) > 0 && Number(form.hr_fin) > Number(form.hr_inicio))
+const horasOperativasDisponibles = computed(() => Math.max(
+  0,
+  Number(form.hr_fin || 0) - Number(form.hr_inicio || 0) - Number(form.hrs_no_op || 0),
+))
+const totalHorasProcesos = computed(() => procesos.reduce(
+  (total, proceso) => total + Number(proceso.hr_disposicion || 0) + Number(proceso.hr_remolque || 0),
+  0,
+))
+const horasProcesosValidas = computed(() => totalHorasProcesos.value <= horasOperativasDisponibles.value + 0.000001)
+const produccionValida = computed(() => horasProcesosValidas.value && procesos.every(p => {
+  if (requierePredio(p) && !p.predio_id) return false
+  if (requiereActa(p) && !String(p.acta || '').trim()) return false
+  if (requiereRodal(p) && !Number(p.rodal_id || 0)) return false
+  return Number(p.km_perfilado || 0) > 0 || Number(p.hr_disposicion || 0) > 0 || Number(p.hr_remolque || 0) > 0
+}))
+const consumosValidos = computed(() => !cargaCombustible.value || (Number(form.combustible) > 0 && Number(form.km_combustible) > 0 && Number(form.lugar_carga) > 0 && String(form.remito || '').trim().length > 0))
+const puedeAvanzar = computed(() => [!!form.fecha, !!form.cod_operador, !!form.cod_equipo, procesosTiposValidos.value, horasValidas.value, produccionValida.value, consumosValidos.value, true, true][pasoActual.value])
+function avanzar() { if (puedeAvanzar.value && pasoActual.value < totalPasos - 1) { pasoActual.value += 1; window.scrollTo({ top: 0, behavior: 'smooth' }) } }
+function retroceder() { if (pasoActual.value > 0) { pasoActual.value -= 1; window.scrollTo({ top: 0, behavior: 'smooth' }) } }
+function irAPaso(i) { if (i < pasoActual.value) { pasoActual.value = i; window.scrollTo({ top: 0, behavior: 'smooth' }) } }
+function validar() {
+  if (!form.fecha) return 'Indicá la fecha del parte.'
+  if (!form.cod_operador) return 'Seleccioná el operador.'
+  if (!form.cod_equipo) return 'Seleccioná el equipo.'
+  if (!procesosTiposValidos.value) return 'Completá los procesos del parte.'
+  if (!horasValidas.value) return 'La hora fin debe ser mayor que la hora inicio.'
+  if (Number(form.hrs_no_op) > 0 && !String(form.motivo_no_op || '').trim()) return 'Indicá el motivo de las horas no operativas.'
+  if (!horasProcesosValidas.value) return `Las horas de disposición y remolque suman ${formatHoras(totalHorasProcesos.value)} h, pero sólo hay ${formatHoras(horasOperativasDisponibles.value)} h operativas disponibles.`
+  if (!produccionValida.value) return 'Completá ubicación y métricas de todos los procesos.'
+  if (!consumosValidos.value) return 'Completá los datos de combustible.'
+  return ''
+}
+async function guardar() {
+  if (pasoActual.value < totalPasos - 1) { avanzar(); return }
+  errorLocal.value = validar()
+  if (errorLocal.value) return
+  const equipo = equipoSeleccionado()
+  const payload = {
+    UN: cleanText(props.unidad.nombre),
+    fecha: form.fecha,
+    equipo: equipo ? [equipo.detalle, equipo.patente].map(cleanText).filter(Boolean).join(' - ') : '',
+    operador: cleanText(operadorNombre(form.cod_operador)),
+    cod_operador: Number(form.cod_operador),
+    cod_equipo: Number(form.cod_equipo),
+    cod_un: Number(props.unidad.idUnidadNegocio),
+    hr_inicio: Number(form.hr_inicio),
+    hr_fin: Number(form.hr_fin),
+    combustible: cargaCombustible.value ? Number(form.combustible || 0) : 0,
+    km_combustible: cargaCombustible.value ? Number(form.km_combustible || 0) : 0,
+    lugar_carga: cargaCombustible.value ? Number(form.lugar_carga || 0) : 0,
+    remito: cargaCombustible.value ? String(form.remito || '').trim() : '',
+    remito2: cargaCombustible.value ? String(form.remito2 || '').trim() : '',
+    remito3: cargaCombustible.value ? String(form.remito3 || '').trim() : '',
+    aceite_cadena: Number(form.aceite_cadena || 0),
+    aceite_hidraulico: Number(form.aceite_hidraulico || 0),
+    aceite_motor: Number(form.aceite_motor || 0),
+    aceite_transmision: Number(form.aceite_transmision || 0),
+    aceite_embrague: Number(form.aceite_embrague || 0),
+    hrs_no_op: Number(form.hrs_no_op || 0),
+    motivo_no_op: String(form.motivo_no_op || '').trim(),
+    observaciones: String(form.observaciones || '').trim(),
+    procesos: procesos.map(p => ({
+      tipo_proceso_id: Number(p.tipo_proceso_id),
+      predio: requierePredio(p) ? cleanText(predioNombre(p.predio_id)) : '',
+      acta: requiereActa(p) ? String(p.acta || '').trim() : '',
+      rodal: requiereRodal(p) ? cleanText(rodalNombre(p)) : '',
+      km_perfilado: Number(p.km_perfilado || 0),
+      hr_disposicion: Number(p.hr_disposicion || 0),
+      hr_remolque: Number(p.hr_remolque || 0),
+    })),
+  }
+  try { await store.submitParteCaminos(payload); router.push({ name: 'home' }) } catch { errorLocal.value = store.error || 'No se pudo guardar el parte.' }
+}
+watch(cargaCombustible, (activo) => {
+  if (activo) return
+  form.combustible = 0
+  form.km_combustible = 0
+  form.lugar_carga = 0
+  form.remito = ''
+  form.remito2 = ''
+  form.remito3 = ''
+})
+watch(() => form.hrs_no_op, (horas) => {
+  if (Number(horas || 0) <= 0) form.motivo_no_op = ''
+})
+onMounted(async () => {
+  await Promise.all([
+    store.fetchTiposProceso(props.unidad.idUnidadNegocio),
+    store.fetchMoviles(props.unidad.idUnidadNegocio),
+    store.fetchLugaresCarga(props.unidad.idUnidadNegocio),
+    store.fetchPredios(),
+    store.fetchActas(),
+    canSelectOperador.value ? store.fetchOperadores(props.unidad.idUnidadNegocio) : Promise.resolve(),
+  ])
+})
+</script>

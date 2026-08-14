@@ -9,7 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from app.core.config import settings
 from app.core.database import engine
-from app.api.routes import items, auth, produccion, dashboard, admin, combustible
+from app.api.routes import items, auth, produccion, parte_caminos, dashboard, admin, combustible
 
 import pymysql
 
@@ -130,6 +130,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(auth.router, prefix="/api")
 app.include_router(items.router, prefix="/api")
 app.include_router(produccion.router, prefix="/api")
+app.include_router(parte_caminos.router, prefix="/api")
 app.include_router(combustible.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")

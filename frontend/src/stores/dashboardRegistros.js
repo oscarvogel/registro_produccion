@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import api from '@/services/api'
 
 const DEFAULT_PAGE_SIZE = 20
+const CAMINOS_PAGE_SIZE = 100
 
 /** Normaliza los query params del router al estado de filtros. */
 function filtrosFromQuery(query) {
@@ -24,6 +25,46 @@ function buildQueryParams(filtros) {
   if (filtros.fechaDesde) params.fecha_desde = filtros.fechaDesde
   if (filtros.fechaHasta) params.fecha_hasta = filtros.fechaHasta
   return params
+}
+
+function normalizeName(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+export function groupCaminosRows(rows = []) {
+  const groups = new Map()
+  for (const row of rows) {
+    const key = row.form_uuid ? `form:${row.form_uuid}` : `row:${row.id}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(row)
+  }
+
+  return Array.from(groups.values()).map((siblings) => {
+    const first = siblings[0]
+    if (siblings.length === 1) {
+      return { ...first, procesos_count: Number(first.procesos_count || 1) }
+    }
+
+    const sum = (field) => siblings.reduce((acc, row) => acc + Number(row?.[field] || 0), 0)
+    return {
+      ...first,
+      operacion: `Caminos — ${siblings.length} procesos`,
+      procesos_count: siblings.length,
+      tn_despachadas: sum('tn_despachadas'),
+      m3: sum('m3'),
+      has: sum('has'),
+      carros: sum('carros'),
+      plantas: sum('plantas'),
+      km_carreteo: sum('km_carreteo'),
+      km_perfilado: sum('km_perfilado'),
+      hr_disposicion: sum('hr_disposicion'),
+      hr_remolque: sum('hr_remolque'),
+      mtrs_recorridos: sum('mtrs_recorridos'),
+      // Cabecera del parte: no sumar valores replicados en filas hermanas.
+      combustible: Number(first.combustible || 0),
+      hrs_no_op: Number(first.hrs_no_op || 0),
+    }
+  })
 }
 
 export const useDashboardRegistrosStore = defineStore('dashboardRegistros', {
@@ -69,9 +110,34 @@ export const useDashboardRegistrosStore = defineStore('dashboardRegistros', {
       await this.fetchRegistros()
     },
 
+    async fetchAllCaminosRows(params, firstPayload) {
+      const rows = [...(firstPayload.items || [])]
+      const pages = Number(firstPayload.total_pages || 0)
+      for (let page = 2; page <= pages; page += 1) {
+        const { data } = await api.get('/api/dashboard/registros', {
+          params: { ...params, page, page_size: CAMINOS_PAGE_SIZE },
+          _suppressErrorToast: true,
+        })
+        rows.push(...(data.items || []))
+      }
+      return rows
+    },
+
+    applyCaminosPagination(rows) {
+      const grouped = groupCaminosRows(rows)
+      const total = grouped.length
+      const totalPages = total ? Math.ceil(total / this.pageSize) : 0
+      const safePage = totalPages ? Math.min(Math.max(this.page, 1), totalPages) : 1
+      const start = (safePage - 1) * this.pageSize
+
+      this.registros = grouped.slice(start, start + this.pageSize)
+      this.total = total
+      this.page = safePage
+      this.totalPages = totalPages
+    },
+
     async fetchRegistros() {
       if (!this.filtros.unId) {
-        // Sin unidad no hay listado: se limpia y se sale sin pegar al backend.
         this.registros = []
         this.total = 0
         this.totalPages = 0
@@ -83,11 +149,28 @@ export const useDashboardRegistrosStore = defineStore('dashboardRegistros', {
         const params = buildQueryParams(this.filtros)
         params.page = this.page
         params.page_size = this.pageSize
+
         const { data } = await api.get('/api/dashboard/registros', {
           params,
           _suppressErrorToast: true,
         })
-        this.registros = data.items || []
+        const firstItems = data.items || []
+        const esCaminos = firstItems.some((item) => normalizeName(item.UN) === 'caminos')
+
+        if (esCaminos) {
+          // Para agrupar correctamente entre limites de pagina necesitamos las
+          // filas hermanas completas. Reiniciamos desde page 1 con el maximo
+          // permitido por el endpoint y luego paginamos por partes logicos.
+          const firstFull = await api.get('/api/dashboard/registros', {
+            params: { ...params, page: 1, page_size: CAMINOS_PAGE_SIZE },
+            _suppressErrorToast: true,
+          })
+          const rows = await this.fetchAllCaminosRows(params, firstFull.data || {})
+          this.applyCaminosPagination(rows)
+          return
+        }
+
+        this.registros = firstItems
         this.total = data.total || 0
         this.page = data.page || 1
         this.pageSize = data.page_size || DEFAULT_PAGE_SIZE
@@ -121,7 +204,8 @@ export const useDashboardRegistrosStore = defineStore('dashboardRegistros', {
         const { data } = await api.get(`/api/dashboard/registros/${id}`, {
           _suppressErrorToast: true,
         })
-        this.detalle = data
+        const summary = this.registros.find((item) => Number(item.id) === Number(id))
+        this.detalle = summary?.procesos_count > 1 ? { ...data, ...summary } : data
       } catch (err) {
         console.error('Error cargando detalle del registro:', err)
         this.detalleError =
