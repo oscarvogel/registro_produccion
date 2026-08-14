@@ -39,59 +39,45 @@ SET @caminos_un_id := (
   LIMIT 1
 );
 
--- 3. Catálogo mínimo inicial de procesos de Caminos.
--- PERFILADO puede existir por migraciones anteriores; en ese caso se reutiliza.
+-- 3. Catalogo minimo inicial de procesos de Caminos.
+-- IMPORTANTE: tipo_de_proceso es global. Si ya existe un proceso activo con
+-- el mismo nombre se reutiliza SIN cambiar campos ni flags, para no alterar
+-- el comportamiento de Forestal u otras UN. Las reglas especiales de
+-- ubicacion de Caminos se validan en el endpoint /produccion/caminos.
 INSERT INTO tipo_de_proceso
   (nombre, campos, requiere_acta, requiere_predio, requiere_rodal, activo)
 SELECT 'PERFILADO', 'km_perfilado', 1, 1, 1, 1
 WHERE NOT EXISTS (
-  SELECT 1 FROM tipo_de_proceso WHERE UPPER(TRIM(nombre)) = 'PERFILADO'
+  SELECT 1
+  FROM tipo_de_proceso
+  WHERE UPPER(TRIM(nombre)) = 'PERFILADO' AND activo = 1
 );
 
 INSERT INTO tipo_de_proceso
   (nombre, campos, requiere_acta, requiere_predio, requiere_rodal, activo)
 SELECT 'DISPOSICION', 'hr_disposicion', 0, 1, 0, 1
 WHERE NOT EXISTS (
-  SELECT 1 FROM tipo_de_proceso WHERE UPPER(TRIM(nombre)) = 'DISPOSICION'
+  SELECT 1
+  FROM tipo_de_proceso
+  WHERE UPPER(TRIM(nombre)) = 'DISPOSICION' AND activo = 1
 );
 
 INSERT INTO tipo_de_proceso
   (nombre, campos, requiere_acta, requiere_predio, requiere_rodal, activo)
 SELECT 'REMOLQUE', 'hr_remolque', 0, 1, 0, 1
 WHERE NOT EXISTS (
-  SELECT 1 FROM tipo_de_proceso WHERE UPPER(TRIM(nombre)) = 'REMOLQUE'
+  SELECT 1
+  FROM tipo_de_proceso
+  WHERE UPPER(TRIM(nombre)) = 'REMOLQUE' AND activo = 1
 );
 
--- Ajustar requisitos del primer corte de Caminos aun si los tipos ya existian.
-UPDATE tipo_de_proceso
-SET campos = 'km_perfilado',
-    requiere_predio = 1,
-    requiere_acta = 1,
-    requiere_rodal = 1,
-    activo = 1
-WHERE UPPER(TRIM(nombre)) = 'PERFILADO';
-
-UPDATE tipo_de_proceso
-SET campos = 'hr_disposicion',
-    requiere_predio = 1,
-    requiere_acta = 0,
-    requiere_rodal = 0,
-    activo = 1
-WHERE UPPER(TRIM(nombre)) = 'DISPOSICION';
-
-UPDATE tipo_de_proceso
-SET campos = 'hr_remolque',
-    requiere_predio = 1,
-    requiere_acta = 0,
-    requiere_rodal = 0,
-    activo = 1
-WHERE UPPER(TRIM(nombre)) = 'REMOLQUE';
-
--- 4. Habilitar esos procesos para Caminos.
+-- 4. Habilitar exactamente una version activa de cada proceso para Caminos.
 INSERT IGNORE INTO unidadnegocio_tipo_proceso (un_id, tipo_proceso_id)
-SELECT @caminos_un_id, id
+SELECT @caminos_un_id, MIN(id)
 FROM tipo_de_proceso
-WHERE UPPER(TRIM(nombre)) IN ('PERFILADO', 'DISPOSICION', 'REMOLQUE');
+WHERE activo = 1
+  AND UPPER(TRIM(nombre)) IN ('PERFILADO', 'DISPOSICION', 'REMOLQUE')
+GROUP BY UPPER(TRIM(nombre));
 
 -- 5. KPI opcional para remolque, si las tablas KPI ya existen.
 SET @kpi_table_exists := (
