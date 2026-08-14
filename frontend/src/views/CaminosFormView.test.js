@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
 
 const push = vi.fn()
 const store = {
@@ -45,6 +46,26 @@ vi.mock('@/stores/produccion', () => ({
 
 import CaminosFormView from './CaminosFormView.vue'
 
+function mountView() {
+  return mount(CaminosFormView, {
+    props: {
+      unidad: { idUnidadNegocio: 7, nombre: 'Caminos' },
+    },
+    global: {
+      stubs: {
+        SectionCard: {
+          props: ['title'],
+          template: '<section><h2>{{ title }}</h2><slot /></section>',
+        },
+        InputField: {
+          props: ['label', 'modelValue'],
+          emits: ['update:modelValue'],
+          template: '<label><span>{{ label }}</span><input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" /></label>',
+        },
+      },
+    },
+  })
+}
 
 describe('CaminosFormView', () => {
   beforeEach(() => {
@@ -52,24 +73,7 @@ describe('CaminosFormView', () => {
   })
 
   it('allows adding and removing process rows in the same daily part', async () => {
-    const wrapper = mount(CaminosFormView, {
-      props: {
-        unidad: { idUnidadNegocio: 7, nombre: 'Caminos' },
-      },
-      global: {
-        stubs: {
-          SectionCard: {
-            props: ['title'],
-            template: '<section><h2>{{ title }}</h2><slot /></section>',
-          },
-          InputField: {
-            props: ['label', 'modelValue'],
-            emits: ['update:modelValue'],
-            template: '<label><span>{{ label }}</span><input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" /></label>',
-          },
-        },
-      },
-    })
+    const wrapper = mountView()
 
     expect(wrapper.text()).toContain('Proceso 1')
     expect(wrapper.text()).not.toContain('Proceso 2')
@@ -89,18 +93,32 @@ describe('CaminosFormView', () => {
     expect(wrapper.text()).not.toContain('Proceso 2')
   })
 
+  it('blocks production when disposition plus towing exceeds available shift hours', async () => {
+    const wrapper = mountView()
+
+    wrapper.vm.form.hr_inicio = 1
+    wrapper.vm.form.hr_fin = 15
+    wrapper.vm.form.hrs_no_op = 0
+    wrapper.vm.procesos[0].tipo_proceso_id = 20
+    wrapper.vm.procesos[0].predio_id = 1
+    wrapper.vm.procesos[0].hr_disposicion = 12
+    wrapper.vm.agregarProceso()
+    wrapper.vm.procesos[1].tipo_proceso_id = 21
+    wrapper.vm.procesos[1].predio_id = 1
+    wrapper.vm.procesos[1].hr_remolque = 5
+    wrapper.vm.pasoActual = 5
+    await nextTick()
+
+    expect(wrapper.vm.horasOperativasDisponibles).toBe(14)
+    expect(wrapper.vm.totalHorasProcesos).toBe(17)
+    expect(wrapper.vm.horasProcesosValidas).toBe(false)
+    expect(wrapper.vm.puedeAvanzar).toBe(false)
+    expect(wrapper.text()).toContain('17 h de 14 h disponibles')
+    expect(wrapper.text()).toContain('Reducí las horas de disposición/remolque')
+  })
+
   it('loads Caminos-scoped catalogs when mounted', async () => {
-    mount(CaminosFormView, {
-      props: {
-        unidad: { idUnidadNegocio: 7, nombre: 'Caminos' },
-      },
-      global: {
-        stubs: {
-          SectionCard: { template: '<section><slot /></section>' },
-          InputField: { template: '<input />' },
-        },
-      },
-    })
+    mountView()
 
     await Promise.resolve()
     expect(store.fetchTiposProceso).toHaveBeenCalledWith(7)
