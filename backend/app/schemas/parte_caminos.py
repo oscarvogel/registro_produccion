@@ -6,6 +6,12 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from app.core.remito import normalize_remito
 
 
+def _strip_text(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
 class ProcesoCaminosCreate(BaseModel):
     tipo_proceso_id: int = Field(gt=0)
     predio: str = Field(default="0", max_length=50)
@@ -14,6 +20,11 @@ class ProcesoCaminosCreate(BaseModel):
     hr_disposicion: float = Field(default=0, ge=0)
     km_perfilado: float = Field(default=0, ge=0)
     hr_remolque: float = Field(default=0, ge=0)
+
+    @field_validator("predio", "acta", "rodal", mode="before")
+    @classmethod
+    def normalize_text(cls, value: Any) -> str:
+        return _strip_text(value)
 
     @model_validator(mode="after")
     def validate_metricas(self):
@@ -53,12 +64,18 @@ class ParteCaminosCreate(BaseModel):
     observaciones: str = Field(default="0", max_length=150)
     procesos: list[ProcesoCaminosCreate] = Field(min_length=1)
 
-    @field_validator("remito", "remito2", "remito3")
+    @field_validator("form_uuid", "equipo", "operador", "UN", "motivo_no_op", "observaciones", mode="before")
     @classmethod
-    def validate_remito(cls, value: str) -> str:
-        if value is None or value == "":
+    def normalize_text(cls, value: Any) -> str:
+        return _strip_text(value)
+
+    @field_validator("remito", "remito2", "remito3", mode="before")
+    @classmethod
+    def validate_remito(cls, value: Any) -> str:
+        normalized = _strip_text(value)
+        if normalized == "":
             return ""
-        return normalize_remito(value)
+        return normalize_remito(normalized)
 
     @model_validator(mode="before")
     @classmethod
