@@ -53,7 +53,16 @@
         </SectionCard>
 
         <SectionCard v-show="pasoActual === 1" title="Identificación del Operador">
-          <div v-if="canSelectOperador"><label class="mb-1 block text-sm font-medium">Seleccionar Operador</label><select v-model.number="form.cod_operador" :class="fieldClass"><option :value="0">Seleccionar operador</option><option v-for="item in store.operadores" :key="item.idPersonal" :value="item.idPersonal">{{ item.nombre }}</option></select></div>
+          <AutocompleteField
+            v-if="canSelectOperador"
+            label="Seleccionar Operador"
+            v-model="form.cod_operador"
+            :items="store.operadores"
+            labelKey="nombre"
+            valueKey="idPersonal"
+            placeholder="— Escribí para buscar —"
+            emptyMessage="Sin operadores configurados para esta unidad"
+          />
           <div v-else><label class="mb-1 block text-sm font-medium">Operador</label><div class="app-input rounded-xl border px-4 py-2.5">{{ authStore.userName }}</div></div>
         </SectionCard>
 
@@ -104,6 +113,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
 import SectionCard from '@/components/SectionCard.vue'
 import InputField from '@/components/InputField.vue'
+import AutocompleteField from '@/components/AutocompleteField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
 const props = defineProps({ unidad: { type: Object, required: true } })
