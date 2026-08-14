@@ -182,6 +182,8 @@ const productionMetrics = computed(() => {
     { label: 'Plantas', value: fmt(totals.total_plantas), raw: totals.total_plantas, unit: 'uds', detail: totals.plantas_por_hora != null ? `${fmt(totals.plantas_por_hora)} plantas/hs` : '' },
     { label: 'KM Carreteo', value: fmt(totals.total_km_carreteo), raw: totals.total_km_carreteo, unit: 'km', detail: totals.km_carreteo_por_hora != null ? `${fmt(totals.km_carreteo_por_hora)} km/hs` : '' },
     { label: 'KM Perfilado', value: fmt(totals.total_km_perfilado), raw: totals.total_km_perfilado, unit: 'km', detail: totals.km_perfilado_por_hora != null ? `${fmt(totals.km_perfilado_por_hora)} km/hs` : '' },
+    { label: 'Horas a disposición', value: fmt(totals.total_hr_disposicion), raw: totals.total_hr_disposicion, unit: 'hs', detail: '' },
+    { label: 'Horas de remolque', value: fmt(totals.total_hr_remolque), raw: totals.total_hr_remolque, unit: 'hs', detail: '' },
   ].filter((metric) => Number(metric.raw) > 0)
 })
 
@@ -248,6 +250,8 @@ function recordMetrics(record) {
     { label: 'plantas', value: fmt(record.plantas), raw: record.plantas, unit: 'plantas' },
     { label: 'km_carreteo', value: fmt(record.km_carreteo), raw: record.km_carreteo, unit: 'km carr.' },
     { label: 'km_perfilado', value: fmt(record.km_perfilado), raw: record.km_perfilado, unit: 'km perf.' },
+    { label: 'hr_disposicion', value: fmt(record.hr_disposicion), raw: record.hr_disposicion, unit: 'hs disp.' },
+    { label: 'hr_remolque', value: fmt(record.hr_remolque), raw: record.hr_remolque, unit: 'hs rem.' },
     { label: 'combustible', value: fmt(record.combustible), raw: record.combustible, unit: 'lts', tone: 'warning' },
   ].filter((metric) => Number(metric.raw) > 0)
 }
