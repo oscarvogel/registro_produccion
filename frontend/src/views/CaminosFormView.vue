@@ -125,7 +125,14 @@
           </div>
           <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
             <InputField label="Hs No Operativas" type="number" step="0.01" min="0" v-model.number="form.hrs_no_op" />
-            <InputField label="Motivo no operativo" v-model="form.motivo_no_op" />
+            <AutocompleteField
+              v-model="form.motivo_no_op"
+              label="Motivo no operativo"
+              :items="motivosNoOperativos"
+              :disabled="Number(form.hrs_no_op || 0) <= 0"
+              :placeholder="Number(form.hrs_no_op || 0) > 0 ? 'Buscar motivo' : '— Sin horas no operativas —'"
+              emptyMessage="Sin motivos configurados"
+            />
           </div>
         </SectionCard>
 
@@ -275,6 +282,7 @@ import SectionCard from '@/components/SectionCard.vue'
 import InputField from '@/components/InputField.vue'
 import AutocompleteField from '@/components/AutocompleteField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import motivosNoOperativos from '@/data/motivosNoOperativos.json'
 
 const props = defineProps({ unidad: { type: Object, required: true } })
 defineEmits(['back'])
@@ -444,6 +452,9 @@ watch(cargaCombustible, (activo) => {
   form.remito = ''
   form.remito2 = ''
   form.remito3 = ''
+})
+watch(() => form.hrs_no_op, (horas) => {
+  if (Number(horas || 0) <= 0) form.motivo_no_op = ''
 })
 onMounted(async () => {
   await Promise.all([
