@@ -45,6 +45,7 @@ class TableroProduccion(Base):
     km_carreteo = Column(Numeric(12, 2), nullable=False, default=0)
     km_perfilado = Column(Numeric(12, 2), nullable=False, default=0)
     hr_disposicion = Column(Numeric(12, 2), nullable=False, default=0)
+    hr_remolque = Column(Numeric(12, 2), nullable=False, default=0)
     km_camioneta = Column(Integer, nullable=False, default=0)
     servicio_tercero = Column(SmallInteger, nullable=False, default=0)
     detalle_servicio = Column(String(50), nullable=False, default="")
