@@ -93,6 +93,23 @@ class ParteCaminosCreate(BaseModel):
             raise ValueError("La hora final debe ser mayor que la hora inicial")
         if self.hrs_no_op > 0 and (not self.motivo_no_op.strip() or self.motivo_no_op.strip() == "0"):
             raise ValueError("Las horas no operativas requieren un motivo")
+
+        horas_jornada = self.hr_fin - self.hr_inicio
+        horas_disponibles = horas_jornada - self.hrs_no_op
+        if horas_disponibles < 0:
+            raise ValueError("Las horas no operativas no pueden superar la duracion de la jornada")
+
+        horas_procesos = sum(
+            float(proceso.hr_disposicion or 0) + float(proceso.hr_remolque or 0)
+            for proceso in self.procesos
+        )
+        if horas_procesos > horas_disponibles + 1e-9:
+            raise ValueError(
+                "La suma de horas de disposicion y remolque "
+                f"({horas_procesos:g} h) no puede superar las horas operativas "
+                f"disponibles de la jornada ({horas_disponibles:g} h)"
+            )
+
         if self.combustible > 0:
             if self.km_combustible <= 0:
                 raise ValueError("El combustible requiere un kilometraje u horometro mayor a cero")
