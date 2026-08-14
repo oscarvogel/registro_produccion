@@ -82,7 +82,6 @@ export const useDashboardRegistrosStore = defineStore('dashboardRegistros', {
       fechaDesde: null,
       fechaHasta: null,
     },
-    unidadEsCaminos: null,
     loading: false,
     error: null,
     detalle: null,
@@ -108,45 +107,23 @@ export const useDashboardRegistrosStore = defineStore('dashboardRegistros', {
     async initFromQuery(query) {
       const parsed = filtrosFromQuery(query)
       if (parsed) this.filtros = { ...this.filtros, ...parsed }
-      this.unidadEsCaminos = null
       await this.fetchRegistros()
     },
 
-    async resolveUnidadEsCaminos() {
-      if (!this.filtros.unId) return false
-      if (this.unidadEsCaminos !== null) return this.unidadEsCaminos
-      try {
-        const { data } = await api.get('/api/produccion/unidades-negocio', {
-          _suppressErrorToast: true,
-        })
-        const unidad = (Array.isArray(data) ? data : []).find(
-          (item) => Number(item.idUnidadNegocio) === Number(this.filtros.unId),
-        )
-        this.unidadEsCaminos = normalizeName(unidad?.nombre) === 'caminos'
-      } catch {
-        this.unidadEsCaminos = false
-      }
-      return this.unidadEsCaminos
-    },
-
-    async fetchRegistrosCaminos(params) {
-      const firstParams = { ...params, page: 1, page_size: CAMINOS_PAGE_SIZE }
-      const first = await api.get('/api/dashboard/registros', {
-        params: firstParams,
-        _suppressErrorToast: true,
-      })
-      const payload = first.data || {}
-      const rows = [...(payload.items || [])]
-      const pages = Number(payload.total_pages || 0)
-
+    async fetchAllCaminosRows(params, firstPayload) {
+      const rows = [...(firstPayload.items || [])]
+      const pages = Number(firstPayload.total_pages || 0)
       for (let page = 2; page <= pages; page += 1) {
         const { data } = await api.get('/api/dashboard/registros', {
-          params: { ...firstParams, page },
+          params: { ...params, page, page_size: CAMINOS_PAGE_SIZE },
           _suppressErrorToast: true,
         })
         rows.push(...(data.items || []))
       }
+      return rows
+    },
 
+    applyCaminosPagination(rows) {
       const grouped = groupCaminosRows(rows)
       const total = grouped.length
       const totalPages = total ? Math.ceil(total / this.pageSize) : 0
@@ -170,20 +147,30 @@ export const useDashboardRegistrosStore = defineStore('dashboardRegistros', {
       this.error = null
       try {
         const params = buildQueryParams(this.filtros)
-        const esCaminos = await this.resolveUnidadEsCaminos()
-
-        if (esCaminos) {
-          await this.fetchRegistrosCaminos(params)
-          return
-        }
-
         params.page = this.page
         params.page_size = this.pageSize
+
         const { data } = await api.get('/api/dashboard/registros', {
           params,
           _suppressErrorToast: true,
         })
-        this.registros = data.items || []
+        const firstItems = data.items || []
+        const esCaminos = firstItems.some((item) => normalizeName(item.UN) === 'caminos')
+
+        if (esCaminos) {
+          // Para agrupar correctamente entre limites de pagina necesitamos las
+          // filas hermanas completas. Reiniciamos desde page 1 con el maximo
+          // permitido por el endpoint y luego paginamos por partes logicos.
+          const firstFull = await api.get('/api/dashboard/registros', {
+            params: { ...params, page: 1, page_size: CAMINOS_PAGE_SIZE },
+            _suppressErrorToast: true,
+          })
+          const rows = await this.fetchAllCaminosRows(params, firstFull.data || {})
+          this.applyCaminosPagination(rows)
+          return
+        }
+
+        this.registros = firstItems
         this.total = data.total || 0
         this.page = data.page || 1
         this.pageSize = data.page_size || DEFAULT_PAGE_SIZE
@@ -241,7 +228,6 @@ export const useDashboardRegistrosStore = defineStore('dashboardRegistros', {
       this.total = 0
       this.page = 1
       this.totalPages = 0
-      this.unidadEsCaminos = null
       this.filtros = {
         unId: null,
         tipoProcesoId: null,
