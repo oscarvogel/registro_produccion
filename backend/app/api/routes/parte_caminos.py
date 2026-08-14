@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
@@ -11,6 +11,7 @@ from app.models.personal import Personal
 from app.models.produccion import TableroProduccion
 from app.models.tipo_proceso import TipoDeProceso
 from app.models.unidad_negocio import UnidadNegocio
+from app.schemas.caminos_registros import CaminosMiRegistrosResponse, CaminosRegistroAgrupado
 from app.schemas.parte_caminos import ParteCaminosCreate, ParteCaminosResponse
 from app.schemas.produccion import TableroProduccionCreate
 
@@ -69,6 +70,70 @@ def _validate_hours_warning(data: ParteCaminosCreate) -> None:
     be evaluated unambiguously remain blocking.
     """
     return None
+
+
+def _group_operator_rows(rows: list[TableroProduccion]) -> CaminosMiRegistrosResponse:
+    grouped: dict[str, list[TableroProduccion]] = {}
+    for row in rows:
+        key = (row.form_uuid or "").strip() or f"legacy:{row.id}"
+        grouped.setdefault(key, []).append(row)
+
+    registros: list[CaminosRegistroAgrupado] = []
+    child_ids: list[int] = []
+    for form_uuid, siblings in grouped.items():
+        first = siblings[0]
+        ids = [int(row.id) for row in siblings]
+        child_ids.extend(ids)
+        registros.append(
+            CaminosRegistroAgrupado(
+                id=int(first.id),
+                child_ids=ids,
+                form_uuid="" if form_uuid.startswith("legacy:") else form_uuid,
+                procesos_count=len(siblings),
+                fecha=first.fecha,
+                operacion=(
+                    f"Caminos — {len(siblings)} procesos"
+                    if len(siblings) > 1
+                    else (first.operacion or "Caminos")
+                ),
+                equipo=first.equipo or "",
+                combustible=int(first.combustible or 0),
+                tn_despachadas=round(sum(float(row.tn_despachadas or 0) for row in siblings), 2),
+                m3=sum(int(row.m3 or 0) for row in siblings),
+                has=round(sum(float(row.has or 0) for row in siblings), 2),
+                carros=sum(int(row.carros or 0) for row in siblings),
+                plantas=sum(int(row.plantas or 0) for row in siblings),
+                km_carreteo=round(sum(float(row.km_carreteo or 0) for row in siblings), 2),
+                km_perfilado=round(sum(float(row.km_perfilado or 0) for row in siblings), 2),
+                hr_disposicion=round(sum(float(row.hr_disposicion or 0) for row in siblings), 2),
+                hr_remolque=round(sum(float(row.hr_remolque or 0) for row in siblings), 2),
+                mtrs_recorridos=sum(int(row.mtrs_recorridos or 0) for row in siblings),
+                hr_inicio=float(first.hr_inicio or 0),
+                hr_fin=float(first.hr_fin or 0),
+            )
+        )
+
+    registros.sort(key=lambda item: ((item.fecha or date.min), item.id), reverse=True)
+    return CaminosMiRegistrosResponse(registros=registros, child_ids=child_ids)
+
+
+@router.get("/mis-registros", response_model=CaminosMiRegistrosResponse)
+async def get_mis_registros_caminos(
+    fecha_desde: date | None = None,
+    fecha_hasta: date | None = None,
+    db: Session = Depends(get_db),
+    user: Personal = Depends(get_current_user),
+):
+    query = db.query(TableroProduccion).filter(
+        TableroProduccion.cod_operador == user.idPersonal,
+        func.lower(func.trim(TableroProduccion.UN)) == "caminos",
+    )
+    if fecha_desde is not None:
+        query = query.filter(TableroProduccion.fecha >= fecha_desde)
+    if fecha_hasta is not None:
+        query = query.filter(TableroProduccion.fecha <= fecha_hasta)
+    rows = query.order_by(TableroProduccion.fecha.desc(), TableroProduccion.id.desc()).all()
+    return _group_operator_rows(rows)
 
 
 @router.post("", response_model=ParteCaminosResponse, status_code=201)
