@@ -233,10 +233,26 @@ function optionId(index) {
   return `autocomplete-option-${uniqueId}-${index}`
 }
 
+const searchableItems = computed(() => {
+  const items = props.items || []
+  // Predios pueden existir repetidos con ids distintos en la base histórica.
+  // Para el operador son una única opción visible; conservar la primera fila
+  // evita duplicados en el autocomplete sin alterar ni fusionar datos maestros.
+  if (props.labelKey !== 'nombre' || props.valueKey !== 'idPredio') return items
+
+  const seen = new Set()
+  return items.filter((item) => {
+    const label = String(getLabel(item) || '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('es-AR')
+    if (!label || seen.has(label)) return false
+    seen.add(label)
+    return true
+  })
+})
+
 const filteredItems = computed(() => {
   const q = query.value.trim().toLowerCase()
-  if (!q) return props.items.slice(0, 15)
-  return props.items
+  if (!q) return searchableItems.value.slice(0, 15)
+  return searchableItems.value
     .filter(item => getLabel(item).toLowerCase().includes(q))
     .slice(0, 15)
 })
