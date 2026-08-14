@@ -44,6 +44,8 @@ vi.mock('@/stores/produccion', () => ({
   useProduccionStore: () => store,
 }))
 
+import AutocompleteField from '@/components/AutocompleteField.vue'
+import motivosNoOperativos from '@/data/motivosNoOperativos.json'
 import CaminosFormView from './CaminosFormView.vue'
 
 function mountView() {
@@ -91,6 +93,27 @@ describe('CaminosFormView', () => {
 
     expect(wrapper.text()).toContain('Proceso 1')
     expect(wrapper.text()).not.toContain('Proceso 2')
+  })
+
+  it('uses the shared non-operational reason catalog', async () => {
+    const wrapper = mountView()
+
+    wrapper.vm.form.hrs_no_op = 2
+    wrapper.vm.pasoActual = 4
+    await nextTick()
+
+    const reasonField = wrapper.findAllComponents(AutocompleteField).find(
+      (component) => component.props('label') === 'Motivo no operativo',
+    )
+
+    expect(reasonField).toBeTruthy()
+    expect(reasonField.props('items')).toEqual(motivosNoOperativos)
+    expect(reasonField.props('disabled')).toBe(false)
+
+    wrapper.vm.form.motivo_no_op = 'FALLA MECANICA'
+    wrapper.vm.form.hrs_no_op = 0
+    await nextTick()
+    expect(wrapper.vm.form.motivo_no_op).toBe('')
   })
 
   it('blocks production when disposition plus towing exceeds available shift hours', async () => {
