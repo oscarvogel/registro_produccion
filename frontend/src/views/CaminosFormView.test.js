@@ -12,6 +12,7 @@ const store = {
   ],
   predios: [],
   actas: [],
+  rodales: [],
   lugaresCarga: [],
   submitting: false,
   error: null,
@@ -20,6 +21,8 @@ const store = {
   fetchLugaresCarga: vi.fn(async () => []),
   fetchPredios: vi.fn(async () => []),
   fetchActas: vi.fn(async () => []),
+  fetchRodales: vi.fn(async () => []),
+  fetchRodalesPorActa: vi.fn(async () => []),
   fetchOperadores: vi.fn(async () => []),
   submitParteCaminos: vi.fn(),
 }
