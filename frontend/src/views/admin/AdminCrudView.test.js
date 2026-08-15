@@ -316,6 +316,82 @@ describe('AdminCrudView tipos de proceso', () => {
     expect(optionLabels).toEqual(['ZZZ999 - Zorra Forestal'])
   })
 
+  it('replaces the unit when moving a vehicle from one business unit to another (#142)', async () => {
+    routeState.params.entity = 'unidades-negocio'
+    api.get.mockImplementation((url) => {
+      const dataByUrl = {
+        '/api/admin/unidades-negocio': [
+          { idUnidadNegocio: 1, nombre: 'Caminos', prefijo: 'CAM', activo: 1 },
+          { idUnidadNegocio: 2, nombre: 'Sin detalle', prefijo: 'SD', activo: 1 },
+        ],
+        '/api/admin/personal': [],
+        '/api/admin/moviles': [
+          { idMovil: 10, patente: 'AAA111', detalle: 'Motoniveladora', id_unidad_negocio: 1, unidad_ids: [1] },
+        ],
+        '/api/admin/tipos-proceso': [],
+      }
+      return Promise.resolve({ data: dataByUrl[url] || [] })
+    })
+
+    const wrapper = mount(AdminCrudView, {
+      global: {
+        directives: {
+          motionPanel: {},
+          motionPop: {},
+        },
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    })
+    await flushPromises()
+
+    // 1. Open Relaciones for the first business unit (Caminos)
+    const relaciones = wrapper.findAll('button').find((b) => b.text().includes('Relaciones'))
+    expect(relaciones).toBeTruthy()
+    await relaciones.trigger('click')
+    await flushPromises()
+
+    // 2. The Mover action button on the movile should be reachable by its title
+    const moverButtons = wrapper.findAll('button[title="Mover AAA111 - Motoniveladora"]')
+    expect(moverButtons.length).toBeGreaterThan(0)
+    await moverButtons[0].trigger('click')
+    await flushPromises()
+
+    // 3. The move form exposes a select with the placeholder "Mover a unidad"
+    const moveSelect = wrapper.findAll('select').find((s) => {
+      const opts = s.findAll('option').map((o) => o.text())
+      return opts.includes('Mover a unidad')
+    })
+    expect(moveSelect).toBeTruthy()
+
+    // 4. Pick the Sin detalle unit (idUnidadNegocio = 2)
+    await moveSelect.setValue(2)
+    await flushPromises()
+
+    // 5. The save button inside the move form is the one with class bg-primary inside the same flex container
+    // It is uniquely identified by being the first button in a flex container that also contains a select with the move placeholder.
+    const moveFormButton = wrapper.findAll('div.mb-2.flex.gap-2 > button.bg-primary').find((b) => {
+      const parent = b.element.parentElement
+      if (!parent) return false
+      return parent.querySelector('select') !== null
+    })
+    expect(moveFormButton).toBeTruthy()
+    await moveFormButton.trigger('click')
+    await flushPromises()
+
+    // 6. The payload sent to the backend must replace the unit, not append to it
+    expect(api.put).toHaveBeenCalledWith('/api/admin/moviles/10', { unidad_ids: [2] })
+
+    // 7. The original unit must NOT be present in the payload
+    expect(api.put).not.toHaveBeenCalledWith(
+      '/api/admin/moviles/10',
+      expect.objectContaining({
+        unidad_ids: expect.arrayContaining([1]),
+      }),
+    )
+  })
+
   it('exposes a multi-unit selector for lugares de carga and lists every linked unit', async () => {
     routeState.params.entity = 'lugares-carga'
     api.get.mockImplementation((url) => {
