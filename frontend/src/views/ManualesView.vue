@@ -212,6 +212,19 @@ function manualButtonClass(manual) {
   max-width: 11rem;
 }
 
+.manual-content :deep(.manual-screenshot) {
+  background: var(--app-surface-muted);
+  border: 1px solid var(--app-border);
+  border-radius: 0.75rem;
+  display: block;
+  height: auto;
+  margin: 1rem auto 1.25rem;
+  max-height: 42rem;
+  max-width: min(100%, 24rem);
+  object-fit: contain;
+  padding: 0.25rem;
+}
+
 .manual-content :deep(.cover h1) {
   color: var(--app-text);
   font-size: 2rem;

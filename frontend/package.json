@@ -8,7 +8,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "docs:capture": "node scripts/docsCapture.mjs",
+    "docs:pdf": "node scripts/docsPdf.mjs",
+    "docs:build": "npm run docs:capture && npm run docs:pdf"
   },
   "dependencies": {
     "@vueuse/motion": "^3.0.3",
@@ -23,10 +26,11 @@
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
-    "@vue/test-utils": "^2.4.6",
-    "jsdom": "^25.0.1",
     "@tailwindcss/vite": "^4.1.18",
     "@vitejs/plugin-vue": "^5.0.0",
+    "@vue/test-utils": "^2.4.6",
+    "jsdom": "^25.0.1",
+    "playwright": "^1.62.1",
     "tailwindcss": "^4.1.18",
     "vite": "^5.0.0",
     "vitest": "^2.1.9"
