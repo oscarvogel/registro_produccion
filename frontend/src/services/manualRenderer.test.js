@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path'
 import {
   renderManualMarkdown,
   renderAllowedHtmlLine,
+  renderMarkdownImage,
   isSafeImageSrc,
   escapeHtml,
 } from './manualRenderer.js'
@@ -80,6 +81,18 @@ describe('manualRenderer - renderAllowedHtmlLine (the bug from issue #28)', () =
   it('returns empty for non-whitelisted HTML so it falls through to paragraph rendering', () => {
     expect(renderAllowedHtmlLine('<script>alert(1)</script>')).toBe('')
     expect(renderAllowedHtmlLine('<unknown-tag>x</unknown-tag>')).toBe('')
+  })
+})
+
+describe('manualRenderer - local Markdown images', () => {
+  it('renders local mobile captures with a stable class', () => {
+    expect(renderMarkdownImage('![Inicio móvil](/manuales/capturas/operador/02-inicio.png)'))
+      .toBe('<img class="manual-screenshot" src="/manuales/capturas/operador/02-inicio.png" alt="Inicio móvil">')
+  })
+
+  it('rejects remote or malformed Markdown images', () => {
+    expect(renderMarkdownImage('![captura](https://example.com/captura.png)')).toBe('')
+    expect(renderMarkdownImage('![captura](//example.com/captura.png)')).toBe('')
   })
 })
 

@@ -7,6 +7,7 @@
  *   - Unordered (- ) and ordered (1. ) lists
  *   - Pipe tables
  *   - Inline `code` and **bold**
+ *   - Local Markdown images (`![alt](/path/to/image.png)`)
  *   - A small whitelist of explicit HTML blocks (div.cover, div.page-break,
  *     div.subtitle, h1-h4, p.meta, img with local src)
  *
@@ -36,6 +37,15 @@ function inline(value) {
 
 function isSafeImageSrc(value) {
   return value.startsWith('/') && !value.startsWith('//') && !/[<>"']/g.test(value)
+}
+
+function renderMarkdownImage(value) {
+  const image = value.match(/^!\[([^\]]*)\]\((\/[^\s)]+(?:\s+"[^"]*")?)\)$/)
+  if (!image) return ''
+
+  const src = image[2].replace(/\s+"[^"]*"$/, '')
+  if (!isSafeImageSrc(src)) return ''
+  return `<img class="manual-screenshot" src="${escapeHtml(src)}" alt="${escapeHtml(image[1])}">`
 }
 
 /**
@@ -143,6 +153,14 @@ export function renderManualMarkdown(markdown) {
       continue
     }
 
+    const markdownImage = renderMarkdownImage(trimmed)
+    if (markdownImage) {
+      flushParagraph()
+      flushList()
+      html.push(markdownImage)
+      continue
+    }
+
     const heading = trimmed.match(/^(#{1,4})\s+(.+)$/)
     if (heading) {
       flushParagraph()
@@ -186,4 +204,4 @@ export function renderManualMarkdown(markdown) {
   return html.join('\n')
 }
 
-export { escapeHtml, inline, isSafeImageSrc, renderAllowedHtmlLine, HTML_WHITELIST_TAGS }
+export { escapeHtml, inline, isSafeImageSrc, renderAllowedHtmlLine, renderMarkdownImage, HTML_WHITELIST_TAGS }

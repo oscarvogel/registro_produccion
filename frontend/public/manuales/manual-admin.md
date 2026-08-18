@@ -2,346 +2,158 @@
   <img src="../../frontend/public/logo-forestal.png" alt="Logo Forestal">
   <h1>Manual de Usuario</h1>
   <div class="subtitle">Admin</div>
-  <p class="meta">Sistema Registro Producción Forestal<br>Versión documental: Junio 2026</p>
+  <p class="meta">Sistema Registro Producción Forestal<br>Versión documental: Agosto 2026</p>
 </div>
 
 <div class="page-break"></div>
 
 # Manual de Usuario - Admin
 
-## Indice
+## Índice
 
-1. Alcance del rol
-2. Acceso y navegacion admin
-3. Inicio y panel operativo general
-4. Dashboard admin
-5. Gestion operativa y catalogos
-6. Asignaciones operativas
-7. Configuracion de acceso
-8. Carga manual y pendientes globales
-9. Errores frecuentes y buenas practicas
+1. Alcance, acceso y navegación
+2. Inicio y dashboards
+3. Centro administrativo y catálogos
+4. Asignaciones operativas
+5. Configuración de acceso
+6. Carga manual, offline y Pendientes
+7. Errores frecuentes y buenas prácticas
 
-## 1. Alcance del rol
+## 1. Alcance, acceso y navegación
 
-El admin tiene acceso completo a la operacion, la administracion de catalogos y la configuracion de permisos administrativos.
+El rol admin puede operar, consultar dashboards, administrar catálogos y configurar accesos administrativos. No permite quitarse el acceso admin a sí mismo desde `Configuración de acceso`.
 
-Como admin podes:
+![Login admin](/manuales/capturas/admin/01-login.png)
 
-- Ingresar con DNI y contrasena.
-- Ver el panel operativo general.
-- Cargar produccion manualmente.
-- Consultar dashboards operativos y ejecutivos.
-- Gestionar personal, moviles, unidades de negocio, tipos de proceso, lugares de carga, predios y rodales.
-- Crear, editar y eliminar asignaciones operativas.
-- Habilitar o deshabilitar acceso admin a otros usuarios.
-- Ver pendientes globales disponibles en el dispositivo.
-- Instalar la aplicacion como PWA cuando el navegador lo permita.
-- Cerrar sesion.
+Para ingresar:
 
-El sistema no permite quitarse el acceso admin a uno mismo desde `Configuracion de Acceso`.
+1. Abrí la aplicación.
+2. Completá `DNI` y `Contrasena`.
+3. Presioná `Sincronizar` si hubo cambios de usuarios, permisos o catálogos.
+4. Presioná `Ingresar`.
 
-## 2. Acceso y navegacion admin
+![Menú móvil admin](/manuales/capturas/admin/04-menu-movil.png)
 
-1. Abrir la aplicacion.
-2. En `Acceso operativo`, ingresar `DNI` y `Contrasena`.
-3. Presionar `Ingresar`.
+En la navegación móvil están disponibles `Inicio`, `Manuales`, `Administración`, `Operación`, `Combustible`, `Producción`, `Pendientes`, `Mis Registros`, `Configuración` y `Salir`. Abrí el panel con `Abrir navegacion` y cerralo con `Cerrar menu`.
 
-Si hubo cambios recientes en personal o permisos, usar `Sincronizar` en el login.
+## 2. Inicio y dashboards
 
-Secciones de menu disponibles:
+![Inicio admin](/manuales/capturas/admin/03-inicio.png)
 
-| Seccion | Pantallas |
-| --- | --- |
-| `Inicio` | Panel operativo general y accesos rapidos. |
-| `Administracion` | Centro administrativo para personas, equipos, catalogos y accesos. |
-| `Operacion` | `Dashboard Operativo` y `Dashboard Produccion`. |
-| `Combustible` | Cargas de combustible sin parte de produccion. |
-| `Produccion` | `Carga de Produccion`, `Pendientes`, `Mis Registros`. |
-| `Configuracion` | Instalacion de app y cierre de sesion. |
+`Inicio` muestra el panel operativo general: estado de conexión, producción del período, registros, unidades con actividad, pendientes offline, actividad por unidad y últimos registros. Los accesos rápidos permiten abrir `Dashboard`, `Carga de Producción`, `Carga de Combustible`, `Pendientes` y `Panel Admin`.
 
-## 3. Inicio y panel operativo general
+### Dashboard Producción
 
-Para usuarios admin, `Inicio` muestra el `Panel operativo general`.
+![Dashboard Producción](/manuales/capturas/admin/16-admin-dashboard.png)
 
-Informacion principal:
+Entrá desde `Operación > Dashboard Producción` o desde el acceso rápido. Elegí un período con `Hoy`, `Últimos 7 días`, `Últimos 30 días` o `Este mes`, o definí `Desde` y `Hasta`. Presioná `Actualizar`.
 
-- Estado `En linea` o `Sin conexion`.
-- Produccion total del dia.
-- Registros del dia.
-- Unidades activas.
-- Pendientes offline.
-- Estado por unidad de negocio.
-- Ultimos registros del sistema.
-- Alertas operativas.
-- Actividad personal del admin.
+El panel muestra producción total, toneladas, combustible, registros, unidades con actividad, operadores, equipos, comparativa con el período anterior, evolución diaria, ranking de unidades, procesos y últimos registros. Si no hay datos, ampliá el período o verificá que existan cargas en el rango.
 
-Accesos rapidos:
+### Dashboard Operativo
 
-- `Cargar produccion`.
-- `Ver pendientes`.
-- `Panel admin`.
-- `Mis registros`.
+Desde `Operación > Dashboard Operativo` consultá indicadores por unidad, tipo de proceso y máquina. En el teléfono el botón `Filtros` abre la zona de filtros. `Limpiar` quita las selecciones adicionales.
 
-Las alertas pueden indicar falta de conexion, registros pendientes o unidades sin actividad.
+## 3. Centro administrativo y catálogos
 
-## 4. Dashboard admin
+![Centro administrativo](/manuales/capturas/admin/15-admin-centro.png)
 
-Entrar desde `Panel admin` o la ruta admin de dashboard.
+Entrá desde `Administración`. El centro se organiza en `Personas y equipos`, `Configuración productiva` y `Seguridad`.
 
-El dashboard admin muestra una vista ejecutiva para un rango de fechas.
+### Personas y equipos
 
-### Filtros de periodo
+- `Personal`: usuarios, roles y relaciones operativas.
+- `Móviles`: equipos, unidades y datos técnicos.
+- `Asignaciones operativas`: vínculos entre choferes, móviles y procesos.
 
-Opciones rapidas:
+Las pantallas usan búsqueda, filtros, `Refrescar`, `Nuevo` cuando corresponde y acciones `Editar` y `Eliminar`. En móvil las tablas se muestran en tarjetas o requieren desplazamiento horizontal según la pantalla.
 
-- `Hoy`.
-- `Ultimos 7 dias`.
-- `Ultimos 30 dias`.
-- `Este mes`.
+### Configuración productiva
 
-Tambien se pueden definir fechas `Desde` y `Hasta`, y luego presionar `Actualizar`.
+- `Unidades de negocio`: estructura operativa y `Relaciones`.
+- `Tipos de proceso`: procesos, unidades habilitadas y requisitos de carga.
+- `Lugares de carga`: puntos disponibles por unidad.
+- `Predios`: predios disponibles para producción.
+- `Rodales`: rodales y valores productivos.
+- `Actas`: actas habilitadas para registrar producción.
 
-### Indicadores
+En `Tipos de proceso`, `Nombre` es obligatorio. Las opciones `Requiere Acta`, `Requiere Predio` y `Requiere Rodal` determinan qué aparece y qué se exige en `Ubicación y Referencia`. La vinculación con unidades controla la lista visible en la carga y los dashboards.
 
-El dashboard admin incluye:
+En `Personal`, verificá nombre y al menos una unidad vinculada. Si editás una persona y dejás la contraseña vacía, la contraseña existente no cambia. En `Móviles`, `Patente` y `Detalle` son obligatorios.
 
-- Produccion total.
-- TN despachadas.
-- Combustible total.
-- Registros.
-- Unidades con actividad.
-- Operadores activos.
-- Equipos activos.
-- Comparativa contra periodo anterior.
-- Evolucion diaria.
-- Ranking de unidades por produccion.
-- Produccion por proceso.
-- Ultimos registros productivos.
+## 4. Asignaciones operativas
 
-Si no hay datos, ampliar el rango de fechas o revisar que existan registros cargados.
-
-## 5. Gestion operativa y catalogos
-
-Entrar desde `Administracion`. El centro administrativo agrupa personas,
-equipos, asignaciones, catalogos productivos y configuracion de acceso.
-
-Las pantallas de gestion comparten una estructura:
-
-- Encabezado con cantidad de registros.
-- Boton `Refrescar`.
-- Boton `Nuevo`, excepto en `Asignaciones Operativas`, donde el flujo principal usa el panel rapido.
-- Busqueda.
-- Filtro por unidad cuando aplica.
-- Tabla en escritorio y tarjetas en movil.
-- Acciones `Editar` y `Eliminar`.
-- Paginacion con selector `Ver`.
-
-### Personal
-
-Permite administrar usuarios operativos.
-
-Campos principales:
-
-- Nombre.
-- DNI.
-- Contrasena.
-- Activo.
-- Encargado.
-- Acceso admin.
-- Unidad principal.
-- Unidades vinculadas.
-- Tipo de proceso.
-
-Reglas importantes:
-
-- `Nombre` es obligatorio.
-- Debe seleccionarse al menos una unidad vinculada.
-- Si se edita un usuario y se deja la contrasena vacia, no se cambia la contrasena existente.
-
-### Moviles
-
-Permite administrar equipos o maquinas.
-
-Campos principales:
-
-- Patente.
-- Detalle.
-- Unidad de negocio.
-- Activo.
-
-Regla importante:
-
-- `Patente` y `Detalle` son obligatorios.
-
-### Unidades de Negocio
-
-Permite administrar unidades. En esta pantalla esta disponible la accion `Relaciones`, que muestra vinculaciones con:
-
-- Personal.
-- Moviles.
-- Procesos.
-
-Usar esta vista para revisar rapidamente que una unidad tenga los elementos necesarios para operar.
-
-### Tipos de Proceso
-
-Permite administrar procesos disponibles para la carga.
-
-Campos principales:
-
-- Nombre.
-- Activo.
-- Unidades habilitadas.
-- Requiere Acta.
-- Requiere Predio.
-- Requiere Rodal.
-
-Regla importante:
-
-- `Nombre` es obligatorio.
-
-La vinculacion con unidades controla que procesos aparecen al cargar produccion o al filtrar dashboards.
-Los requisitos `Acta`, `Predio` y `Rodal` controlan que campos de ubicacion se muestran y se exigen en la carga de produccion. Para crear un proceso nuevo, activar solo los datos que correspondan a la operacion; si los tres quedan desactivados, la carga no pedira ubicacion operativa.
-
-### Lugares de Carga
-
-Permite administrar lugares disponibles por unidad de negocio.
-
-Campos principales:
-
-- Descripcion.
-- Unidad de negocio.
-- Activo.
-
-### Predios
-
-Permite administrar predios usados en la ubicacion de la carga.
-
-Campos principales:
-
-- Nombre.
-- Datos tecnicos que correspondan al catalogo.
-
-### Rodales
-
-Permite administrar rodales asociados a predios.
-
-Campos principales:
-
-- Rodal.
-- Predio.
-- VAM.
-- Tarifa.
-- Extraccion.
-- Carga.
-
-Los rodales se usan al completar `Ubicacion y Referencia` en la carga de produccion.
-
-## 6. Asignaciones operativas
-
-Entrar desde `Administracion > Asignaciones operativas`.
-
-La pantalla incluye un panel rapido para asignar:
+Entrá desde `Administración > Asignaciones operativas`. En el panel rápido seleccioná:
 
 1. `Unidad de Negocio`.
 2. `Chofer`.
 3. `Movil`.
 4. `Tipo de Proceso`.
-5. Presionar `Asignar`.
+5. Presioná `Asignar`.
 
-El sistema filtra choferes, moviles y procesos segun la unidad seleccionada.
+El sistema filtra los listados según la unidad. El chofer debe pertenecer a la unidad del móvil, el proceso debe estar habilitado para esa unidad y no se permite crear una asignación duplicada. Revisá la tabla para editar o eliminar una asignación existente.
 
-Validaciones principales:
+## 5. Configuración de acceso
 
-- Deben completarse movil, chofer y tipo de proceso.
-- El chofer debe pertenecer a la unidad del movil.
-- El tipo de proceso debe estar habilitado para la unidad del movil.
-- No se permite crear una asignacion duplicada.
+![Configuración de acceso](/manuales/capturas/admin/17-configuracion-acceso.png)
 
-Tambien se puede editar o eliminar asignaciones existentes desde la tabla.
+Entrá desde `Administración > Configuración de acceso`.
 
-## 7. Configuracion de acceso
+1. Buscá por nombre o DNI.
+2. Revisá `Activo`, `Encargado` y `Acceso Admin`.
+3. Activá o desactivá el checkbox de `Acceso Admin` para otro usuario.
+4. Esperá `Guardando...` y confirmá `Habilitado` o `Deshabilitado`.
 
-Entrar desde `Administracion > Configuracion de acceso`.
+El checkbox del usuario actual está deshabilitado. No intentes quitarte el acceso admin a vos mismo.
 
-Esta pantalla permite habilitar o deshabilitar `Acceso Admin` para otros usuarios.
+## 6. Carga manual, offline y Pendientes
 
-Uso:
+### Carga de Producción
 
-1. Buscar el usuario por nombre o DNI.
-2. Revisar columnas `Activo`, `Encargado` y `Acceso Admin`.
-3. Activar o desactivar el checkbox de acceso admin.
-4. Esperar el estado `Guardando...` y confirmar que quede `Habilitado` o `Deshabilitado`.
+![Contexto de carga admin](/manuales/capturas/admin/05-contexto.png)
 
-Restriccion:
+La carga manual del admin usa los mismos 9 pasos: `Contexto`, `Operador`, `Equipo`, `Proceso`, `Tiempo`, `Producción`, `Consumos`, `Ubicación` y `Revisión`.
 
-- No podes quitarte tu propio acceso admin. El checkbox del usuario actual aparece deshabilitado.
+![Revisión de carga admin](/manuales/capturas/admin/13-revision.png)
 
-## 8. Carga manual y pendientes globales
+En `Paso 2 - Operador`, el admin puede seleccionar el operador. En los pasos restantes confirmá equipo, proceso, horas, campos productivos dinámicos, combustible, remitos, ubicación y observaciones. Antes de `Guardar Registro`, verificá especialmente unidad, operador y equipo porque la carga impacta en reportes globales.
 
-### Carga de Produccion
+Si se registra combustible dentro del parte, completá `Litros de gasoil`, `KM / Horómetro al cargar`, `Remito 1` y `Lugar de Carga`. Ese parte ya genera el consumo; no lo repitas en `Carga de Combustible`.
 
-El admin puede usar `Produccion > Carga de Produccion` para registrar una carga manual.
+### Borradores y trabajo offline
 
-El formulario mantiene los mismos 9 pasos:
+`Guardar borrador` conserva la carga en el dispositivo, pero no confirma un registro. La primera autenticación necesita conexión; una sesión válida puede continuar offline durante el período configurado, actualmente hasta 14 días.
 
-1. Contexto.
-2. Operador.
-3. Equipo.
-4. Proceso.
-5. Tiempo.
-6. Produccion.
-7. Consumos.
-8. Ubicacion.
-9. Revision.
+![Pendientes admin](/manuales/capturas/admin/14-pendientes.png)
 
-Como admin, revisar especialmente unidad, operador, equipo y proceso antes de guardar, ya que una carga manual puede afectar reportes globales.
-
-Si el parte incluye combustible, completar litros, KM u horometro real, lugar
-de carga y al menos el Remito 1. Ese parte ya genera el egreso de stock; la
-seccion `Carga de Combustible` queda solo para abastecimientos sin parte.
-
-### Pendientes
-
-Entrar desde `Produccion > Pendientes`.
-
-Para admin, la pantalla muestra la cola global visible en el dispositivo.
-
-Acciones disponibles:
-
-- `Refrescar`.
-- `Sincronizar`.
-- `Reintentar`.
-- `Ver detalle`.
-- `Eliminar`.
-
-Los indicadores muestran pendientes y fallidos del sistema visibles localmente.
+En `Producción > Pendientes`, el admin ve la cola local visible en ese dispositivo. Puede usar `Refrescar`, `Sincronizar`, `Reintentar`, `Ver detalle` y `Eliminar`.
 
 <div class="warning">
-La cola de pendientes es local al dispositivo. Un admin ve los registros disponibles en ese equipo, no necesariamente todos los pendientes existentes en otros dispositivos.
+La cola de Pendientes es local al dispositivo. El admin no ve automáticamente los pendientes guardados en otros teléfonos. `Eliminar` descarta la copia local y es una acción definitiva para esa cola.
 </div>
 
 ### Mis Registros
 
-El admin tambien puede consultar `Mis Registros` para ver actividad cargada por su propio usuario.
+`Producción > Mis Registros` permite consultar la actividad cargada por el propio usuario admin. Para revisar la actividad global usá los dashboards.
 
-## 9. Errores frecuentes y buenas practicas
+## 7. Errores frecuentes y buenas prácticas
 
-| Situacion | Que hacer |
+| Situación | Qué hacer |
 | --- | --- |
-| No aparece un usuario, movil o proceso | Revisar filtros de busqueda y unidad. Usar `Refrescar`. |
-| No se puede guardar personal | Verificar nombre y al menos una unidad vinculada. |
-| No se puede guardar movil | Completar patente y detalle. |
-| Asignacion rechazada | Revisar que chofer, movil y proceso pertenezcan o esten habilitados para la misma unidad. |
-| Dashboard sin datos | Ampliar rango de fechas o revisar que existan registros en el periodo. |
-| Usuario sin acceso esperado | Revisar `Configuracion de Acceso`, estado activo y permisos de encargado/admin. |
-| Pendientes fallidos | Usar `Ver detalle`, revisar error y reintentar. |
+| No aparece un catálogo | Usá `Refrescar`, revisá la unidad y confirmá la conexión. |
+| No se puede guardar Personal | Completá `Nombre` y al menos una unidad vinculada. |
+| No se puede guardar un Móvil | Completá `Patente` y `Detalle`. |
+| Asignación rechazada | Revisá unidad del chofer, móvil y proceso; evitá duplicados. |
+| Dashboard sin datos | Ampliá el período o quitá filtros. |
+| Usuario sin acceso | Revisá estado `Activo`, rol `Encargado` y `Acceso Admin`. |
+| Horas o producción inválidas | Corregí valores mayores a 0 y respetá las validaciones del formulario. |
+| Pendiente fallido | Abrí `Ver detalle`, revisá el error y usá `Reintentar`. |
 
-Buenas practicas:
+Buenas prácticas:
 
-- Crear o revisar primero unidades, procesos, moviles y personal antes de configurar asignaciones.
-- Mantener vinculaciones de unidades consistentes para evitar listas vacias en carga.
-- Usar `Relaciones` en unidades para auditar configuracion.
-- No eliminar registros pendientes sin confirmar que no deben enviarse.
-- Evitar cambiar accesos admin sin validar quien necesita operar la administracion.
-- Cerrar sesion al terminar si el dispositivo es compartido.
+- Configurá primero unidades, procesos, móviles y personal; después creá asignaciones.
+- Usá `Relaciones` en unidades para revisar la configuración.
+- Revisá la carga completa antes de guardar.
+- No dupliques combustible ni elimines pendientes sin confirmación.
+- No cambies accesos admin sin validar la necesidad operativa.
+- Cerrá sesión en dispositivos compartidos.
