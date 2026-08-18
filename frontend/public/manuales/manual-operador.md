@@ -2,271 +2,229 @@
   <img src="../../frontend/public/logo-forestal.png" alt="Logo Forestal">
   <h1>Manual de Usuario</h1>
   <div class="subtitle">Operador</div>
-  <p class="meta">Sistema Registro Producción Forestal<br>Versión documental: Junio 2026</p>
+  <p class="meta">Sistema Registro Producción Forestal<br>Versión documental: Agosto 2026</p>
 </div>
 
 <div class="page-break"></div>
 
 # Manual de Usuario - Operador
 
-## Indice
+## Índice
 
-1. Alcance del rol
-2. Acceso al sistema
-3. Navegacion principal
-4. Carga de Produccion
-5. Trabajo sin conexion y sincronizacion
-6. Mis Registros
-7. Configuracion, instalacion y salida
-8. Errores frecuentes y buenas practicas
+1. Alcance y acceso
+2. Sincronización y navegación móvil
+3. Inicio
+4. Carga de Producción en 9 pasos
+5. Borradores, offline y Pendientes
+6. Mis Registros y Configuración
+7. Errores frecuentes y buenas prácticas
 
-## 1. Alcance del rol
+## 1. Alcance y acceso
 
-El operador usa el sistema para registrar su produccion diaria, revisar sus cargas personales y controlar los registros que quedaron pendientes de sincronizacion.
+El operador carga la producción de su usuario y de las unidades, equipos y procesos que tiene asignados. El sistema guarda el registro en el servidor cuando hay conexión y puede conservarlo en el teléfono cuando la conexión se interrumpe.
 
-Como operador podes:
+### Ingresar
 
-- Ingresar con DNI y contrasena.
-- Sincronizar datos de acceso desde la pantalla de login.
-- Cargar registros de produccion propios.
-- Guardar borradores locales durante una carga.
-- Trabajar sin conexion; el sistema guarda la carga localmente.
-- Ver y reintentar registros pendientes generados por tu usuario.
-- Consultar `Mis Registros` con filtros por periodo.
-- Instalar la aplicacion como PWA cuando el navegador lo permita.
-- Cerrar sesion.
+![Pantalla de login móvil](/manuales/capturas/operador/01-login.png)
 
-No corresponde al rol operador:
+1. Abrí la aplicación.
+2. En `DNI`, ingresá tu documento.
+3. En `Contrasena`, ingresá tu contraseña.
+4. Presioná `Ingresar`.
 
-- Ver el dashboard operativo general.
-- Seleccionar otro operador para una carga.
-- Administrar personal, moviles, unidades, procesos o accesos.
+La primera validación del dispositivo necesita conexión. Si el ingreso falla, la pantalla muestra `Credenciales incorrectas`, `Sin conexión` o `No se pudo validar el ingreso` según el caso. No compartas tu contraseña ni la guardes en una captura.
 
-## 2. Acceso al sistema
+## 2. Sincronización y navegación móvil
 
-1. Abrir la aplicacion.
-2. En la pantalla `Acceso operativo`, ingresar el `DNI`.
-3. Ingresar la `Contrasena`.
-4. Presionar `Ingresar`.
+### Sincronizar al iniciar
 
-Si el sistema muestra `DNI o contrasena incorrectos`, revisar los datos ingresados. Si muestra un error de conexion, verificar la red e intentar nuevamente.
+![Sincronización inicial](/manuales/capturas/operador/02-sincronizar.png)
 
-### Sincronizar desde el login
+Presioná `Sincronizar` en el login cuando se hayan modificado usuarios, permisos o catálogos. Esperá el mensaje `Catálogos sincronizados`. Luego ingresá normalmente.
 
-La pantalla de ingreso incluye el boton `Sincronizar`. Usalo cuando se hayan actualizado usuarios o permisos y necesites traer la informacion vigente antes de iniciar sesion.
+### Menú del teléfono
 
-Al finalizar correctamente, el sistema informa el resultado y la cantidad de personal activo sincronizado.
+![Menú móvil](/manuales/capturas/operador/04-menu-movil.png)
 
-## 3. Navegacion principal
+En la barra superior, presioná el botón `Abrir navegacion`. Desde el menú podés abrir:
 
-Una vez iniciada la sesion, la aplicacion muestra el menu lateral o el menu movil segun el dispositivo.
+- `Inicio`.
+- `Manuales`.
+- `Combustible`.
+- `Producción > Carga de Producción`.
+- `Producción > Pendientes`.
+- `Producción > Mis Registros`.
+- `Configuración`.
+- `Salir`.
 
-Pantallas disponibles para operador:
+Para cerrar el menú, presioná `Cerrar menu`, tocá el fondo oscuro o elegí una pantalla. La barra superior también permite `Cerrar sesión`.
 
-| Pantalla | Uso principal |
-| --- | --- |
-| `Inicio` | Resumen personal del dia, estado de conexion, ultimos datos y accesos rapidos. |
-| `Carga de Produccion` | Alta guiada de una carga productiva. |
-| `Pendientes` | Cola local de registros sin enviar o con error. |
-| `Mis Registros` | Historial y totales personales por periodo. |
-| `Configuracion` | Instalacion de la app y cierre de sesion. |
+## 3. Inicio
 
-En la parte superior puede aparecer una franja `Sin conexion`. Cuando aparece, las nuevas cargas se guardan localmente y se sincronizan al reconectar.
+![Inicio del operador](/manuales/capturas/operador/03-inicio.png)
 
-## 4. Carga de Produccion
+En `Inicio` revisá antes de cargar:
 
-Entrar desde `Inicio` con `Carga de Produccion` o desde el menu `Produccion > Carga de Produccion`.
+1. El estado `Servidor disponible`, `Servidor no disponible` o `Sin conexión`.
+2. El nombre de usuario y el rol `Operador`.
+3. La fecha seleccionada, que puede ser `Hoy`, `Ayer`, `7 días` o `Semana pasada`.
+4. Los indicadores de producción, horas, registros y combustible.
+5. La tarjeta `Sincronización`, donde se informa la cantidad de pendientes.
 
-El formulario esta organizado en 9 pasos. En cada paso, completar los datos solicitados y avanzar con `Siguiente`. En escritorio se ve el panel de progreso; en movil se muestra el paso actual y una barra de avance.
+Los accesos rápidos `Ir a Carga de Producción`, `Ir a Carga de Combustible`, `Ver Pendientes` y `Abrir Mis Registros` llevan directamente a cada función.
 
-### Paso 1: Contexto
+## 4. Carga de Producción en 9 pasos
 
-Completar:
+Entrá desde `Inicio` o desde `Producción > Carga de Producción`. La pantalla muestra `Paso N de 9`. En el teléfono se avanza con `Siguiente` y se vuelve con `Anterior`.
 
-- `Fecha`: dia correspondiente a la produccion. Si estas cargando produccion atrasada, modificar la fecha.
-- `Unidad de Negocio`: unidad para la que se registra la carga.
+![Paso 1: contexto](/manuales/capturas/operador/05-contexto.png)
 
-Si el usuario tiene una sola unidad disponible o una preferencia guardada, el sistema puede precargarla.
+### Paso 1 - Contexto
 
-### Paso 2: Operador
+1. En `Fecha`, elegí el día de la producción.
+2. En `Unidad de Negocio`, seleccioná la unidad correspondiente.
+3. Esperá que se carguen los catálogos dependientes.
+4. Presioná `Siguiente`.
 
-Para el rol operador, el campo `Operador` aparece bloqueado con el nombre del usuario logueado. No se debe cambiar manualmente.
+La unidad define los operadores, equipos, procesos, lugares de carga y referencias disponibles. Si el listado está vacío, revisá la conexión o pedí al administrador que verifique las asignaciones.
 
-### Paso 3: Equipo / Maquinaria
+![Paso 2: operador](/manuales/capturas/operador/06-operador.png)
 
-El sistema intenta autocompletar la maquinaria por asignaciones del operador.
+### Paso 2 - Operador
 
-Opciones posibles:
+El campo `Operador` aparece bloqueado con el nombre del usuario que inició sesión. No se puede cambiar desde el rol operador. Confirmá que el nombre sea correcto y presioná `Siguiente`.
 
-- Elegir una opcion de `Asignaciones del operador`.
-- Buscar una maquina por numero, marca, detalle o patente.
-- Usar `Cambiar` si ya habia una maquina seleccionada y corresponde reemplazarla.
+![Paso 3: equipo](/manuales/capturas/operador/07-equipo.png)
 
-### Paso 4: Proceso / Actividad
+### Paso 3 - Equipo / Maquinaria
 
-Seleccionar el `Tipo de Proceso`. Los campos de produccion cambian segun el proceso seleccionado.
+1. Confirmá el equipo asignado, por ejemplo `MAQUINA DEMO 01`.
+2. Si necesitás cambiarlo, presioná `Cambiar`.
+3. Buscá por detalle, patente o número.
+4. Elegí una opción de `Asignaciones del operador` cuando aparezca.
+5. Presioná `Siguiente`.
 
-Si el operador tiene un proceso asignado, el sistema puede precargarlo.
+No avances con un equipo distinto del utilizado. Si no aparece, revisá la unidad y solicitá que se actualice la asignación.
 
-### Paso 5: Control de Tiempo
+![Paso 4: proceso](/manuales/capturas/operador/08-proceso.png)
 
-Completar:
+### Paso 4 - Proceso / Actividad
+
+En `Tipo de Proceso`, elegí el proceso correspondiente. La lista depende de la unidad y los campos del paso `Producción` cambian según la selección.
+
+### Paso 5 - Control de Tiempo
+
+![Paso 5: tiempo](/manuales/capturas/operador/09-tiempo.png)
+
+Completá:
 
 - `Hora Inicio`.
 - `Hora Fin`.
-- `Hs No Operativas`, si aplica.
-- `Motivo (lista)` y `Motivo (detalle libre)`, si hubo tiempo no operativo.
+- `Hs No Operativas`, si corresponde.
+- `Motivo (lista)` y `Motivo (detalle libre)` cuando haya horas no operativas.
 
-La hora final no puede ser menor que la inicial. Si existe un registro anterior para la maquina, la hora de inicio no puede ser menor al fin anterior.
+Las horas deben ser mayores a 0. La hora final no puede ser menor que la inicial. Además, el inicio no puede ser menor al fin del registro anterior del equipo. Si la validación falla, la pantalla muestra `Revisá las horas...`.
 
-### Paso 6: Datos de Produccion
+![Paso 6: producción dinámica](/manuales/capturas/operador/10-produccion.png)
 
-Completar los campos que aparecen para el tipo de proceso seleccionado. Algunos ejemplos:
+### Paso 6 - Datos de Producción
 
-- `TN Despachadas`.
-- `Carros`.
-- `Distancia Recorrida (mts)`.
-- `M3`.
-- `Plantas`.
-- `Hectareas`.
-- `KM`.
-- `Horas a disposicion`.
+Completá los campos que muestra el proceso. Según el catálogo pueden aparecer `TN Despachadas`, `Carros`, `Distancia Recorrida (mts)`, `M³ (metros cúbicos)`, `Plantas`, `Hectáreas (HAS)`, `Kilómetros (KM)`, `Horas a Disposición` o campos de horas de máquina.
 
-Los campos productivos requeridos deben cargarse con valores mayores a 0. Para procesos de corte pueden aparecer campos como `16 Pies`, `14 Pies`, `12 Pies`, `10 Pies` y `Pulpable`.
+Los valores requeridos deben ser mayores a 0. La aplicación calcula la unidad principal de producción según el primer campo productivo disponible.
 
-### Paso 7: Consumos
+![Paso 7: consumos](/manuales/capturas/operador/11-consumos.png)
 
-Usar este paso para registrar combustible y consumos asociados cuando corresponda.
+### Paso 7 - Consumos
 
-Campos habituales:
+El paso agrupa `Combustible`, `Consumos` y, para el proceso correspondiente, `Sistema de Corte`.
 
-- `Combustible` en litros.
-- `KM / Horometro al cargar`.
-- `Remito 1` obligatorio y hasta dos remitos adicionales.
-- `Aceite cadena`.
-- `Aceite hidraulico`.
-- `Aceite motor`.
-- `Aceite transmision`.
-- `Aceite embrague`.
-- Datos del sistema de corte, cuando el proceso lo solicita.
+Para registrar combustible dentro del parte:
 
-Si se informa combustible, el parte genera tambien el egreso de stock. No se
-debe repetir ese abastecimiento en `Carga de Combustible`. Si no se cargo
-combustible, dejar el control desactivado o en 0.
+1. Activá `¿Se cargó combustible?`.
+2. Completá `Litros de gasoil`.
+3. Completá `KM / Horómetro al cargar` con la lectura real.
+4. Ingresá al menos `Remito 1`. `Remito 2` y `Remito 3` son opcionales.
+5. Completá los aceites que correspondan.
 
-### Paso 8: Ubicacion y Referencia
+<div class="warning">
+El combustible cargado dentro del parte descuenta stock. No repitas ese abastecimiento en `Carga de Combustible`, porque duplicarías el consumo.
+</div>
 
-Completar:
+Si el proceso es `PROCESO`, también se solicitan `Espada`, `Puntera`, `Cadena`, `Piñón` y `Cantidad de Cadenas`.
 
-- `Lugar de Carga`, obligatorio cuando el parte incluye combustible.
-- `Acta`.
-- `Predio`.
-- `Rodal` desde la lista o `Rodal manual`.
+![Paso 8: ubicación](/manuales/capturas/operador/12-ubicacion.png)
 
-Para guardar, la ubicacion debe estar completa cuando el sistema la solicita. El `Acta` es obligatoria y no debe quedar vacia ni en 0.
+### Paso 8 - Ubicación y Referencia
 
-Tambien puede completarse `Observaciones` con informacion adicional.
+Completá los campos que el tipo de proceso exige:
 
-### Paso 9: Revision y Confirmacion
+- `Lugar de Carga`, siempre que el parte registre combustible.
+- `Acta`, si el proceso la requiere.
+- `Predio`, si el proceso lo requiere.
+- `Rodal`, desde la lista vinculada, o `Rodal` manual cuando no exista una opción.
+- `Observaciones`, para notas adicionales.
 
-Revisar el resumen antes de guardar:
+Si el tipo de trabajo no requiere Acta, Predio ni Rodal, la pantalla lo informa. Si falta una referencia obligatoria, aparece `Completá Acta, Predio, Rodal o Lugar de Carga para este tipo de trabajo`.
 
-- Fecha.
-- Unidad de negocio.
-- Operador.
-- Equipo.
-- Proceso.
-- Horario.
-- Produccion.
-- Ubicacion.
+![Paso 9: revisión](/manuales/capturas/operador/13-revision.png)
 
-Si algun dato no corresponde, volver al paso anterior y corregirlo. Cuando este correcto, guardar el registro.
+### Paso 9 - Revisión y Confirmación
+
+Antes de guardar, revisá fecha, unidad, operador, equipo, proceso, horario, producción, horas no operativas y ubicación. Si todo es correcto, presioná `Guardar Registro`.
+
+El resultado esperado es el mensaje `Registro guardado`. Si no hay conexión, el parte queda en el teléfono y se informa que debe revisarse en `Pendientes`.
+
+## 5. Borradores, offline y Pendientes
 
 ### Guardar borrador
 
-El boton `Guardar borrador` guarda la carga en este dispositivo. Usalo si necesitas interrumpir la carga antes de finalizarla.
+En cualquier paso disponible, presioná `Guardar borrador` para conservar la carga en el dispositivo. El mensaje esperado es `Borrador guardado`. El borrador no es un registro confirmado: volvé a la carga, revisalo y completá el guardado final.
 
-El borrador no reemplaza el guardado final del registro. Para registrar produccion, siempre completar la revision y guardar.
+### Trabajo sin conexión
 
-## 5. Trabajo sin conexion y sincronizacion
+![Pendientes locales](/manuales/capturas/operador/14-pendientes.png)
 
-La aplicacion soporta trabajo offline.
+La primera entrada en un teléfono requiere conexión. Después, una sesión válida puede habilitar el ingreso offline durante el período configurado, actualmente hasta 14 días. Una carga sin conexión queda en la cola local y muestra `Guardado solo en este teléfono`.
 
-Cuando no hay conexion:
+En `Producción > Pendientes` podés:
 
-- Aparece el aviso `Sin conexion`.
-- Las cargas se guardan localmente.
-- El sistema indica que el registro se enviara automaticamente al recuperar la conexion.
-
-Cuando vuelve la conexion:
-
-- La aplicacion intenta sincronizar automaticamente.
-- Tambien se puede entrar en `Pendientes` y usar `Sincronizar` o `Reintentar`.
-
-### Pantalla Registros Pendientes
-
-En `Pendientes` se ve el estado de la cola local.
-
-Acciones disponibles:
-
-- `Refrescar`: vuelve a leer la cola local.
-- `Sincronizar`: intenta enviar todos los registros pendientes visibles.
-- `Reintentar`: intenta enviar un registro puntual.
-- `Ver detalle`: muestra la informacion guardada localmente.
-- `Eliminar`: descarta un registro local.
+1. Revisar `Pendientes locales` y `Fallidos locales`.
+2. Presionar `Refrescar` para actualizar el estado.
+3. Presionar `Sincronizar` cuando el servidor esté disponible.
+4. Usar `Reintentar` en un registro puntual.
+5. Usar `Ver detalle` para revisar el payload guardado.
+6. Usar `Eliminar` sólo si confirmás que el registro no debe enviarse.
 
 <div class="warning">
-Eliminar un pendiente borra la carga local. Usar esta accion solo si el registro no debe enviarse o fue cargado nuevamente por otro medio.
+`Eliminar` descarta el registro de la cola local del dispositivo. La acción es definitiva para esa copia y no reemplaza una corrección del registro en el servidor.
 </div>
 
-## 6. Mis Registros
+## 6. Mis Registros y Configuración
 
-Entrar desde `Produccion > Mis Registros`.
+![Mis registros](/manuales/capturas/operador/15-mis-registros.png)
 
-Esta pantalla muestra el historial personal y totales del periodo seleccionado.
+En `Producción > Mis Registros` consultá las cargas realizadas por tu usuario, sus totales, horas y consumos. Usá el período para acotar la consulta.
 
-Filtros disponibles:
+En `Configuración` podés instalar la PWA cuando el navegador lo ofrezca y cerrar sesión. En un teléfono compartido, usá `Salir` al finalizar.
 
-- `Hoy`.
-- `Esta semana`.
-- `Este mes`.
-- `Desde`.
-- `Hasta`.
+## 7. Errores frecuentes y buenas prácticas
 
-Indicadores visibles:
-
-- Cantidad de registros.
-- Horas trabajadas.
-- Combustible.
-- Combustible por hora, si hay datos.
-- Totales productivos segun el tipo de carga: toneladas, metros cubicos, hectareas, carros, plantas, kilometros.
-
-Cada registro muestra proceso, fecha, equipo y metricas cargadas.
-
-## 7. Configuracion, instalacion y salida
-
-En `Configuracion` se encuentran:
-
-- `Instalar App`: disponible cuando el navegador permite instalar la PWA.
-- `Cerrar sesion`: finaliza la sesion actual y vuelve al login.
-
-Tambien se puede cerrar sesion desde el menu lateral o desde el encabezado movil.
-
-## 8. Errores frecuentes y buenas practicas
-
-| Situacion | Que hacer |
+| Situación | Qué hacer |
 | --- | --- |
-| No puedo ingresar | Revisar DNI y contrasena. Si hubo cambios recientes, usar `Sincronizar` en login. |
-| Estoy sin conexion | Cargar normalmente; el registro queda local y se envia al reconectar. |
-| Hora invalida | Verificar que inicio y fin sean mayores a 0 y que fin no sea menor que inicio. |
-| Produccion invalida | Completar los campos requeridos con valores mayores a 0. |
-| Ubicacion incompleta | Completar Acta, Predio y Rodal cuando sean solicitados. |
-| Hay pendientes fallidos | Entrar en `Pendientes`, revisar `Ver detalle` y usar `Reintentar`. |
+| `Credenciales incorrectas` | Revisá DNI y contraseña. No repitas contraseñas en capturas o mensajes. |
+| `Sin conexión` en el login | Conectá el teléfono para validar la primera sesión o revalidar una sesión vencida. |
+| No aparece la unidad | Usá `Sincronizar` y verificá que el usuario tenga una unidad activa. |
+| No aparece el equipo | Confirmá la unidad y la asignación del equipo al operador. |
+| `Revisá las horas` | Usá valores mayores a 0 y un fin mayor o igual al inicio; respetá el fin anterior del equipo. |
+| Producción inválida | Completá los campos dinámicos con valores mayores a 0. |
+| Falta Acta, Predio, Rodal o Lugar de Carga | Completá la referencia exigida por el proceso. |
+| Pendiente fallido | Abrí `Ver detalle`, revisá el error y usá `Reintentar`. |
 
-Buenas practicas:
+Buenas prácticas:
 
-- Confirmar unidad, equipo y proceso antes de cargar produccion.
-- Cargar las horas en formato numerico consistente, por ejemplo `1200` y `1850`.
-- Revisar el paso final antes de guardar.
-- No eliminar pendientes salvo que se confirme que no deben enviarse.
-- Cerrar sesion al terminar si el dispositivo es compartido.
+- Confirmá unidad, equipo y proceso antes de completar producción.
+- No cargues dos veces el mismo abastecimiento de combustible.
+- Revisá el resumen final antes de guardar.
+- Sincronizá los pendientes cuando recuperes conexión.
+- Cerrá sesión si el dispositivo es compartido.

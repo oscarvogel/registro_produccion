@@ -2,284 +2,171 @@
   <img src="../../frontend/public/logo-forestal.png" alt="Logo Forestal">
   <h1>Manual de Usuario</h1>
   <div class="subtitle">Encargado</div>
-  <p class="meta">Sistema Registro Producción Forestal<br>Versión documental: Junio 2026</p>
+  <p class="meta">Sistema Registro Producción Forestal<br>Versión documental: Agosto 2026</p>
 </div>
 
 <div class="page-break"></div>
 
 # Manual de Usuario - Encargado
 
-## Indice
+## Índice
 
-1. Alcance del rol
-2. Acceso y navegacion
-3. Inicio operativo
-4. Carga de Produccion
-5. Dashboard Operativo
-6. Registros Pendientes por unidad
-7. Configuracion, instalacion y salida
-8. Errores frecuentes y buenas practicas
+1. Alcance y acceso
+2. Inicio y navegación móvil
+3. Carga de Producción por operador
+4. Dashboard Operativo
+5. Pendientes por unidad y trabajo offline
+6. Configuración y buenas prácticas
 
-## 1. Alcance del rol
+## 1. Alcance y acceso
 
-El encargado registra produccion y consulta informacion operativa de sus unidades asignadas. A diferencia del operador, puede seleccionar operadores en la carga y acceder al `Dashboard Operativo`.
+El encargado registra producción para sus unidades asignadas y puede elegir el operador de cada carga. También consulta el `Dashboard de Producción` con filtros operativos. No administra catálogos, personal, accesos admin ni asignaciones.
 
-Como encargado podes:
+![Login del encargado](/manuales/capturas/encargado/01-login.png)
 
-- Ingresar con DNI y contrasena.
-- Registrar cargas de produccion.
-- Seleccionar el operador de la carga dentro de tus unidades disponibles.
-- Consultar dashboard operativo con filtros por unidad, proceso, maquina y fechas.
-- Ver evolucion diaria, ranking de maquinas y metricas de combustible.
-- Revisar registros pendientes o fallidos de tus unidades asignadas.
-- Instalar la aplicacion como PWA cuando el navegador lo permita.
-- Cerrar sesion.
+Para ingresar:
 
-No corresponde al rol encargado:
+1. Abrí la aplicación.
+2. Completá `DNI` y `Contrasena`.
+3. Presioná `Sincronizar` si hubo cambios de permisos o catálogos.
+4. Presioná `Ingresar`.
 
-- Administrar catalogos.
-- Crear o modificar personal, moviles, unidades, procesos, predios o rodales.
-- Cambiar permisos de acceso admin.
-- Ver el panel admin global.
+La primera entrada al dispositivo necesita conexión. Los mensajes de error visibles son `Credenciales incorrectas`, `Sin conexión` y `No se pudo validar el ingreso`.
 
-## 2. Acceso y navegacion
+## 2. Inicio y navegación móvil
 
-1. Abrir la aplicacion.
-2. En `Acceso operativo`, ingresar `DNI` y `Contrasena`.
-3. Presionar `Ingresar`.
+![Inicio del encargado](/manuales/capturas/encargado/03-inicio.png)
 
-Si hubo cambios recientes en usuarios o permisos, usar `Sincronizar` desde el login antes de ingresar.
+En `Inicio` revisá estado de servidor, fecha, indicadores de producción, horas, registros, combustible y pendientes. Los accesos principales son `Ir a Carga de Producción`, `Ir a Carga de Combustible`, `Ver Pendientes` y `Abrir Dashboard Operativo`.
 
-Pantallas disponibles:
+![Menú móvil del encargado](/manuales/capturas/encargado/04-menu-movil.png)
 
-| Pantalla | Uso principal |
-| --- | --- |
-| `Inicio` | Resumen diario y accesos rapidos. |
-| `Dashboard Operativo` | Analisis de produccion, combustible, rankings y evolucion. |
-| `Carga de Produccion` | Alta guiada de registros, con seleccion de operador. |
-| `Pendientes` | Cola de registros pendientes o fallidos de unidades asignadas. |
-| `Configuracion` | Instalacion de app y cierre de sesion. |
+Presioná `Abrir navegacion` para abrir `Inicio`, `Manuales`, `Combustible`, `Producción`, `Pendientes`, `Dashboard Operativo`, `Configuración` y `Salir`. Tocá `Cerrar menu` o el fondo para cerrar el panel.
 
-La etiqueta del usuario muestra `Encargado`. Si aparece la franja `Sin conexion`, las cargas nuevas quedan guardadas localmente.
+## 3. Carga de Producción por operador
 
-## 3. Inicio operativo
+El formulario muestra 9 pasos. En el teléfono se avanza con `Siguiente`, se vuelve con `Anterior` y se puede conservar un `Guardar borrador` en el dispositivo.
 
-La pantalla `Inicio` resume la actividad del dia:
+![Paso 1: contexto](/manuales/capturas/encargado/05-contexto.png)
 
-- Estado `En linea` o `Sin conexion`.
-- Produccion del dia.
-- Horas trabajadas.
-- Registros cargados.
-- Combustible.
-- Ultimo registro.
-- Cantidad de pendientes.
+### Paso 1 - Contexto
 
-Accesos rapidos habituales:
+Elegí `Fecha` y `Unidad de Negocio`. La unidad limita los operadores, equipos, procesos y lugares de carga disponibles. Esperá que finalice la carga de catálogos antes de continuar.
 
-- `Carga de Produccion`.
-- `Registros pendientes`.
-- `Dashboard`.
-- `Instalar app`, cuando este disponible.
+![Paso 2: seleccionar operador](/manuales/capturas/encargado/06-operador.png)
 
-## 4. Carga de Produccion
+### Paso 2 - Operador
 
-Entrar desde `Inicio` o desde `Produccion > Carga de Produccion`.
+1. En `Seleccionar Operador`, buscá por nombre.
+2. Elegí el operador que realizó el trabajo.
+3. Confirmá que la unidad elegida sea la correcta.
 
-El formulario usa 9 pasos. Para guardar, cada paso requerido debe estar completo.
+Al elegir un operador, la aplicación consulta sus asignaciones y puede completar equipo y proceso sugeridos. La selección es importante porque el registro queda asociado al operador elegido.
 
-### Paso 1: Contexto
+![Paso 3: equipo](/manuales/capturas/encargado/07-equipo.png)
 
-Completar:
+### Paso 3 - Equipo / Maquinaria
 
-- `Fecha`.
-- `Unidad de Negocio`.
+Confirmá la asignación sugerida. Si hace falta, presioná `Cambiar` y buscá la máquina por detalle, patente o número. No elijas una máquina que no corresponda a la unidad o al trabajo realizado.
 
-La unidad elegida define que operadores, moviles, procesos y lugares de carga quedan disponibles.
+![Paso 4: proceso](/manuales/capturas/encargado/08-proceso.png)
 
-### Paso 2: Operador
+### Paso 4 - Proceso / Actividad
 
-Como encargado, el campo `Seleccionar Operador` esta habilitado.
+En `Tipo de Proceso`, seleccioná el proceso disponible para la unidad. Esta selección determina los campos productivos y los requisitos de ubicación.
 
-1. Elegir la unidad de negocio en el paso anterior.
-2. Buscar el operador por nombre.
-3. Seleccionar el operador correcto.
+![Paso 5: tiempo](/manuales/capturas/encargado/09-tiempo.png)
 
-Al seleccionar el operador, el sistema consulta sus asignaciones y puede sugerir maquina y proceso.
+### Paso 5 - Control de Tiempo
 
-### Paso 3: Equipo / Maquinaria
+Completá `Hora Inicio`, `Hora Fin`, `Hs No Operativas`, `Motivo (lista)` y `Motivo (detalle libre)` cuando corresponda. Inicio y fin deben ser mayores a 0; el fin no puede ser menor que el inicio; y el inicio no puede ser menor al último fin registrado para el equipo.
 
-Opciones disponibles:
+![Paso 6: producción](/manuales/capturas/encargado/10-produccion.png)
 
-- Seleccionar una opcion de `Asignaciones del operador`.
-- Buscar maquina por numero, marca, detalle o patente.
-- Cambiar la maquina seleccionada con `Cambiar`.
+### Paso 6 - Datos de Producción
 
-Si no aparece una maquina esperada, revisar que la unidad sea correcta y que el operador tenga asignacion o que la maquina pertenezca a esa unidad.
+Completá sólo los campos que muestre el proceso: `TN Despachadas`, `Carros`, `Distancia Recorrida (mts)`, `M³ (metros cúbicos)`, `Plantas`, `Hectáreas (HAS)`, `Kilómetros (KM)`, `Horas a Disposición` u horas de máquina. Los valores requeridos deben ser mayores a 0.
 
-### Paso 4: Proceso / Actividad
+![Paso 7: consumos](/manuales/capturas/encargado/11-consumos.png)
 
-Seleccionar `Tipo de Proceso`. La lista depende de la unidad de negocio.
+### Paso 7 - Consumos
 
-El proceso define que campos se pediran en `Datos de Produccion`.
+El paso incluye `Combustible`, `Consumos` y, si el proceso lo solicita, `Sistema de Corte`.
 
-### Paso 5: Control de Tiempo
+1. Activá `¿Se cargó combustible?` cuando corresponda.
+2. Completá `Litros de gasoil`, `KM / Horómetro al cargar` y `Remito 1`.
+3. Completá aceites y datos de corte si aplican.
 
-Completar:
+<div class="warning">
+El combustible incluido en el parte descuenta stock. No vuelvas a registrarlo en `Carga de Combustible`.
+</div>
 
-- `Hora Inicio`.
-- `Hora Fin`.
-- `Hs No Operativas`, si corresponde.
-- Motivo de horas no operativas.
+![Paso 8: ubicación](/manuales/capturas/encargado/12-ubicacion.png)
 
-El sistema valida que las horas sean mayores a 0, que el fin no sea menor que el inicio y que la hora inicial no contradiga el ultimo fin registrado para la maquina.
+### Paso 8 - Ubicación y Referencia
 
-### Paso 6: Datos de Produccion
+Completá `Lugar de Carga` cuando haya combustible. `Acta`, `Predio` y `Rodal` aparecen y se vuelven obligatorios según los requisitos del proceso. Agregá `Observaciones` para aclaraciones.
 
-Completar los campos productivos visibles. Pueden incluir:
+![Paso 9: revisión](/manuales/capturas/encargado/13-revision.png)
 
-- Toneladas despachadas.
-- Carros.
-- Distancia recorrida.
-- Metros cubicos.
-- Plantas.
-- Hectareas.
-- Kilometros.
-- Horas a disposicion.
-- Campos de pies y pulpable para procesos de corte.
+### Paso 9 - Revisión y Confirmación
 
-Los campos requeridos deben tener valores mayores a 0.
+Revisá fecha, unidad, operador, equipo, proceso, horario, producción, consumos y ubicación. Si la carga es correcta, presioná `Guardar Registro`. Si falta un dato, volvé con `Anterior` y corregilo antes de guardar.
 
-### Paso 7: Consumos
+## 4. Dashboard Operativo
 
-Registrar combustible y aceites cuando correspondan.
+![Dashboard operativo](/manuales/capturas/encargado/15-dashboard-operativo.png)
 
-Cuando se carga combustible, completar litros, KM u horometro real y al menos
-el Remito 1. El parte crea el egreso de stock; no repetir el abastecimiento en
-`Carga de Combustible`.
+Entrá desde `Operación > Dashboard Operativo` o desde el acceso rápido. La pantalla permite analizar sólo las unidades que tiene asignadas el encargado.
 
-Si el proceso incluye sistema de corte, completar los datos solicitados de espada, puntera, cadena, pinon o cantidad de cadenas segun aplique.
+### Filtros
 
-### Paso 8: Ubicacion y Referencia
+1. Elegí `Unidad de Negocio`.
+2. Opcionalmente filtrá por `Tipo de Proceso`.
+3. Opcionalmente elegí `Máquina / Equipo`.
+4. Definí `Desde` y `Hasta`.
+5. En el teléfono, presioná `Filtros` para mostrar u ocultar los campos.
+6. Usá `Limpiar` para quitar filtros adicionales.
 
-Completar:
+El dashboard muestra la métrica principal, KPIs secundarios, `Evolución diaria`, evolución de combustible y `Ranking de Máquinas`. Si no hay resultados, ampliá el período o quitá filtros. Si aparece `Sin unidades disponibles`, solicitá la revisión de tus permisos.
 
-- `Lugar de Carga`, obligatorio cuando el parte incluye combustible.
-- `Acta`.
-- `Predio`.
-- `Rodal` o `Rodal manual`.
-- `Observaciones`, si corresponde.
+## 5. Pendientes por unidad y trabajo offline
 
-El sistema no guarda si la ubicacion requerida esta incompleta.
+![Pendientes del encargado](/manuales/capturas/encargado/14-pendientes.png)
 
-### Paso 9: Revision y Confirmacion
-
-Revisar cuidadosamente:
-
-- Fecha y unidad.
-- Operador seleccionado.
-- Equipo.
-- Proceso.
-- Horario.
-- Produccion.
-- Ubicacion.
-
-Si algun dato no corresponde, volver y corregirlo antes de guardar. Esta revision es especialmente importante cuando el encargado carga datos de otro operador.
-
-### Guardar borrador
-
-`Guardar borrador` conserva la carga en el dispositivo. Usarlo para interrupciones temporales; no reemplaza el guardado final.
-
-## 5. Dashboard Operativo
-
-Entrar desde `Operacion > Dashboard Operativo` o desde el acceso rapido `Dashboard`.
-
-El dashboard permite consultar produccion y consumo de las unidades disponibles para el encargado.
-
-### Filtros principales
-
-| Filtro | Descripcion |
-| --- | --- |
-| `Unidad de Negocio` | Unidad a consultar. Para encargado, solo se muestran unidades asignadas. |
-| `Tipo de Proceso` | Limita indicadores al proceso seleccionado. |
-| `Maquina / Equipo` | Filtra por movil especifico. |
-| `Desde` y `Hasta` | Rango de fechas del analisis. |
-| `Limpiar filtros` | Vuelve a una consulta sin filtros adicionales. |
-
-En dispositivos moviles, usar el boton `Filtros` para abrir o cerrar la zona de filtros.
-
-### Indicadores y graficos
-
-El dashboard muestra:
-
-- KPI principal de produccion.
-- KPIs secundarios segun datos disponibles.
-- Variacion porcentual contra periodo anterior cuando aplica.
-- `Evolucion diaria` de produccion.
-- `Combustible - Evolucion diaria`.
-- `Ranking de Maquinas`.
-
-### Ranking de Maquinas
-
-El ranking permite comparar maquinas por:
-
-- `Produccion`.
-- `Combustible`.
-
-Tambien puede filtrarse por `Tipo de Proceso` dentro del ranking.
-
-### Sin datos
-
-Si aparece `No hay datos para los filtros seleccionados`, ampliar fechas o quitar filtros. Si aparece `Sin unidades disponibles`, cerrar sesion y volver a ingresar para refrescar permisos; si persiste, solicitar revision de accesos.
-
-## 6. Registros Pendientes por unidad
-
-Entrar desde `Produccion > Pendientes`.
-
-Para encargado, la pantalla muestra registros pendientes o fallidos asociados a sus unidades de negocio asignadas.
-
-Indicadores principales:
-
-- Pendientes locales.
-- Fallidos locales.
-- Pendientes de unidad.
-- Fallidos de unidad.
+En `Producción > Pendientes` el encargado ve los registros locales asociados a sus unidades asignadas. Las tarjetas informan `Pendientes locales`, `Fallidos locales`, pendientes y fallidos de unidad.
 
 Acciones:
 
-- `Refrescar`: actualiza la vista.
-- `Sincronizar`: intenta enviar pendientes visibles.
-- `Reintentar`: reenvia un registro puntual.
-- `Ver detalle`: permite revisar el payload local.
-- `Eliminar`: descarta el registro local.
+- `Refrescar`: vuelve a consultar el estado.
+- `Sincronizar`: intenta enviar todos los pendientes visibles cuando el servidor está disponible.
+- `Reintentar`: reenvía un registro.
+- `Ver detalle`: muestra el payload local.
+- `Eliminar`: descarta la copia local.
 
 <div class="warning">
-Eliminar un pendiente es una accion definitiva sobre la cola local del dispositivo. Confirmar antes de hacerlo.
+La cola es local al dispositivo. El encargado no ve automáticamente los pendientes que existen en otros teléfonos. No uses `Eliminar` sin confirmar que el registro no debe enviarse.
 </div>
 
-## 7. Configuracion, instalacion y salida
+Sin conexión, una sesión previamente validada puede continuar dentro del período offline configurado, actualmente hasta 14 días. Las nuevas cargas quedan en la cola local y se sincronizan al recuperar conexión.
 
-En `Configuracion`:
+## 6. Configuración y buenas prácticas
 
-- Usar `Instalar App` si el navegador ofrece instalacion PWA.
-- Usar `Cerrar sesion` al finalizar el trabajo o si el dispositivo es compartido.
+En `Configuración` podés usar `Instalar App` si el navegador ofrece la instalación PWA y luego `Cerrar sesión`. En un dispositivo compartido, cerrá sesión al finalizar.
 
-Tambien se puede cerrar sesion desde el menu lateral o encabezado movil.
-
-## 8. Errores frecuentes y buenas practicas
-
-| Situacion | Que hacer |
+| Situación | Qué hacer |
 | --- | --- |
-| No aparece un operador | Revisar la unidad seleccionada. El listado depende de la unidad. |
-| No aparece una maquina | Confirmar unidad y asignaciones. Buscar por patente o detalle. |
-| No aparecen procesos | Verificar que la unidad tenga tipos de proceso habilitados. |
-| Dashboard sin datos | Ampliar fechas o quitar filtros. |
-| Registro pendiente fallido | Abrir `Ver detalle`, revisar error y usar `Reintentar`. |
-| Carga sin conexion | Guardar normalmente; la aplicacion sincronizara al reconectar. |
+| No aparece el operador | Revisá la unidad seleccionada y presioná `Sincronizar` en el próximo ingreso. |
+| No aparece la máquina | Confirmá la unidad y las asignaciones del operador. |
+| No aparecen procesos | Verificá que existan procesos habilitados para la unidad. |
+| Horas inválidas | Usá valores mayores a 0 y respetá la secuencia del último registro del equipo. |
+| Falta ubicación | Completá los campos que exige el proceso y el `Lugar de Carga` si hay combustible. |
+| Dashboard sin datos | Ampliá fechas o quitá filtros. |
+| Pendiente fallido | Abrí `Ver detalle`, revisá el error y usá `Reintentar`. |
 
-Buenas practicas:
+Buenas prácticas:
 
-- Seleccionar primero la unidad correcta.
-- Verificar operador y maquina antes de avanzar.
-- Revisar el resumen final antes de guardar.
-- Usar filtros del dashboard para acotar el analisis, no para corregir datos cargados.
-- Evitar eliminar pendientes sin confirmar que no deben enviarse.
+- Confirmá la unidad antes de seleccionar operador y equipo.
+- Revisá el resumen final porque la carga puede afectar reportes globales.
+- No dupliques consumos de combustible.
+- No elimines pendientes sin confirmación.
