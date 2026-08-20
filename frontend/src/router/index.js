@@ -73,6 +73,12 @@ const routes = [
         meta: { requiresAuth: true, requiresAdmin: true },
       },
       {
+        path: 'gestion/motivos-no-operativos',
+        name: 'admin-motivos-no-operativos',
+        component: () => import('../views/admin/MotivosNoOperativosAdminView.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true },
+      },
+      {
         path: 'dashboard',
         name: 'admin-dashboard',
         component: () => import('../views/admin/AdminDashboardView.vue'),
