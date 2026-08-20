@@ -121,36 +121,36 @@ def test_requires_reason_when_non_operational_hours_are_positive():
         )
 
 
-def test_rejects_process_hours_over_available_shift_hours():
-    with pytest.raises(ValidationError, match="no puede superar las horas operativas"):
-        ParteCaminosCreate.model_validate(
-            _base_payload(
-                hr_inicio=1,
-                hr_fin=15,
-                procesos=[
-                    {
-                        "tipo_proceso_id": 20,
-                        "predio": "PREDIO 1",
-                        "hr_disposicion": 12,
-                    },
-                    {
-                        "tipo_proceso_id": 21,
-                        "predio": "PREDIO 1",
-                        "hr_remolque": 5,
-                    },
-                ],
-            )
+def test_allows_disposition_hours_over_meter_difference():
+    data = ParteCaminosCreate.model_validate(
+        _base_payload(
+            hr_inicio=1,
+            hr_fin=4,
+            procesos=[
+                {
+                    "tipo_proceso_id": 20,
+                    "predio": "PREDIO 1",
+                    "hr_disposicion": 8,
+                },
+                {
+                    "tipo_proceso_id": 21,
+                    "predio": "PREDIO 1",
+                    "hr_remolque": 3,
+                },
+            ],
         )
+    )
+
+    assert data.procesos[0].hr_disposicion == 8
+    assert data.procesos[1].hr_remolque == 3
 
 
-def test_non_operational_hours_reduce_available_process_hours():
-    with pytest.raises(ValidationError, match="10 h"):
+def test_rejects_towing_hours_over_meter_difference():
+    with pytest.raises(ValidationError, match="horas de remolque"):
         ParteCaminosCreate.model_validate(
             _base_payload(
                 hr_inicio=1,
-                hr_fin=15,
-                hrs_no_op=4,
-                motivo_no_op="Reparacion",
+                hr_fin=4,
                 procesos=[
                     {
                         "tipo_proceso_id": 20,
@@ -160,11 +160,36 @@ def test_non_operational_hours_reduce_available_process_hours():
                     {
                         "tipo_proceso_id": 21,
                         "predio": "PREDIO 1",
-                        "hr_remolque": 3,
+                        "hr_remolque": 4,
                     },
                 ],
             )
         )
+
+
+def test_non_operational_hours_do_not_reduce_meter_difference_for_towing():
+    data = ParteCaminosCreate.model_validate(
+        _base_payload(
+            hr_inicio=1,
+            hr_fin=15,
+            hrs_no_op=4,
+            motivo_no_op="Reparacion",
+            procesos=[
+                {
+                    "tipo_proceso_id": 20,
+                    "predio": "PREDIO 1",
+                    "hr_disposicion": 20,
+                },
+                {
+                    "tipo_proceso_id": 21,
+                    "predio": "PREDIO 1",
+                    "hr_remolque": 14,
+                },
+            ],
+        )
+    )
+
+    assert data.procesos[1].hr_remolque == 14
 
 
 def test_fuel_requires_meter_load_place_and_remito():
