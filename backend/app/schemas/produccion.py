@@ -239,6 +239,26 @@ class TableroProduccionCreate(BaseModel):
         return _coerce_empty_numeric(data)
 
     @model_validator(mode="after")
+    def apply_horas_maquinas_production(self):
+        """Issue #146: HORAS MAQUINAS usa el horómetro como fuente de verdad.
+
+        El operador no carga producción manual: se calcula como hr_fin - hr_inicio
+        y se persiste en horas. El cálculo vive en backend para que también aplique
+        a reintentos offline u otros clientes de la API.
+        """
+        if self.operacion.strip().upper() != "HORAS MAQUINAS":
+            return self
+
+        if self.hr_inicio <= 0 or self.hr_fin <= 0:
+            raise ValueError("HORAS MAQUINAS requiere hora de inicio y hora de fin mayores a cero")
+        if self.hr_fin <= self.hr_inicio:
+            raise ValueError("En HORAS MAQUINAS la hora final debe ser mayor a la hora inicial")
+
+        self.produccion = round(self.hr_fin - self.hr_inicio, 2)
+        self.unidad_produccion = "HS"
+        return self
+
+    @model_validator(mode="after")
     def validate_combustible_movement(self):
         if self.combustible <= 0:
             return self
