@@ -25,6 +25,33 @@ SAFE_VALIDATION_ERROR_DETAIL = "Los datos enviados no son validos. Revisa los ca
 # clean sentence instead of a cryptic Pydantic tag.
 _VALUE_ERROR_PREFIX = "Value error, "
 
+# Keep validation field names operator-facing and explicit. We intentionally
+# do not echo Pydantic's full `loc`, input value or payload because those are
+# implementation details and can contain sensitive data.
+_VALIDATION_FIELD_LABELS = {
+    "form_uuid": "identificador del formulario",
+    "equipo": "equipo",
+    "operador": "operador",
+    "UN": "unidad de negocio",
+    "motivo_no_op": "motivo no operativo",
+    "observaciones": "observaciones",
+    "predio": "predio",
+    "acta": "acta",
+    "rodal": "rodal",
+    "remito": "remito 1",
+    "remito2": "remito 2",
+    "remito3": "remito 3",
+}
+
+
+def _validation_field_label(err: dict) -> str | None:
+    """Return a safe user-facing label for a validation error location."""
+    location = err.get("loc") or ()
+    for part in reversed(location):
+        if isinstance(part, str) and part not in {"body", "query", "path"}:
+            return _VALIDATION_FIELD_LABELS.get(part)
+    return None
+
 
 def _humanize_validation_error(exc: RequestValidationError) -> str:
     """Build a single, user-friendly sentence for a Pydantic validation error.
@@ -56,7 +83,13 @@ def _humanize_validation_error(exc: RequestValidationError) -> str:
         "json_invalid": "el cuerpo de la solicitud no tiene un formato valido",
     }
     for err in errors:
-        translated = type_messages.get(err.get("type", ""))
+        error_type = err.get("type", "")
+        if error_type == "string_too_long":
+            field_label = _validation_field_label(err)
+            if field_label:
+                return f"El campo {field_label} excede el tamano maximo permitido"
+
+        translated = type_messages.get(error_type)
         if translated:
             return translated
 
@@ -191,4 +224,3 @@ async def health():
         payload["database"] = "ok" if database_ok else "error"
         payload["database_name"] = database_name_check
     return JSONResponse(status_code=200 if healthy else 503, content=payload)
- 
