@@ -180,16 +180,16 @@
               </div>
             </div>
             <div
-              v-if="totalHorasProcesos > 0"
+              v-if="totalHorasRemolque > 0"
               :class="[
                 'rounded-xl border px-3 py-2.5 text-sm font-semibold',
-                horasProcesosValidas
+                horasRemolqueValidas
                   ? 'border-success/30 bg-success-light/30 text-success-dark'
                   : 'border-error/30 bg-error-light/40 text-error-dark',
               ]"
             >
-              Horas asignadas a procesos: {{ formatHoras(totalHorasProcesos) }} h de {{ formatHoras(horasOperativasDisponibles) }} h disponibles.
-              <span v-if="!horasProcesosValidas"> Reducí las horas de disposición/remolque para continuar.</span>
+              Horas de remolque: {{ formatHoras(totalHorasRemolque) }} h de {{ formatHoras(horasJornada) }} h de diferencia de horómetro.
+              <span v-if="!horasRemolqueValidas"> Reducí las horas de remolque para continuar.</span>
             </div>
           </div>
         </SectionCard>
@@ -360,8 +360,6 @@ async function onPredioProcesoChange(proceso, item) {
   proceso.predio_id = Number(item?.idPredio || 0)
   proceso.rodal_id = 0
 
-  // Cuando hay Acta, la fuente de verdad son los rodales vinculados al Acta;
-  // el Predio sólo restringe esa lista, igual que en el formulario habitual.
   if (proceso.acta) return
 
   rodalesPorProceso[proceso.key] = []
@@ -372,16 +370,13 @@ async function onPredioProcesoChange(proceso, item) {
 
 const procesosTiposValidos = computed(() => procesos.length > 0 && procesos.every(p => p.tipo_proceso_id > 0))
 const horasValidas = computed(() => Number(form.hr_inicio) > 0 && Number(form.hr_fin) > Number(form.hr_inicio))
-const horasOperativasDisponibles = computed(() => Math.max(
-  0,
-  Number(form.hr_fin || 0) - Number(form.hr_inicio || 0) - Number(form.hrs_no_op || 0),
-))
-const totalHorasProcesos = computed(() => procesos.reduce(
-  (total, proceso) => total + Number(proceso.hr_disposicion || 0) + Number(proceso.hr_remolque || 0),
+const horasJornada = computed(() => Math.max(0, Number(form.hr_fin || 0) - Number(form.hr_inicio || 0)))
+const totalHorasRemolque = computed(() => procesos.reduce(
+  (total, proceso) => total + Number(proceso.hr_remolque || 0),
   0,
 ))
-const horasProcesosValidas = computed(() => totalHorasProcesos.value <= horasOperativasDisponibles.value + 0.000001)
-const produccionValida = computed(() => horasProcesosValidas.value && procesos.every(p => {
+const horasRemolqueValidas = computed(() => totalHorasRemolque.value <= horasJornada.value + 0.000001)
+const produccionValida = computed(() => horasRemolqueValidas.value && procesos.every(p => {
   if (requierePredio(p) && !p.predio_id) return false
   if (requiereActa(p) && !String(p.acta || '').trim()) return false
   if (requiereRodal(p) && !Number(p.rodal_id || 0)) return false
@@ -399,7 +394,7 @@ function validar() {
   if (!procesosTiposValidos.value) return 'Completá los procesos del parte.'
   if (!horasValidas.value) return 'La hora fin debe ser mayor que la hora inicio.'
   if (Number(form.hrs_no_op) > 0 && !String(form.motivo_no_op || '').trim()) return 'Indicá el motivo de las horas no operativas.'
-  if (!horasProcesosValidas.value) return `Las horas de disposición y remolque suman ${formatHoras(totalHorasProcesos.value)} h, pero sólo hay ${formatHoras(horasOperativasDisponibles.value)} h operativas disponibles.`
+  if (!horasRemolqueValidas.value) return `Las horas de remolque suman ${formatHoras(totalHorasRemolque.value)} h, pero la diferencia entre horómetro final e inicial es ${formatHoras(horasJornada.value)} h.`
   if (!produccionValida.value) return 'Completá ubicación y métricas de todos los procesos.'
   if (!consumosValidos.value) return 'Completá los datos de combustible.'
   return ''
