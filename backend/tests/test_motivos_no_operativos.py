@@ -20,8 +20,8 @@ def _db():
 def test_sync_unidades_activa_solo_las_seleccionadas():
     db = _db()
     db.add_all([
-        UnidadNegocio(idUnidadNegocio=1, nombre="UN 1"),
-        UnidadNegocio(idUnidadNegocio=2, nombre="UN 2"),
+        UnidadNegocio(idUnidadNegocio=1, Nombre="UN 1", Prefijo="U1", codigo_kobo="un1"),
+        UnidadNegocio(idUnidadNegocio=2, Nombre="UN 2", Prefijo="U2", codigo_kobo="un2"),
     ])
     motivo = MotivoNoOperativo(codigo="falla", nombre="FALLA", activo=True)
     db.add(motivo)
