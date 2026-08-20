@@ -116,28 +116,52 @@ describe('CaminosFormView', () => {
     expect(wrapper.vm.form.motivo_no_op).toBe('')
   })
 
-  it('blocks production when disposition plus towing exceeds available shift hours', async () => {
+  it('allows disposition hours over meter difference when towing remains valid', async () => {
     const wrapper = mountView()
 
     wrapper.vm.form.hr_inicio = 1
     wrapper.vm.form.hr_fin = 15
-    wrapper.vm.form.hrs_no_op = 0
+    wrapper.vm.form.hrs_no_op = 4
+    wrapper.vm.form.motivo_no_op = 'Reparacion'
     wrapper.vm.procesos[0].tipo_proceso_id = 20
     wrapper.vm.procesos[0].predio_id = 1
-    wrapper.vm.procesos[0].hr_disposicion = 12
+    wrapper.vm.procesos[0].hr_disposicion = 20
     wrapper.vm.agregarProceso()
     wrapper.vm.procesos[1].tipo_proceso_id = 21
     wrapper.vm.procesos[1].predio_id = 1
-    wrapper.vm.procesos[1].hr_remolque = 5
+    wrapper.vm.procesos[1].hr_remolque = 14
     wrapper.vm.pasoActual = 5
     await nextTick()
 
-    expect(wrapper.vm.horasOperativasDisponibles).toBe(14)
-    expect(wrapper.vm.totalHorasProcesos).toBe(17)
-    expect(wrapper.vm.horasProcesosValidas).toBe(false)
+    expect(wrapper.vm.horasJornada).toBe(14)
+    expect(wrapper.vm.totalHorasRemolque).toBe(14)
+    expect(wrapper.vm.horasRemolqueValidas).toBe(true)
+    expect(wrapper.vm.puedeAvanzar).toBe(true)
+    expect(wrapper.text()).toContain('Horas de remolque: 14 h de 14 h')
+    expect(wrapper.text()).not.toContain('disposición/remolque')
+  })
+
+  it('blocks production only when towing exceeds meter difference', async () => {
+    const wrapper = mountView()
+
+    wrapper.vm.form.hr_inicio = 1
+    wrapper.vm.form.hr_fin = 4
+    wrapper.vm.procesos[0].tipo_proceso_id = 20
+    wrapper.vm.procesos[0].predio_id = 1
+    wrapper.vm.procesos[0].hr_disposicion = 20
+    wrapper.vm.agregarProceso()
+    wrapper.vm.procesos[1].tipo_proceso_id = 21
+    wrapper.vm.procesos[1].predio_id = 1
+    wrapper.vm.procesos[1].hr_remolque = 4
+    wrapper.vm.pasoActual = 5
+    await nextTick()
+
+    expect(wrapper.vm.horasJornada).toBe(3)
+    expect(wrapper.vm.totalHorasRemolque).toBe(4)
+    expect(wrapper.vm.horasRemolqueValidas).toBe(false)
     expect(wrapper.vm.puedeAvanzar).toBe(false)
-    expect(wrapper.text()).toContain('17 h de 14 h disponibles')
-    expect(wrapper.text()).toContain('Reducí las horas de disposición/remolque')
+    expect(wrapper.text()).toContain('Horas de remolque: 4 h de 3 h')
+    expect(wrapper.text()).toContain('Reducí las horas de remolque')
   })
 
   it('sends a trimmed two-process payload without concatenating operations', async () => {
