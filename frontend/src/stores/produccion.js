@@ -1,5 +1,6 @@
 import api from '@/services/api'
 import db from '@/services/db'
+import motivosNoOperativos from '@/data/motivosNoOperativos.json'
 import { ensurePendingIdentity, queuePendingProductionRecord } from '@/services/pendingRecords'
 import { useToastStore } from '@/stores/toast'
 import { extractApiErrorMessage, extractValidationErrorMessage } from '@/utils/apiError'
@@ -7,6 +8,7 @@ import { useProduccionStore as useLegacyProduccionStore } from '@/stores/producc
 
 const CAMINOS_MARKER = '__submission_kind'
 const CAMINOS_KIND = 'caminos'
+const MOTIVOS_CACHE_PREFIX = 'motivosNoOperativos'
 
 const createFormUuid = () => (
   globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`
@@ -27,8 +29,60 @@ function pendingEndpoint(payload = {}) {
     : '/api/produccion/'
 }
 
+function motivosCacheKey(unId) {
+  return `${MOTIVOS_CACHE_PREFIX}:${Number(unId || 0)}`
+}
+
+function applyMotivos(items) {
+  const nombres = (Array.isArray(items) ? items : [])
+    .map((item) => String(item?.nombre ?? item ?? '').trim())
+    .filter(Boolean)
+  if (!nombres.length) return false
+  motivosNoOperativos.splice(0, motivosNoOperativos.length, ...nombres)
+  return true
+}
+
+async function fetchMotivosNoOperativos(unId) {
+  if (!unId) return motivosNoOperativos
+  try {
+    const { data } = await api.get('/api/catalogos/motivos-no-operativos', {
+      params: { un_id: Number(unId) },
+      _suppressErrorToast: true,
+    })
+    if (Array.isArray(data)) {
+      applyMotivos(data)
+      if (db.catalogos) {
+        await db.catalogos.put({
+          key: motivosCacheKey(unId),
+          catalog: MOTIVOS_CACHE_PREFIX,
+          scope: String(unId),
+          items: data,
+          timestamp: Date.now(),
+        })
+      }
+    }
+  } catch (error) {
+    if (db.catalogos) {
+      const cached = await db.catalogos.get(motivosCacheKey(unId))
+      if (cached?.items) applyMotivos(cached.items)
+    }
+  }
+  return motivosNoOperativos
+}
+
 export function useProduccionStore(...args) {
   const store = useLegacyProduccionStore(...args)
+
+  if (!store.__motivosNoOperativosCatalogReady) {
+    const legacyFetchTiposProceso = store.fetchTiposProceso.bind(store)
+    store.fetchTiposProceso = async (unId) => {
+      const result = await legacyFetchTiposProceso(unId)
+      await fetchMotivosNoOperativos(unId)
+      return result
+    }
+    store.fetchMotivosNoOperativos = fetchMotivosNoOperativos
+    store.__motivosNoOperativosCatalogReady = true
+  }
 
   if (typeof store.submitParteCaminos === 'function') {
     return store
@@ -84,9 +138,6 @@ export function useProduccionStore(...args) {
     }
   }
 
-  // Reemplaza la sincronización legacy por una compatible con ambos contratos.
-  // Los registros normales siguen enviándose al endpoint histórico y los partes
-  // multi-proceso de Caminos se reenvían al endpoint específico.
   store.syncPending = async () => {
     if (store.syncingPending) {
       return { successCount: 0, pendingCount: store.pendingCount, permanentFailureCount: 0 }
@@ -122,10 +173,7 @@ export function useProduccionStore(...args) {
         } catch (err) {
           const status = err?.response?.status
           if (isPermanentSyncError(status)) {
-            const detail = extractApiErrorMessage(
-              err,
-              'Error permanente al sincronizar el registro',
-            )
+            const detail = extractApiErrorMessage(err, 'Error permanente al sincronizar el registro')
             await db.pendingRecords.update(record.id, {
               synced: 1,
               syncStatus: 'failed',
@@ -141,10 +189,7 @@ export function useProduccionStore(...args) {
             syncStatus: 'pending',
             syncError: [401, 403].includes(status)
               ? 'La sesión debe validarse nuevamente antes de enviar.'
-              : extractApiErrorMessage(
-                  err,
-                  'Error transitorio. Se reintentará automáticamente.',
-                ),
+              : extractApiErrorMessage(err, 'Error transitorio. Se reintentará automáticamente.'),
           })
         }
       }
@@ -157,11 +202,7 @@ export function useProduccionStore(...args) {
         useToastStore().success('Pendientes sincronizados', `${successCount} registro(s) enviados.`)
       }
 
-      return {
-        successCount,
-        pendingCount: store.pendingCount,
-        permanentFailureCount,
-      }
+      return { successCount, pendingCount: store.pendingCount, permanentFailureCount }
     } finally {
       store.syncingPending = false
     }

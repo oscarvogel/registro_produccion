@@ -70,6 +70,7 @@ const adminGroups = [
       { key: 'unidades', label: 'Unidades de negocio', description: 'Estructura operativa y vinculaciones.', icon: 'unit', to: { name: 'admin-crud', params: { entity: 'unidades-negocio' } } },
       { key: 'procesos', label: 'Tipos de proceso', description: 'Procesos y requisitos de carga.', icon: 'process', to: { name: 'admin-crud', params: { entity: 'tipos-proceso' } } },
       { key: 'lugares', label: 'Lugares de carga', description: 'Puntos de carga por unidad.', icon: 'location', to: { name: 'admin-crud', params: { entity: 'lugares-carga' } } },
+      { key: 'motivos-no-operativos', label: 'Motivos no operativos', description: 'Motivos sugeridos y habilitación por unidad.', icon: 'records', to: { name: 'admin-motivos-no-operativos' } },
       { key: 'predios', label: 'Predios', description: 'Predios disponibles para producción.', icon: 'field', to: { name: 'admin-crud', params: { entity: 'predios' } } },
       { key: 'rodales', label: 'Rodales', description: 'Rodales y valores productivos.', icon: 'plot', to: { name: 'admin-crud', params: { entity: 'rodales' } } },
       { key: 'actas', label: 'Actas', description: 'Actas habilitadas para registrar producción.', icon: 'records', to: { name: 'admin-crud', params: { entity: 'actas' } } },
