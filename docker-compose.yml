@@ -39,7 +39,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: registro_produccion-frontend:latest
+    image: registro_produccion-frontend-servinlgsm:latest
     restart: unless-stopped
     environment:
       BACKEND_HOST: produccion_fg
@@ -64,7 +64,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: registro_produccion-frontend:latest
+    image: registro_produccion-frontend-indufor:latest
     restart: unless-stopped
     environment:
       BACKEND_HOST: indufor
