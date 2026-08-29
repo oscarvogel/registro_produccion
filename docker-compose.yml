@@ -15,6 +15,7 @@ x-registro-produccion-base: &registro-produccion-base
 services:
   indufor:
     <<: *registro-produccion-base
+    image: registro_produccion-indufor:latest
     container_name: registro_produccion_indufor
     env_file:
       - /srv/env/registro_produccion/indufor.env
@@ -23,6 +24,7 @@ services:
 
   produccion_fg:
     <<: *registro-produccion-base
+    image: registro_produccion-produccion-fg:latest
     container_name: registro_produccion_produccion_fg
     env_file:
       - /srv/env/registro_produccion/produccion_fg.env
