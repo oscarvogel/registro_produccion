@@ -34,3 +34,53 @@ services:
       - /srv/env/registro_produccion/produccion_fg.env:/run/secrets/registro.env:ro
     ports:
       - "127.0.0.1:18005:8000"
+
+  frontend_servinlgsm:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: registro_produccion-frontend:latest
+    restart: unless-stopped
+    environment:
+      BACKEND_HOST: produccion_fg
+    depends_on:
+      produccion_fg:
+        condition: service_healthy
+    labels:
+      traefik.enable: "true"
+      traefik.http.middlewares.registro-produccion-servin-redirect.redirectscheme.scheme: https
+      traefik.http.routers.registro-produccion-servin-http.rule: "Host(`produccion.servinlgsm.com.ar`) || Host(`www.produccion.servinlgsm.com.ar`)"
+      traefik.http.routers.registro-produccion-servin-http.entryPoints: http
+      traefik.http.routers.registro-produccion-servin-http.middlewares: registro-produccion-servin-redirect
+      traefik.http.routers.registro-produccion-servin-https.rule: "Host(`produccion.servinlgsm.com.ar`) || Host(`www.produccion.servinlgsm.com.ar`)"
+      traefik.http.routers.registro-produccion-servin-https.entryPoints: https
+      traefik.http.routers.registro-produccion-servin-https.priority: "100"
+      traefik.http.routers.registro-produccion-servin-https.tls: "true"
+      traefik.http.routers.registro-produccion-servin-https.tls.certresolver: letsencrypt
+      traefik.http.routers.registro-produccion-servin-https.service: registro-produccion-servin
+      traefik.http.services.registro-produccion-servin.loadbalancer.server.port: "80"
+
+  frontend_indufor:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: registro_produccion-frontend:latest
+    restart: unless-stopped
+    environment:
+      BACKEND_HOST: indufor
+    depends_on:
+      indufor:
+        condition: service_healthy
+    labels:
+      traefik.enable: "true"
+      traefik.http.middlewares.registro-produccion-indufor-redirect.redirectscheme.scheme: https
+      traefik.http.routers.registro-produccion-indufor-http.rule: "Host(`produccion.indufor.com.ar`) || Host(`www.produccion.indufor.com.ar`)"
+      traefik.http.routers.registro-produccion-indufor-http.entryPoints: http
+      traefik.http.routers.registro-produccion-indufor-http.middlewares: registro-produccion-indufor-redirect
+      traefik.http.routers.registro-produccion-indufor-https.rule: "Host(`produccion.indufor.com.ar`) || Host(`www.produccion.indufor.com.ar`)"
+      traefik.http.routers.registro-produccion-indufor-https.entryPoints: https
+      traefik.http.routers.registro-produccion-indufor-https.priority: "100"
+      traefik.http.routers.registro-produccion-indufor-https.tls: "true"
+      traefik.http.routers.registro-produccion-indufor-https.tls.certresolver: letsencrypt
+      traefik.http.routers.registro-produccion-indufor-https.service: registro-produccion-indufor
+      traefik.http.services.registro-produccion-indufor.loadbalancer.server.port: "80"
