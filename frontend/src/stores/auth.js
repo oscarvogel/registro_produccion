@@ -31,8 +31,7 @@ function isTokenExpired(token) {
  * Returns a hex string. Returns a deterministic fallback only when crypto.subtle
  * is missing (e.g. insecure contexts / older test environments); the fallback
  * is NOT a security guarantee — it merely prevents crashes. The backend remains
- * the authority: the hash is only used to invalidate caches after the user
- * changes their password.
+ * the authority: the hash is only used to validate the cached offline login.
  */
 export async function hashSecret(value) {
   if (!value) return null
@@ -85,6 +84,17 @@ export function clearOfflineSessionCache() {
   } catch {
     /* ignore */
   }
+}
+
+/**
+ * True when the login request could not be validated because the backend itself
+ * is unavailable. This deliberately excludes 4xx responses (especially 401):
+ * when the server is reachable, it remains the authority for credentials.
+ */
+export function canFallbackToOfflineLogin(err) {
+  if (!err || typeof err !== 'object') return false
+  if (!err.response) return true
+  return Number(err.response.status) >= 500
 }
 
 /**
@@ -199,11 +209,42 @@ export const useAuthStore = defineStore('auth', {
         await this.cacheSession(password)
         return true
       } catch (err) {
+        // Hay Internet/Wi-Fi pero el backend o MySQL puede estar caído. En ese
+        // caso no debemos bloquear la operación: validamos DNI+contraseña contra
+        // la sesión local previamente cacheada y entramos en modo offline.
+        if (canFallbackToOfflineLogin(err)) {
+          const restored = await this.loginFromCache(dni, password)
+          if (restored) return true
+        }
+
         this.error = classifyLoginError(err)
         return false
       } finally {
         this.loading = false
       }
+    },
+
+    async loginFromCache(dni, password) {
+      const cached = readOfflineSessionCache()
+      this.cachedSession = cached
+      if (!cached || !this.isOfflineCacheValid()) return false
+
+      const requestedDni = String(dni ?? '').trim()
+      const cachedDni = String(cached.user?.dni ?? '').trim()
+      if (!requestedDni || requestedDni !== cachedDni) return false
+
+      const passwordHash = await hashSecret(password)
+      if (!passwordHash || passwordHash !== cached.passwordHash) return false
+
+      this.token = null
+      this.user = { ...cached.user }
+      this.offlineMode = true
+      this.initMode = 'offline'
+      this.error = null
+      localStorage.removeItem('token')
+      localStorage.setItem('user', JSON.stringify(this.user))
+      delete api.defaults.headers.common['Authorization']
+      return true
     },
 
     async sincronizar() {
@@ -280,6 +321,9 @@ export const useAuthStore = defineStore('auth', {
      *  - mode 'offline'        → sin red, operador entra con cache dentro de la gracia
      *  - mode 'login-required' → con red pero token vencido/ausente → mostrar /login
      *  - mode 'offline-locked' → sin red y cache fuera de gracia → mostrar /login
+     *
+     * Si navigator dice "online" pero el backend/MySQL está caído, el fallback
+     * se resuelve en login(): el operador puede validar contra la sesión local.
      */
     initAuth() {
       // Reset previous offline state at boot; restored below if applicable.
