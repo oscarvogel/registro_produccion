@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     APP_VERSION: str = "unknown"
     EXPECTED_DB_NAME: str = ""
+    MYSQL_SSL_CA: str = ""
+    MYSQL_SSL_VERIFY_CERT: bool = True
+    MYSQL_SSL_VERIFY_IDENTITY: bool = False
     LOG_LEVEL: str = "info"
     # Add the frontend dev server origins (common ports 5173/5174 and 3000)
     ALLOWED_ORIGINS: list = [
