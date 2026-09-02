@@ -21,6 +21,7 @@ services:
       REGISTRO_ENV_FILE: /run/secrets/registro.env
     volumes:
       - /srv/env/registro_produccion/indufor.env:/run/secrets/registro.env:ro
+      - /srv/env/registro_produccion/mysql-central-ca.pem:/run/secrets/mysql-central-ca.pem:ro
     ports:
       - "127.0.0.1:18004:8000"
 
@@ -32,6 +33,7 @@ services:
       REGISTRO_ENV_FILE: /run/secrets/registro.env
     volumes:
       - /srv/env/registro_produccion/produccion_fg.env:/run/secrets/registro.env:ro
+      - /srv/env/registro_produccion/mysql-central-ca.pem:/run/secrets/mysql-central-ca.pem:ro
     ports:
       - "127.0.0.1:18005:8000"
 
