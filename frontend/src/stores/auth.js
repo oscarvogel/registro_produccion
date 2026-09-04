@@ -186,6 +186,9 @@ export const useAuthStore = defineStore('auth', {
     isAuthenticated: (state) => !!state.token && !isTokenExpired(state.token),
     isAuthenticatedOffline: (state) =>
       state.offlineMode && !!state.user && !!state.cachedSession,
+    isSessionActive() {
+      return this.isAuthenticated || this.isAuthenticatedOffline
+    },
     userName: (state) => state.user?.nombre || '',
     isAdmin: (state) => state.user?.is_admin === 1,
   },
@@ -296,6 +299,14 @@ export const useAuthStore = defineStore('auth', {
       return true
     },
 
+    requireOnlineReauth() {
+      this.token = null
+      this.offlineMode = false
+      this.initMode = 'login-required'
+      localStorage.removeItem('token')
+      delete api.defaults.headers.common['Authorization']
+    },
+
     logout() {
       this.token = null
       this.user = null
@@ -304,10 +315,8 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       delete api.defaults.headers.common['Authorization']
-      // Keep the offline session cache so the operator can come back without
-      // typing credentials while inside the grace period. Clear it explicitly
-      // via clearOfflineSessionCache() when the operator really wants to forget
-      // the device (e.g. reset / lost device flow).
+      clearOfflineSessionCache()
+      this.cachedSession = null
     },
 
     clearOfflineCache() {

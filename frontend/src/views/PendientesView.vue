@@ -189,7 +189,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import api from '@/services/api'
-import { ensurePendingIdentity } from '@/services/pendingRecords'
+import { ensurePendingIdentity, pendingSubmissionEndpoint, stripPendingMetadata } from '@/services/pendingRecords'
 import db from '@/services/db'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
@@ -423,8 +423,10 @@ async function retryRecord(record) {
       lastAttemptAt: Date.now(),
       retryCount: Number(record.retryCount || 0) + 1,
     })
-    const submissionPayload = await ensurePendingIdentity(record)
-    await api.post('/api/produccion', submissionPayload, {
+    const identifiedPayload = await ensurePendingIdentity(record)
+    const endpoint = pendingSubmissionEndpoint(identifiedPayload)
+    const submissionPayload = stripPendingMetadata(identifiedPayload)
+    await api.post(endpoint, submissionPayload, {
       _suppressErrorToast: true,
     })
     await db.pendingRecords.delete(record.id)

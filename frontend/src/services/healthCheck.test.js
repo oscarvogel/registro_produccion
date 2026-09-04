@@ -25,11 +25,10 @@ function jsonResponse(body, { status = 200 } = {}) {
 }
 
 describe('checkBackend', () => {
-  it('returns "ok" when the probe returns a JSON array', async () => {
+  it('uses /health by default and requires backend + database ok', async () => {
     let captured
-    fakeFetchOnce(jsonResponse([{ id: 1 }], { status: 200 }))
+    fakeFetchOnce(jsonResponse({ status: 'ok', database: 'ok' }, { status: 200 }))
     const result = await checkBackend({
-      path: '/api/produccion/lugares-carga?un_id=1',
       onResult: (state, latency) => {
         captured = { state, latency }
       },
@@ -37,20 +36,20 @@ describe('checkBackend', () => {
     expect(result).toBe('ok')
     expect(captured.state).toBe('ok')
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      '/api/produccion/lugares-carga?un_id=1',
+      '/health',
       expect.objectContaining({ cache: 'no-store', credentials: 'omit' }),
     )
   })
 
-  it('returns "ok" when the probe returns a JSON object with at least one key', async () => {
+  it('returns "ok" when the health payload confirms backend and database', async () => {
     fakeFetchOnce(jsonResponse({ status: 'ok', database: 'ok' }, { status: 200 }))
-    const result = await checkBackend({ path: '/api/health' })
+    const result = await checkBackend({ path: '/health' })
     expect(result).toBe('ok')
   })
 
   it('returns "degraded" when the probe returns 503', async () => {
     fakeFetchOnce(jsonResponse({ status: 'error', database: 'error' }, { status: 503 }))
-    const result = await checkBackend({ path: '/api/health' })
+    const result = await checkBackend({ path: '/health' })
     expect(result).toBe('degraded')
   })
 
@@ -61,7 +60,6 @@ describe('checkBackend', () => {
   })
 
   it('returns "unreachable" when the response is 404 (probe path missing)', async () => {
-    // /api/health is currently blocked by Nginx -> 404 -> unreachable, not degraded.
     fakeFetchOnce(jsonResponse({ detail: 'Not Found' }, { status: 404 }))
     const result = await checkBackend({ path: '/api/health' })
     expect(result).toBe('unreachable')
@@ -135,5 +133,15 @@ describe('checkBackend', () => {
       validate: (data) => data && data.status === 'ok',
     })
     expect(result).toBe('degraded')
+  })
+})
+
+
+describe('checkBackend auth failures', () => {
+  it('never treats 401/403 JSON as healthy', async () => {
+    fakeFetchOnce(jsonResponse({ detail: 'Not authenticated' }, { status: 401 }))
+    expect(await checkBackend({ path: '/health' })).toBe('degraded')
+    fakeFetchOnce(jsonResponse({ detail: 'Forbidden' }, { status: 403 }))
+    expect(await checkBackend({ path: '/health' })).toBe('degraded')
   })
 })
