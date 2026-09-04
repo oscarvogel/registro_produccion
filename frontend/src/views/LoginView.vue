@@ -315,6 +315,10 @@ const errorCategory = computed(() => {
 })
 
 onMounted(() => {
+  if (route.query.reauth === '1') {
+    offlineNotice.value = 'Volvió el servidor. Validá tu DNI y contraseña para enviar automáticamente los registros pendientes.'
+  }
+
   // If the operator landed on /login with a cached offline session still valid,
   // send them straight to home. They are already authenticated, just without
   // network — they should not have to retype credentials.
