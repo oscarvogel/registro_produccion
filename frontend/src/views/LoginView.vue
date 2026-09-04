@@ -355,7 +355,6 @@ async function handleLogin() {
   authStore.error = null
   const success = await authStore.login(dni.value, password.value)
   if (success) {
-    authStore.clearOfflineCache()
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : null
     router.push(redirect ? { path: redirect } : { name: 'home' })
   }
