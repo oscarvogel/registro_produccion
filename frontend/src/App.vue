@@ -375,6 +375,15 @@ watch(sidebarCollapsed, (value) => {
   localStorage.setItem('sidebarCollapsed', value ? '1' : '0')
 })
 
+watch(
+  () => authStore.isAuthenticated,
+  (authenticated, wasAuthenticated) => {
+    if (authenticated && !wasAuthenticated) {
+      produccionStore.refreshPendingCount().then(() => attemptPendingSync({ forceHealthCheck: true }))
+    }
+  },
+)
+
 // PWA install prompt
 const deferredInstallPrompt = ref(null)
 
@@ -413,11 +422,18 @@ const SYNC_INTERVAL_MS = 30 * 1000
 let syncIntervalId = null
 
 async function attemptPendingSync({ forceHealthCheck = false } = {}) {
-  if (!authStore.isAuthenticated || !navigator.onLine) return
+  if (!authStore.isSessionActive || !navigator.onLine) return
   const backendUp = await connectivityStore.refreshBackendHealth({ force: forceHealthCheck })
-  if (backendUp) {
-    await produccionStore.syncPending()
+  if (!backendUp) return
+
+  if (authStore.isAuthenticatedOffline) {
+    const redirect = route.fullPath && route.name !== 'login' ? route.fullPath : '/'
+    authStore.requireOnlineReauth()
+    await router.push({ name: 'login', query: { redirect, reauth: '1' } })
+    return
   }
+
+  await produccionStore.syncPending()
 }
 
 async function handleOnline() {
