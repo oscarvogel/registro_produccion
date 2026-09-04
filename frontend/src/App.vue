@@ -5,7 +5,7 @@
       :has-cached-session="hasCachedSession"
     />
 
-    <template v-if="authStore.isAuthenticated">
+    <template v-if="authStore.isSessionActive">
       <div :class="['min-h-screen', connectivityStore.isOffline ? 'pt-8' : '']">
         <header class="sticky top-0 z-30 border-b border-[#222D26] bg-[#090E0B] text-white md:hidden">
           <div class="flex h-14 items-center justify-between px-4">
@@ -428,7 +428,7 @@ onMounted(() => {
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.addEventListener('appinstalled', handleAppInstalled)
   window.addEventListener('online', handleOnline)
-  if (authStore.isAuthenticated) {
+  if (authStore.isSessionActive) {
     produccionStore.refreshPendingCount().then(() => attemptPendingSync({ forceHealthCheck: true }))
   }
 
