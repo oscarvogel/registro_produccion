@@ -299,6 +299,14 @@ export const useAuthStore = defineStore('auth', {
       return true
     },
 
+    requireOnlineReauth() {
+      this.token = null
+      this.offlineMode = false
+      this.initMode = 'login-required'
+      localStorage.removeItem('token')
+      delete api.defaults.headers.common['Authorization']
+    },
+
     logout() {
       this.token = null
       this.user = null
