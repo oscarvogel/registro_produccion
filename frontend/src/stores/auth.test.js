@@ -150,17 +150,28 @@ describe('auth store / initAuth offline', () => {
     expect(typeof cached?.cachedAt).toBe('number')
   })
 
-  it('logout keeps the offline cache so the operator can come back', () => {
+  it('logout clears the offline cache so another operator cannot reuse the device session', () => {
     const user = { idPersonal: 1, dni: '88888888', nombre: 'Op' }
     seedCache(user, Date.now())
     const store = useAuthStore()
     store.logout()
-    // token/user are cleared
     expect(store.token).toBeNull()
     expect(store.user).toBeNull()
-    // but the cache stays so they can re-enter offline within the grace period
-    const cached = readOfflineSessionCache()
-    expect(cached?.user.dni).toBe('88888888')
+    expect(readOfflineSessionCache()).toBeNull()
+    expect(store.cachedSession).toBeNull()
+  })
+
+  it('requireOnlineReauth keeps cached session while invalidating offline access', () => {
+    const user = { idPersonal: 1, dni: '88888888', nombre: 'Op' }
+    seedCache(user, Date.now())
+    const store = useAuthStore()
+    store.cachedSession = readOfflineSessionCache()
+    store.user = user
+    store.offlineMode = true
+    store.requireOnlineReauth()
+    expect(store.offlineMode).toBe(false)
+    expect(store.initMode).toBe('login-required')
+    expect(readOfflineSessionCache()?.user.dni).toBe('88888888')
   })
 
   it('clearOfflineCache removes the cache as well', () => {

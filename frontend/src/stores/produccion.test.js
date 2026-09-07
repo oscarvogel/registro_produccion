@@ -38,6 +38,13 @@ vi.mock('@/services/pendingRecords', () => ({
     form_uuid: record.payload?.form_uuid || record.clientId,
   })),
   queuePendingProductionRecord: vi.fn(),
+  pendingSubmissionEndpoint: vi.fn((payload) => payload?.__submission_kind === 'caminos' ? '/api/produccion/caminos' : payload?.__submission_kind === 'combustible' ? '/api/combustible/cargas' : '/api/produccion/'),
+  stripPendingMetadata: vi.fn((payload) => {
+    const { __submission_kind: _kind, ...clean } = payload
+    return clean
+  }),
+  SUBMISSION_KIND_FIELD: '__submission_kind',
+  SUBMISSION_KIND_CAMINOS: 'caminos',
 }))
 
 import api from '@/services/api'

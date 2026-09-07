@@ -13,7 +13,7 @@
  * without firing toasts.
  *
  * Configuration via env (Vite):
- *   VITE_HEALTHCHECK_PATH  Default: "/api/produccion/lugares-carga?un_id=1"
+ *   VITE_HEALTHCHECK_PATH  Default: "/health"
  *
  * @param {object} [opts]
  * @param {string} [opts.baseURL]  Override the API base URL. Defaults to VITE_API_URL.
@@ -32,7 +32,7 @@ export async function checkBackend({
 } = {}) {
   const rawBase = baseURL ?? import.meta.env?.VITE_API_URL ?? ''
   const rawPath =
-    path ?? import.meta.env?.VITE_HEALTHCHECK_PATH ?? '/api/produccion/lugares-carga?un_id=1'
+    path ?? import.meta.env?.VITE_HEALTHCHECK_PATH ?? '/health'
 
   // Normalize baseURL so a trailing /api collapses to empty (same convention
   // as the axios client). The path is taken as-is — it may already include
@@ -50,11 +50,8 @@ export async function checkBackend({
   const started = Date.now()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
 
-  const defaultValidate = (data) => {
-    if (Array.isArray(data)) return true
-    if (data && typeof data === 'object') return Object.keys(data).length > 0
-    return false
-  }
+  const defaultValidate = (data) =>
+    !!data && typeof data === 'object' && data.status === 'ok' && data.database === 'ok'
   const isHealthyPayload = validate || defaultValidate
 
   try {
@@ -67,16 +64,10 @@ export async function checkBackend({
     })
     clearTimeout(timer)
 
-    if (res.status >= 500) {
-      onResult?.('degraded', Date.now() - started)
-      return 'degraded'
-    }
-    if (res.status === 404) {
-      // The probe path was removed from Nginx — treat as unreachable so the
-      // banner shows the right colour, and avoid marking the backend down for
-      // a missing route.
-      onResult?.('unreachable', Date.now() - started)
-      return 'unreachable'
+    if (!res.ok) {
+      const state = res.status === 404 ? 'unreachable' : 'degraded'
+      onResult?.(state, Date.now() - started)
+      return state
     }
 
     let data
