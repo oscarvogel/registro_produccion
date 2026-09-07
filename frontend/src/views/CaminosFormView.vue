@@ -323,9 +323,9 @@ function nombreProceso(id) { return tipoProceso(id)?.nombre || '' }
 function esProceso(p, n) { return nombreProceso(p.tipo_proceso_id).trim().toUpperCase() === n }
 function procesoUsado(id, key) { return procesos.some(x => x.key !== key && Number(x.tipo_proceso_id) === Number(id)) }
 function procesosDisponibles(proceso) { return (store.tiposProceso || []).filter(tipo => !procesoUsado(tipo.id, proceso.key) || Number(tipo.id) === Number(proceso.tipo_proceso_id)) }
-function requierePredio(p) { const n = nombreProceso(p.tipo_proceso_id).trim().toUpperCase(); return ['PERFILADO', 'DISPOSICION', 'REMOLQUE'].includes(n) || !!tipoProceso(p.tipo_proceso_id)?.requiere_predio }
-function requiereActa(p) { const n = nombreProceso(p.tipo_proceso_id).trim().toUpperCase(); if (n === 'PERFILADO') return true; if (['DISPOSICION', 'REMOLQUE'].includes(n)) return false; return !!tipoProceso(p.tipo_proceso_id)?.requiere_acta }
-function requiereRodal(p) { const n = nombreProceso(p.tipo_proceso_id).trim().toUpperCase(); if (n === 'PERFILADO') return true; if (['DISPOSICION', 'REMOLQUE'].includes(n)) return false; return !!tipoProceso(p.tipo_proceso_id)?.requiere_rodal }
+function requierePredio(p) { return !!tipoProceso(p.tipo_proceso_id)?.requiere_predio }
+function requiereActa(p) { return !!tipoProceso(p.tipo_proceso_id)?.requiere_acta }
+function requiereRodal(p) { return !!tipoProceso(p.tipo_proceso_id)?.requiere_rodal }
 function predioNombre(id) { return store.predios.find(x => Number(x.idPredio) === Number(id))?.nombre || '' }
 function operadorNombre(id) { if (!canSelectOperador.value) return authStore.userName || ''; return store.operadores.find(x => Number(x.idPersonal) === Number(id))?.nombre || '' }
 function equipoSeleccionado() { return store.moviles.find(x => Number(x.idMovil) === Number(form.cod_equipo)) || null }
