@@ -15,33 +15,38 @@ def _tipo(nombre, *, predio=False, acta=False, rodal=False):
     )
 
 
-def test_perfilado_caminos_requires_predio_acta_and_rodal_even_if_global_flags_are_false():
+def test_perfilado_without_location_flags_does_not_require_location():
     tipo = _tipo("PERFILADO")
 
-    with pytest.raises(HTTPException, match="predio"):
-        _validate_location(tipo, "", "", "")
-
-    with pytest.raises(HTTPException, match="acta"):
-        _validate_location(tipo, "PREDIO", "", "")
-
-    with pytest.raises(HTTPException, match="rodal"):
-        _validate_location(tipo, "PREDIO", "ACTA", "")
-
-    _validate_location(tipo, "PREDIO", "ACTA", "RODAL")
+    _validate_location(tipo, "", "", "")
 
 
-def test_disposicion_and_remolque_only_add_caminos_predio_requirement():
+def test_disposicion_and_remolque_respect_configured_predio_requirement():
     for nombre in ("DISPOSICION", "REMOLQUE"):
-        tipo = _tipo(nombre)
+        tipo = _tipo(nombre, predio=True)
+
         with pytest.raises(HTTPException, match="predio"):
             _validate_location(tipo, "", "", "")
+
         _validate_location(tipo, "PREDIO", "", "")
 
 
-def test_unknown_process_falls_back_to_global_location_flags():
-    tipo = _tipo("OTRO", acta=True)
+@pytest.mark.parametrize(
+    ("kwargs", "predio", "acta", "rodal", "message"),
+    [
+        ({"predio": True}, "", "", "", "predio"),
+        ({"acta": True}, "", "", "", "acta"),
+        ({"rodal": True}, "", "", "", "rodal"),
+    ],
+)
+def test_location_validation_uses_tipo_de_proceso_flags(kwargs, predio, acta, rodal, message):
+    tipo = _tipo("CUALQUIER PROCESO", **kwargs)
 
-    with pytest.raises(HTTPException, match="acta"):
-        _validate_location(tipo, "", "", "")
+    with pytest.raises(HTTPException, match=message):
+        _validate_location(tipo, predio, acta, rodal)
 
-    _validate_location(tipo, "", "ACTA", "")
+
+def test_all_configured_location_fields_are_accepted_when_present():
+    tipo = _tipo("PERFILADO", predio=True, acta=True, rodal=True)
+
+    _validate_location(tipo, "PREDIO", "ACTA", "RODAL")
