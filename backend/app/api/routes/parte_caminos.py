@@ -17,16 +17,6 @@ from app.schemas.produccion import TableroProduccionCreate
 
 router = APIRouter(prefix="/produccion/caminos", tags=["produccion"])
 
-# Rules that belong specifically to the Caminos workflow. Keeping them here
-# avoids mutating the global tipo_de_proceso flags when a process such as
-# PERFILADO is also used by another business unit.
-_CAMINOS_LOCATION_REQUIREMENTS = {
-    "PERFILADO": {"predio": True, "acta": True, "rodal": True},
-    "DISPOSICION": {"predio": True, "acta": False, "rodal": False},
-    "REMOLQUE": {"predio": True, "acta": False, "rodal": False},
-}
-
-
 def _clean_text(value: str | None) -> str:
     return str(value or "").strip()
 
@@ -46,16 +36,9 @@ def _validate_location(tipo: TipoDeProceso, predio: str, acta: str, rodal: str) 
     def missing(value: str) -> bool:
         return not value or not value.strip() or value.strip() == "0"
 
-    nombre = (tipo.nombre or "").strip().upper()
-    scoped = _CAMINOS_LOCATION_REQUIREMENTS.get(nombre)
-    if scoped:
-        requiere_predio = scoped["predio"]
-        requiere_acta = scoped["acta"]
-        requiere_rodal = scoped["rodal"]
-    else:
-        requiere_predio = bool(tipo.requiere_predio)
-        requiere_acta = bool(tipo.requiere_acta)
-        requiere_rodal = bool(tipo.requiere_rodal)
+    requiere_predio = bool(tipo.requiere_predio)
+    requiere_acta = bool(tipo.requiere_acta)
+    requiere_rodal = bool(tipo.requiere_rodal)
 
     if requiere_predio and missing(predio):
         raise HTTPException(status_code=422, detail=f"{tipo.nombre}: el predio es obligatorio")
