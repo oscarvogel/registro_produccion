@@ -3,14 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
 const push = vi.fn()
+const defaultTiposProceso = () => [
+  { id: 9, nombre: 'PERFILADO', requiere_acta: false, requiere_predio: false, requiere_rodal: false },
+  { id: 20, nombre: 'DISPOSICION', requiere_acta: false, requiere_predio: true, requiere_rodal: false },
+  { id: 21, nombre: 'REMOLQUE', requiere_acta: false, requiere_predio: true, requiere_rodal: false },
+]
 const store = {
   operadores: [],
   moviles: [],
-  tiposProceso: [
-    { id: 9, nombre: 'PERFILADO' },
-    { id: 20, nombre: 'DISPOSICION' },
-    { id: 21, nombre: 'REMOLQUE' },
-  ],
+  tiposProceso: defaultTiposProceso(),
   predios: [],
   actas: [],
   rodales: [],
@@ -72,6 +73,12 @@ function mountView(unidad = { idUnidadNegocio: 7, nombre: 'Caminos' }) {
 describe('CaminosFormView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    store.tiposProceso = defaultTiposProceso()
+    store.moviles = []
+    store.predios = []
+    store.actas = []
+    store.rodales = []
+    store.error = null
   })
 
   it('allows adding and removing process rows in the same daily part', async () => {
@@ -114,6 +121,22 @@ describe('CaminosFormView', () => {
     wrapper.vm.form.hrs_no_op = 0
     await nextTick()
     expect(wrapper.vm.form.motivo_no_op).toBe('')
+  })
+
+  it('respects configured location flags for PERFILADO', async () => {
+    const wrapper = mountView()
+    const proceso = wrapper.vm.procesos[0]
+
+    proceso.tipo_proceso_id = 9
+    proceso.km_perfilado = 2
+    wrapper.vm.pasoActual = 5
+    await nextTick()
+
+    const labels = wrapper.findAllComponents(AutocompleteField).map((component) => component.props('label'))
+    expect(labels).not.toContain('Predio')
+    expect(labels).not.toContain('Acta')
+    expect(labels).not.toContain('Rodal')
+    expect(wrapper.vm.puedeAvanzar).toBe(true)
   })
 
   it('allows disposition hours over meter difference when towing remains valid', async () => {
@@ -202,7 +225,12 @@ describe('CaminosFormView', () => {
     expect(payload.operacion).toBeUndefined()
   })
 
-  it('trims acta and rodal in the process payload', async () => {
+  it('trims acta and rodal in the process payload when configured as required', async () => {
+    store.tiposProceso = defaultTiposProceso().map((tipo) => (
+      tipo.id === 9
+        ? { ...tipo, requiere_acta: true, requiere_predio: true, requiere_rodal: true }
+        : tipo
+    ))
     store.predios = [{ idPredio: 1, nombre: '  PUERTO BOSSETTI  ' }]
     const wrapper = mountView({ idUnidadNegocio: 7, nombre: '  Caminos  ' })
     const proceso = wrapper.vm.procesos[0]
