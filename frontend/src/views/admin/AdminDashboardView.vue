@@ -3,10 +3,10 @@
     <section class="rounded-lg border border-neutral-200 bg-primary-dark p-4 text-white shadow-sm">
       <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_34rem] xl:items-end">
         <div>
-          <p class="text-xs font-bold uppercase tracking-wide text-primary-fixed-dim">Resumen ejecutivo</p>
-          <h2 class="mt-1 text-2xl font-extrabold md:text-3xl">Dashboard de producción</h2>
+          <p class="text-xs font-bold uppercase tracking-wide text-primary-fixed-dim">Análisis gerencial</p>
+          <h2 class="mt-1 text-2xl font-extrabold md:text-3xl">Análisis de Producción</h2>
           <p class="mt-2 max-w-2xl text-sm text-primary-fixed-dim">
-            Producción total, toneladas, combustible y actividad operativa para el rango seleccionado.
+            Análisis productivo y gerencial de producción total, toneladas, combustible y actividad para el rango seleccionado.
           </p>
           <p class="mt-3 text-xs font-semibold text-primary-fixed-dim">
             Última actualización: {{ lastUpdatedLabel }} - Rango: {{ rangeLabel }}
@@ -43,7 +43,7 @@
               :class="[
                 'rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
                 activePreset === preset.key
-                  ? 'border-secondary bg-secondary text-white'
+                  ? 'border-secondary bg-secondary text-on-secondary'
                   : 'app-button-soft border',
               ]"
               type="button"
@@ -57,29 +57,20 @@
             <InputField v-model="fechaHasta" type="date" label="Hasta" />
           </div>
 
-          <button
-            @click="loadOverview"
-            class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-dark disabled:opacity-60"
-            :disabled="store.loadingDashboardOverview"
-            type="button"
-          >
-            <AppIcon name="refresh" size="sm" :class="{ 'animate-spin': store.loadingDashboardOverview }" />
+          <AppButton :loading="store.loadingDashboardOverview" @click="loadOverview">
+            <AppIcon name="refresh" size="sm" />
             Actualizar
-          </button>
+          </AppButton>
         </div>
       </div>
     </section>
 
-    <div v-if="store.loadingDashboardOverview" class="app-card rounded-lg p-4 text-center text-neutral-500">
-      Cargando resumen ejecutivo...
-    </div>
+    <FeedbackMessage v-if="store.loadingDashboardOverview" tone="loading" message="Cargando análisis de producción..." />
 
-    <div v-else-if="store.dashboardOverviewError" class="rounded-lg border border-error-light bg-error-light/40 p-4 text-sm font-semibold text-error-dark">
-      {{ store.dashboardOverviewError }}
-    </div>
+    <FeedbackMessage v-else-if="store.dashboardOverviewError" tone="error" :message="store.dashboardOverviewError" />
 
     <div v-else-if="!overview" class="app-card rounded-lg p-5 text-center">
-      <p class="font-bold text-neutral-700">No se pudo preparar el dashboard</p>
+      <p class="font-bold text-neutral-700">No se pudo preparar el análisis de producción</p>
       <p class="mt-1 text-sm text-neutral-500">Actualizá el rango para volver a consultar la información.</p>
     </div>
 
@@ -265,7 +256,7 @@
         <div class="app-card rounded-lg p-4">
           <div class="mb-3">
             <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Actividad reciente</p>
-            <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Ultimos registros productivos</h3>
+            <h3 class="mt-1 text-lg font-extrabold text-neutral-900">Últimos registros productivos</h3>
           </div>
 
           <div v-if="overview.recent_records.length > 0" class="space-y-2">
@@ -276,7 +267,7 @@
             >
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
-                  <p class="truncate text-sm font-extrabold text-neutral-800">{{ record.operacion || 'Sin operacion' }}</p>
+                  <p class="truncate text-sm font-extrabold text-neutral-800">{{ record.operacion || 'Sin operación' }}</p>
                   <span class="rounded-md border px-2 py-0.5 text-xs font-bold app-state-inactive">
                     {{ formatDate(record.fecha) }}
                   </span>
@@ -305,6 +296,8 @@
 import { computed, onMounted, ref } from 'vue'
 import InputField from '@/components/InputField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import FeedbackMessage from '@/components/ui/FeedbackMessage.vue'
 import { useAdminStore } from '@/stores/admin'
 
 const store = useAdminStore()

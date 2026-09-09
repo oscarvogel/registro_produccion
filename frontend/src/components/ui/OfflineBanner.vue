@@ -3,7 +3,7 @@
     <div
       v-if="visible"
       :class="[
-        'fixed left-0 right-0 top-0 z-[60] flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-semibold',
+        'app-offline-banner fixed left-0 right-0 top-0 z-[60] flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-semibold',
         bannerClasses,
       ]"
       role="status"
@@ -48,9 +48,9 @@ const bannerClasses = computed(() => {
   // Background depends on what is wrong: pure offline (amber) vs backend
   // unreachable but online (red). Both mean "no sincronization right now".
   if (connectivity.isOffline) {
-    return 'bg-amber-500 text-white'
+    return 'bg-amber-500 text-on-warning'
   }
-  return 'bg-error text-white'
+  return 'bg-error text-on-error'
 })
 
 const icon = computed(() => 'offline')

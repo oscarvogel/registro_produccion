@@ -34,4 +34,21 @@ describe('InputField', () => {
 
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['4382.4'])
   })
+
+  it('associates an invalid field with its visible error', () => {
+    const wrapper = mount(InputField, {
+      props: {
+        id: 'litros',
+        label: 'Litros',
+        invalid: true,
+        errorMessage: 'Ingresá una cantidad válida.',
+      },
+    })
+
+    const input = wrapper.get('input')
+    expect(wrapper.get('label').attributes('for')).toBe('litros')
+    expect(input.attributes('aria-invalid')).toBe('true')
+    expect(input.attributes('aria-describedby')).toBe('litros-error')
+    expect(wrapper.get('#litros-error').text()).toContain('Ingresá una cantidad válida.')
+  })
 })

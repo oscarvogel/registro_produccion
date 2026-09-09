@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto max-w-6xl px-3 py-3 pb-20 md:px-4 md:pt-4">
+  <div class="content-narrow mx-auto px-3 py-3 pb-20 md:px-4 md:pt-4">
     <PageHeader
       title="Carga de Combustible"
       description="Abastecimientos sin parte de producción, con lectura real del equipo."
@@ -16,14 +16,10 @@
 
     <div class="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <SectionCard title="Nueva carga">
-        <form class="space-y-3" @submit.prevent="submit">
-          <div v-if="store.error || formError" class="rounded-lg border border-error/35 bg-error-light/30 p-3 text-sm font-semibold text-error-dark">
-            {{ formError || store.error }}
-          </div>
+        <form class="space-y-3" :aria-busy="store.saving || undefined" @submit.prevent="submit">
+          <FeedbackMessage v-if="store.error || formError" tone="error" :message="formError || store.error" />
 
-          <div v-if="successMessage" class="rounded-lg border border-success/30 bg-success-light/40 p-3 text-sm font-semibold text-success-dark">
-            {{ successMessage }}
-          </div>
+          <FeedbackMessage v-if="successMessage" tone="success" :message="successMessage" />
 
           <div class="rounded-lg border border-info/30 bg-info-light/40 p-3 text-sm text-info-dark">
             Usá esta sección sólo cuando el abastecimiento no esté asociado a un parte de producción. Si lo registraste en Producción, no lo repitas aquí.
@@ -35,6 +31,8 @@
               label="Fecha de carga"
               type="date"
               required
+              :invalid="Boolean(fieldErrors.fecha)"
+              :error-message="fieldErrors.fecha"
             />
 
             <div>
@@ -47,7 +45,8 @@
                 placeholder="Buscar por patente o detalle"
                 selectedDisplay="input"
                 :disabled="store.loadingMoviles"
-                :invalid="Boolean(formError && !form.id_movil)"
+                :invalid="Boolean(fieldErrors.id_movil)"
+                :error-message="fieldErrors.id_movil"
               />
               <p class="mt-1 text-xs font-semibold text-neutral-400">
                 {{ store.loadingMoviles ? 'Cargando moviles...' : `${movilOptions.length} moviles disponibles` }}
@@ -61,6 +60,8 @@
               min="0.01"
               step="0.01"
               required
+              :invalid="Boolean(fieldErrors.litros)"
+              :error-message="fieldErrors.litros"
             />
 
             <InputField
@@ -69,6 +70,8 @@
               type="number"
               min="1"
               required
+              :invalid="Boolean(fieldErrors.km)"
+              :error-message="fieldErrors.km"
             />
 
             <div class="md:col-span-2">
@@ -82,7 +85,8 @@
                 selectedDisplay="input"
                 :disabled="!form.id_movil || store.loadingLugares"
                 :loading="store.loadingLugares"
-                :invalid="Boolean(formError && !form.id_lugar_carga)"
+                :invalid="Boolean(fieldErrors.id_lugar_carga)"
+                :error-message="fieldErrors.id_lugar_carga"
                 emptyMessage="Sin lugares habilitados para la unidad del equipo"
               />
             </div>
@@ -95,7 +99,8 @@
               placeholder="Obligatorio"
               maxlength="12"
               required
-              :invalid="Boolean(formError && !form.remito.trim())"
+              :invalid="Boolean(fieldErrors.remito)"
+              :error-message="fieldErrors.remito"
             />
             <InputField
               v-model="form.remito2"
@@ -170,12 +175,14 @@ import SectionCard from '@/components/SectionCard.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import FeedbackMessage from '@/components/ui/FeedbackMessage.vue'
 import { normalizeRemito } from '@/utils/remito'
 
 const authStore = useAuthStore()
 const store = useCombustibleStore()
 const formError = ref('')
 const successMessage = ref('')
+const fieldErrors = ref({})
 
 const today = new Date().toISOString().slice(0, 10)
 const createFormUuid = () => (
@@ -220,13 +227,16 @@ watch(() => form.id_movil, async () => {
 })
 
 function validateForm() {
-  if (!form.fecha) return 'Selecciona la fecha de carga.'
-  if (!form.id_movil) return 'Selecciona un equipo o movil.'
-  if (!Number(form.litros) || Number(form.litros) <= 0) return 'Ingresa una cantidad de litros mayor a cero.'
-  if (!Number(form.km) || Number(form.km) <= 0) return 'Ingresa un kilometraje u horometro mayor a cero.'
-  if (!form.id_lugar_carga) return 'Selecciona el lugar de carga.'
-  if (!form.remito.trim()) return 'Ingresa el Remito 1.'
-  return ''
+  const errors = {
+    fecha: form.fecha ? '' : 'Selecciona la fecha de carga.',
+    id_movil: form.id_movil ? '' : 'Selecciona un equipo o movil.',
+    litros: Number(form.litros) > 0 ? '' : 'Ingresa una cantidad de litros mayor a cero.',
+    km: Number(form.km) > 0 ? '' : 'Ingresa un kilometraje u horometro mayor a cero.',
+    id_lugar_carga: form.id_lugar_carga ? '' : 'Selecciona el lugar de carga.',
+    remito: form.remito.trim() ? '' : 'Ingresa el Remito 1.',
+  }
+  fieldErrors.value = errors
+  return Object.values(errors).find(Boolean) || ''
 }
 
 function clearFormFields() {
@@ -240,6 +250,7 @@ function clearFormFields() {
   form.remito2 = ''
   form.remito3 = ''
   form.observaciones = ''
+  fieldErrors.value = {}
 }
 
 function resetForm() {

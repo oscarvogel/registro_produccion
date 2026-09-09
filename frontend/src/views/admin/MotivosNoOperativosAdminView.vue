@@ -20,8 +20,11 @@
         </select>
       </div>
 
-      <div v-if="error" class="mb-3 rounded-lg border border-error/25 bg-error-light/30 p-3 text-sm font-semibold text-error-dark">{{ error }}</div>
       <div v-if="loading" class="py-6 text-center text-sm text-neutral-500">Cargando...</div>
+      <div v-else-if="error" role="alert" class="flex flex-col gap-2 rounded-lg border border-error/25 bg-error-light/30 p-3 text-sm font-semibold text-error-dark sm:flex-row sm:items-center sm:justify-between">
+        <span>{{ error }}</span>
+        <AppButton variant="secondary" size="sm" :loading="loading" @click="load">Reintentar</AppButton>
+      </div>
       <div v-else class="space-y-2">
         <article v-for="motivo in motivos" :key="motivo.id" class="app-card flex flex-col gap-3 rounded-xl p-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="min-w-0">

@@ -1,17 +1,19 @@
 <template>
-  <div class="mx-auto max-w-7xl px-3 py-3 pb-[7rem] md:px-4 md:pt-4">
+  <div class="content-narrow mx-auto px-3 py-3 pb-[7rem] md:px-4 md:pt-4">
     <!-- Header -->
     <div class="mb-3 flex items-center justify-between px-1">
       <div class="flex items-center gap-2.5">
       <button
+        type="button"
         @click="$router.push({ name: 'home' })"
-        class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-200 transition-colors"
+        class="p-2 rounded-lg text-[var(--app-text-muted)] hover:bg-[var(--app-border)] transition-colors"
+        aria-label="Volver a Inicio"
       >
         <AppIcon name="back" />
       </button>
-      <h1 class="text-2xl font-bold text-neutral-900 leading-none">Carga de Producción</h1>
+      <h1 class="text-2xl font-bold text-[var(--app-text)] leading-none">Carga de Producción</h1>
       </div>
-      <button class="p-2 text-neutral-500" type="button" aria-label="Más opciones">
+      <button class="p-2 text-[var(--app-text-muted)]" type="button" aria-label="Más opciones">
         <AppIcon name="more" />
       </button>
     </div>
@@ -27,16 +29,16 @@
       <aside class="app-card mb-4 rounded-xl p-3 md:sticky md:top-20 md:mb-0 md:p-2.5">
         <div class="md:hidden">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-medium text-neutral-400">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
-            <span class="text-xs font-semibold text-neutral-700">{{ pasos[pasoActual] }}</span>
+            <span class="text-xs font-medium text-[var(--app-text-soft)]">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
+            <span class="text-xs font-semibold text-[var(--app-text-muted)]">{{ pasos[pasoActual] }}</span>
           </div>
-          <div class="h-2 bg-neutral-200 rounded-full overflow-hidden">
+          <div class="app-surface-muted h-2 rounded-full overflow-hidden">
             <div class="h-full bg-primary rounded-full transition-all duration-500 ease-out" :style="{ width: `${((pasoActual + 1) / totalPasos) * 100}%` }"></div>
           </div>
         </div>
 
         <div class="hidden md:block">
-          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Carga guiada</p>
+          <p class="text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]">Carga guiada</p>
           <h2 class="mt-1 text-lg font-extrabold text-primary-dark">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</h2>
           <div class="mt-3 space-y-1.5">
             <button
@@ -50,14 +52,14 @@
                 i === pasoActual
                   ? 'border-primary bg-primary/10 text-primary-dark'
                 : i < pasoActual
-                    ? 'app-surface-muted text-neutral-700 hover:border-primary/40'
-                    : 'border-neutral-200 bg-transparent text-neutral-400',
+                    ? 'app-surface-muted text-[var(--app-text-muted)] hover:border-primary/40'
+                    : 'border-[var(--app-border)] bg-transparent text-[var(--app-text-soft)]',
               ]"
             >
               <span
                 :class="[
                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold',
-                  i < pasoActual ? 'bg-success text-white' : i === pasoActual ? 'bg-primary text-on-primary' : 'app-surface-muted text-neutral-500',
+                  i < pasoActual ? 'bg-success text-on-primary' : i === pasoActual ? 'bg-primary text-on-primary' : 'app-surface-muted text-[var(--app-text-muted)]',
                 ]"
               >
                 {{ i < pasoActual ? 'OK' : i + 1 }}
@@ -74,23 +76,23 @@
       <div class="app-card mb-3 rounded-xl p-3.5">
         <div class="mb-2.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Carga en curso</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-soft)]">Carga en curso</p>
             <p class="text-lg font-extrabold text-primary-dark">Estado: Sin guardar</p>
           </div>
           <span class="w-fit rounded-full bg-warning-light px-3 py-1 text-xs font-bold text-warning-dark">Borrador local</span>
         </div>
-        <div class="grid grid-cols-1 gap-2 text-sm text-neutral-700 sm:grid-cols-2 lg:grid-cols-5">
-          <div class="truncate"><span class="font-bold text-neutral-900">Fecha:</span> {{ formatFechaResumen(form.fecha) }}</div>
-          <div class="truncate"><span class="font-bold text-neutral-900">UN:</span> {{ getUnidadNombre(form.un_id) || 'Pendiente' }}</div>
-          <div class="truncate"><span class="font-bold text-neutral-900">Operador:</span> {{ getOperadorNombre(form.operador_id) || 'Pendiente' }}</div>
-          <div class="truncate"><span class="font-bold text-neutral-900">Equipo:</span> {{ movilSeleccionadoDetalle || 'Pendiente' }}</div>
-          <div class="truncate"><span class="font-bold text-neutral-900">Proceso:</span> {{ tipoProcesoNombre || 'Pendiente' }}</div>
+        <div class="grid grid-cols-1 gap-2 text-sm text-[var(--app-text-muted)] sm:grid-cols-2 lg:grid-cols-5">
+          <div class="truncate"><span class="font-bold text-[var(--app-text)]">Fecha:</span> {{ formatFechaResumen(form.fecha) }}</div>
+          <div class="truncate"><span class="font-bold text-[var(--app-text)]">UN:</span> {{ getUnidadNombre(form.un_id) || 'Pendiente' }}</div>
+          <div class="truncate"><span class="font-bold text-[var(--app-text)]">Operador:</span> {{ getOperadorNombre(form.operador_id) || 'Pendiente' }}</div>
+          <div class="truncate"><span class="font-bold text-[var(--app-text)]">Equipo:</span> {{ movilSeleccionadoDetalle || 'Pendiente' }}</div>
+          <div class="truncate"><span class="font-bold text-[var(--app-text)]">Proceso:</span> {{ tipoProcesoNombre || 'Pendiente' }}</div>
         </div>
       </div>
 
       <!-- ═══ 1. FECHA ═══ -->
       <SectionCard v-show="pasoActual === 0" title="Contexto de Carga">
-        <p class="mb-3 text-sm text-neutral-500">
+        <p class="mb-3 text-sm text-[var(--app-text-muted)]">
           Seleccioná el día correspondiente y la unidad de negocio para la que se cargará la producción.
         </p>
         <InputField
@@ -99,7 +101,7 @@
           v-model="form.fecha"
           required
         />
-        <p class="mt-2 text-xs text-neutral-400">Si estás cargando una producción atrasada, modificá esta fecha.</p>
+        <p class="mt-2 text-xs text-[var(--app-text-soft)]">Si estás cargando una producción atrasada, modificá esta fecha.</p>
 
         <div class="mt-3">
           <AutocompleteField
@@ -129,7 +131,7 @@
 
       <!-- ═══ 2. UNIDAD DE NEGOCIO ═══ -->
       <SectionCard v-show="pasoActual === 3" title="Proceso / Actividad">
-        <p class="mb-3 text-sm text-neutral-500">
+        <p class="mb-3 text-sm text-[var(--app-text-muted)]">
           Seleccioná el tipo de proceso que corresponde a esta carga. Los campos de producción se ajustan según esta selección.
         </p>
         <AutocompleteField v-if="false"
@@ -173,7 +175,7 @@
       <SectionCard v-show="pasoActual === 1" title="Identificacion del Operador">
         <!-- Si es operador: bloqueado -->
         <div v-if="!canSelectOperador">
-          <label class="block text-sm font-medium text-neutral-700 mb-1">Operador</label>
+          <label class="block text-sm font-medium text-[var(--app-text-muted)] mb-1">Operador</label>
           <div class="app-input w-full rounded-xl border px-4 py-2.5">
             {{ authStore.userName }}
           </div>
@@ -213,8 +215,8 @@
           <div class="flex items-center gap-3 p-3 bg-success-light/40 border border-success/30 rounded-xl">
             <AppIcon name="success" class="text-success-dark shrink-0" />
             <div class="min-w-0 flex-1">
-              <p class="text-sm font-bold text-neutral-900 truncate">{{ movilSeleccionadoDetalle }}</p>
-              <p class="text-xs text-neutral-500">{{ movilSeleccionadoPatente }} · ID {{ form.cod_equipo }}</p>
+              <p class="text-sm font-bold text-[var(--app-text)] truncate">{{ movilSeleccionadoDetalle }}</p>
+              <p class="text-xs text-[var(--app-text-muted)]">{{ movilSeleccionadoPatente }} · ID {{ form.cod_equipo }}</p>
             </div>
             <button
               type="button"
@@ -227,7 +229,7 @@
 
           <!-- Accesos rápidos: sólo si hay asignaciones y la seleccionada NO es de asignación -->
           <div v-if="store.asignaciones.length > 0 && !asignacionSeleccionada">
-            <p class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wide mb-1.5">Asignaciones rápidas</p>
+            <p class="text-[11px] font-semibold text-[var(--app-text-soft)] uppercase tracking-wide mb-1.5">Asignaciones rápidas</p>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="asig in store.asignaciones"
@@ -246,7 +248,7 @@
         <div v-else>
           <!-- Asignaciones del operador como opciones rápidas -->
           <div v-if="store.asignaciones.length > 0" class="mb-3">
-            <p class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wide mb-1.5">Asignaciones del operador</p>
+            <p class="text-[11px] font-semibold text-[var(--app-text-soft)] uppercase tracking-wide mb-1.5">Asignaciones del operador</p>
             <div class="space-y-1.5">
               <button
                 v-for="asig in store.asignaciones"
@@ -255,20 +257,20 @@
                 @click="seleccionarDesdeAsignacion(asig)"
                 class="app-surface-muted w-full rounded-lg border px-3 py-2 text-left transition-colors hover:border-primary/30"
               >
-                <p class="text-sm font-semibold text-neutral-900 truncate">{{ asig.detalle }}</p>
-                <p class="text-[11px] text-neutral-400">{{ asig.patente }} · {{ getProcesoTexto(asig.idProceso) }}</p>
+                <p class="text-sm font-semibold text-[var(--app-text)] truncate">{{ asig.detalle }}</p>
+                <p class="text-[11px] text-[var(--app-text-soft)]">{{ asig.patente }} · {{ getProcesoTexto(asig.idProceso) }}</p>
               </button>
             </div>
           </div>
 
           <!-- Mensaje si no hay asignaciones ni movilAsignado -->
-          <div v-else-if="!form.operador_id" class="app-surface-muted mb-3 rounded-lg border p-3 text-sm text-neutral-500">
+          <div v-else-if="!form.operador_id" class="app-surface-muted mb-3 rounded-lg border p-3 text-sm text-[var(--app-text-muted)]">
             Seleccioná un operador para autocompletar la máquina.
           </div>
 
           <!-- Buscador -->
           <div>
-            <label class="block text-xs font-medium text-neutral-500 mb-1">Buscar máquina</label>
+            <label class="block text-xs font-medium text-[var(--app-text-muted)] mb-1">Buscar máquina</label>
             <div class="relative">
               <input
                 ref="inputBuscadorMovil"
@@ -285,7 +287,8 @@
                 v-if="busquedaMovil.trim()"
                 type="button"
                 @mousedown.prevent="limpiarBusquedaMovil"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--app-text-soft)] hover:text-[var(--app-text-muted)]"
+                aria-label="Limpiar búsqueda de equipos"
               >
                 <AppIcon name="close" size="sm" />
               </button>
@@ -301,21 +304,21 @@
                 type="button"
                 data-moviles-item
                 @mousedown.prevent="seleccionarMovil(movil)"
-                class="app-table-row w-full border-b border-neutral-100 px-3 py-2 text-left last:border-b-0"
+                class="app-table-row w-full border-b border-[var(--app-border)] px-3 py-2 text-left last:border-b-0"
               >
-                <p class="text-sm font-medium text-neutral-900 truncate">{{ movil.detalle }}</p>
-                <p class="text-[11px] text-neutral-400">{{ movil.patente }} · ID {{ movil.idMovil }}</p>
+                <p class="text-sm font-medium text-[var(--app-text)] truncate">{{ movil.detalle }}</p>
+                <p class="text-[11px] text-[var(--app-text-soft)]">{{ movil.patente }} · ID {{ movil.idMovil }}</p>
               </button>
             </div>
             <div
               v-else-if="mostrarNoResultados"
-              class="app-surface-muted mt-1.5 rounded-lg p-2.5 text-xs text-neutral-400"
+              class="app-surface-muted mt-1.5 rounded-lg p-2.5 text-xs text-[var(--app-text-soft)]"
             >
               Sin resultados para "{{ busquedaMovil }}".
             </div>
             <div
               v-else-if="mostrarSinMoviles"
-              class="app-surface-muted mt-1.5 rounded-lg p-2.5 text-xs text-neutral-400"
+              class="app-surface-muted mt-1.5 rounded-lg p-2.5 text-xs text-[var(--app-text-soft)]"
             >
               {{ mensajeMovilesVacios }}
               <button
@@ -333,7 +336,7 @@
               v-if="mostrandoBuscador && form.cod_equipo"
               type="button"
               @click="cerrarBuscador"
-              class="mt-2 text-xs text-neutral-400 hover:text-neutral-600 underline underline-offset-2"
+              class="mt-2 text-xs text-[var(--app-text-soft)] hover:text-[var(--app-text-muted)] underline underline-offset-2"
             >
               Cancelar
             </button>
@@ -345,20 +348,20 @@
       <SectionCard v-show="pasoActual === 4" title="Control de Tiempo">
         <div class="grid grid-cols-2 gap-4">
           <InputField
-            label="Hora Inicio"
+            label="Horómetro inicial"
             type="number"
             v-model.number="form.hr_inicio"
-            placeholder="Ej: 1200"
+            placeholder="Ej: 1200.5"
             min="1"
             step="any"
             :invalid="mostrarErrorHoras"
             required
           />
           <InputField
-            label="Hora Fin"
+            label="Horómetro final"
             type="number"
             v-model.number="form.hr_fin"
-            placeholder="Ej: 1850"
+            placeholder="Ej: 1850.5"
             min="1"
             step="any"
             :invalid="mostrarErrorHoras"
@@ -370,10 +373,10 @@
           class="mt-3 px-3 py-2 bg-error-light/40 border border-error/30 rounded-lg text-sm text-error-dark"
         >
           <span v-if="Number(form.hr_inicio) > 0 && ultimaHoraFinRef > 0 && Number(form.hr_inicio) < ultimaHoraFinRef">
-            La hora de inicio ({{ form.hr_inicio }}) no puede ser menor al fin del registro anterior ({{ ultimaHoraFinRef }}).
+            El horómetro inicial ({{ form.hr_inicio }}) no puede ser menor al horómetro final del registro anterior ({{ ultimaHoraFinRef }}).
           </span>
           <span v-else>
-            La hora de inicio y fin deben ser mayores a 0, y la hora final no puede ser menor a la inicial.
+            Las lecturas de horómetro deben ser mayores a 0, y la lectura final no puede ser menor a la inicial.
           </span>
         </div>
         <div class="grid grid-cols-2 gap-4 mt-3">
@@ -393,7 +396,7 @@
           </div>
         </div>
         <div class="mt-3">
-          <label class="block text-sm font-medium text-neutral-600 mb-1.5">Motivo (detalle libre)</label>
+          <label class="block text-sm font-medium text-[var(--app-text-muted)] mb-1.5">Motivo (detalle libre)</label>
           <textarea
             v-model="form.motivo_no_op"
             rows="4"
@@ -500,22 +503,22 @@
             />
           </template>
 
-          <!-- Hora inicio / fin (para HORAS MAQUINAS) -->
+          <!-- Horómetro inicial / final (para HORAS MAQUINAS) -->
           <div v-if="camposActivos.includes('hora_inicio')" class="grid grid-cols-2 gap-4">
             <InputField
-              label="Hora Inicio Máq."
+              label="Horómetro inicial"
               type="number"
               v-model.number="form.hr_inicio"
-              placeholder="Ej: 1200"
+              placeholder="Ej: 1200.5"
               min="1"
               step="any"
               :invalid="mostrarErrorHoras || (mostrarErrorProduccion && form.hr_inicio <= 0)"
             />
             <InputField
-              label="Hora Fin Máq."
+              label="Horómetro final"
               type="number"
               v-model.number="form.hr_fin"
-              placeholder="Ej: 1850"
+              placeholder="Ej: 1850.5"
               min="1"
               step="any"
               :invalid="mostrarErrorHoras || (mostrarErrorProduccion && form.hr_fin <= form.hr_inicio)"
@@ -523,11 +526,11 @@
           </div>
           <div v-if="camposActivos.includes('hora_inicio') && form.hr_fin > form.hr_inicio"
                class="px-3 py-2 bg-info-light/50 border border-info/30 rounded-lg text-sm text-info-dark">
-            Horas trabajadas: <strong>{{ form.hr_fin - form.hr_inicio }}</strong>
+            Diferencia de horómetro: <strong>{{ form.hr_fin - form.hr_inicio }}</strong>
           </div>
           <div v-if="camposActivos.includes('hora_inicio') && mostrarErrorHoras"
                class="px-3 py-2 bg-error-light/40 border border-error/30 rounded-lg text-sm text-error-dark">
-            La hora de inicio y fin deben ser mayores a 0, y la hora final debe ser mayor a la inicial.
+            Las lecturas de horómetro deben ser mayores a 0, y la lectura final debe ser mayor a la inicial.
           </div>
 
           <!-- HAS (hectáreas) -->
@@ -569,7 +572,7 @@
         </div>
       </SectionCard>
 
-      <div v-show="pasoActual === 5" v-if="form.tipo_de_proceso_id && camposActivos.length === 0" class="app-surface-muted rounded-lg border p-3 text-sm text-neutral-500">
+      <div v-show="pasoActual === 5" v-if="form.tipo_de_proceso_id && camposActivos.length === 0" class="app-surface-muted rounded-lg border p-3 text-sm text-[var(--app-text-muted)]">
         No hay campos de producción definidos para este tipo de proceso.
       </div>
 
@@ -579,18 +582,21 @@
           Si registrás combustible en este parte, también se descuenta del stock. No repitas la carga en la sección Carga de Combustible.
         </div>
         <div class="flex items-center justify-between">
-          <span class="text-sm font-medium text-neutral-700">¿Se cargó combustible?</span>
+          <span class="text-sm font-medium text-[var(--app-text-muted)]">¿Se cargó combustible?</span>
           <button
             type="button"
+            role="switch"
+            :aria-checked="cargoCombustible"
+            aria-label="¿Se cargó combustible?"
             @click="cargoCombustible = !cargoCombustible"
             :class="[
               'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200',
-              cargoCombustible ? 'bg-primary' : 'bg-neutral-300',
+              cargoCombustible ? 'bg-primary' : 'bg-[var(--app-border-strong)]',
             ]"
           >
             <span
               :class="[
-                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200',
+                'inline-block h-4 w-4 transform rounded-full bg-[var(--app-surface)] transition-transform duration-200',
                 cargoCombustible ? 'translate-x-6' : 'translate-x-1',
               ]"
             />
@@ -813,7 +819,7 @@
               emptyMessage="Sin rodales configurados para este acta"
               :stale="catalogStale('rodales')"
             />
-            <div v-else-if="catalogHasError('rodales')" class="app-surface-muted rounded-lg border p-3 text-sm text-neutral-600">
+            <div v-else-if="catalogHasError('rodales')" class="app-surface-muted rounded-lg border p-3 text-sm text-[var(--app-text-muted)]">
               No se pudo cargar rodales.
               <button
                 type="button"
@@ -824,7 +830,7 @@
               </button>
             </div>
             <div v-else>
-              <label class="block text-sm font-medium text-neutral-700 mb-1">Rodal</label>
+              <label class="block text-sm font-medium text-[var(--app-text-muted)] mb-1">Rodal</label>
               <input
                 type="text"
                 v-model="form.rodal_manual"
@@ -835,7 +841,7 @@
           </div>
         </template>
 
-        <div v-else class="app-surface-muted mt-3 rounded-lg border p-3 text-sm text-neutral-500">
+        <div v-else class="app-surface-muted mt-3 rounded-lg border p-3 text-sm text-[var(--app-text-muted)]">
           Acta, Predio y Rodal no aplican para este tipo de trabajo.
         </div>
         <div
@@ -857,7 +863,7 @@
       </SectionCard>
 
       <SectionCard v-show="pasoActual === 8" title="Revisión y Confirmación">
-        <p class="mb-3 text-sm text-neutral-500">
+        <p class="mb-3 text-sm text-[var(--app-text-muted)]">
           Revisá los datos principales antes de guardar el registro de producción.
         </p>
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -867,8 +873,8 @@
             class="app-surface-muted rounded-lg border px-3 py-2.5"
             :class="{ 'border-error/60 bg-error-light/30': item.highlight }"
           >
-            <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">{{ item.label }}</p>
-            <p class="mt-1 text-sm font-extrabold text-neutral-900" :class="{ 'text-error-dark': item.highlight }">{{ item.value }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-soft)]">{{ item.label }}</p>
+            <p class="mt-1 text-sm font-extrabold text-[var(--app-text)]" :class="{ 'text-error-dark': item.highlight }">{{ item.value }}</p>
           </div>
         </div>
       </SectionCard>
@@ -890,14 +896,14 @@
           v-if="pasoActual > 0"
           type="button"
           @click="retroceder"
-          class="app-button-soft rounded-xl border px-4 py-2.5 text-sm font-bold text-neutral-700 hover:border-primary/30"
+          class="app-button-soft rounded-xl border px-4 py-2.5 text-sm font-bold text-[var(--app-text-muted)] hover:border-primary/30"
         >
           Anterior
         </button>
         <button
           type="button"
           @click="guardarBorrador"
-          class="app-button-soft rounded-xl border px-4 py-2.5 text-sm font-bold text-neutral-500 hover:border-primary/30"
+          class="app-button-soft rounded-xl border px-4 py-2.5 text-sm font-bold text-[var(--app-text-muted)] hover:border-primary/30"
         >
           Guardar borrador
         </button>
@@ -923,13 +929,13 @@
       </div>
 
       <!-- Step navigation — fixed bottom -->
-      <div class="app-card-glass fixed bottom-0 left-0 right-0 z-30 px-3 py-3 md:hidden">
+      <ActionBar sticky mobile :message="mensajePasoIncompleto">
         <div class="mx-auto flex max-w-2xl items-center gap-3">
           <button
             v-if="pasoActual > 0"
             type="button"
             @click="retroceder"
-            class="app-button-soft flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-3.5 font-semibold text-neutral-700 transition-colors"
+            class="app-button-soft flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-3.5 font-semibold text-[var(--app-text-muted)] transition-colors"
           >
             <AppIcon name="back" size="sm" :stroke-width="2.5" />
             Anterior
@@ -941,7 +947,7 @@
             type="button"
             @click="avanzar"
             :disabled="!puedeAvanzar"
-            class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 font-bold text-on-primary shadow-[0_4px_14px_rgba(20,61,35,0.25)] transition-colors active:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 font-bold text-on-primary shadow-[0_4px_14px_rgba(20,61,35,0.25)] transition-colors active:bg-primary-dark active:text-on-primary-dark disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
           >
             Siguiente
             <AppIcon name="forward" size="sm" :stroke-width="2.5" />
@@ -950,17 +956,14 @@
             v-else
             type="submit"
             :disabled="store.submitting"
-            class="flex flex-1 items-center justify-center gap-2.5 rounded-xl bg-primary px-4 py-3.5 font-bold text-on-primary shadow-[0_8px_18px_rgba(20,61,35,0.25)] transition-colors active:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+            class="flex flex-1 items-center justify-center gap-2.5 rounded-xl bg-primary px-4 py-3.5 font-bold text-on-primary shadow-[0_8px_18px_rgba(20,61,35,0.25)] transition-colors active:bg-primary-dark active:text-on-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
             <AppIcon v-if="store.submitting" name="loading" class="animate-spin" />
             <AppIcon v-else name="save" />
             {{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}
           </button>
         </div>
-        <p v-if="mensajePasoIncompleto" class="mx-auto mt-2 max-w-2xl px-1 text-xs text-error-dark">
-          {{ mensajePasoIncompleto }}
-        </p>
-      </div>
+      </ActionBar>
     </form>
   </div>
 </template>
@@ -975,6 +978,7 @@ import SectionCard from '@/components/SectionCard.vue'
 import InputField from '@/components/InputField.vue'
 import AutocompleteField from '@/components/AutocompleteField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import ActionBar from '@/components/ui/ActionBar.vue'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
 import { cleanLocationValues, getLocationRequirements, shouldShowActaPredioFields } from '@/services/actaPredioRules'
 import { focusInside } from '@/utils/focusInside'
@@ -994,7 +998,7 @@ const mostrandoBuscador = ref(false)
 const listaMovilesAbierta = ref(false)
 const inputBuscadorMovil = ref(null)
 const ultimaHoraFinRef = ref(0)
-const fieldClass = 'app-input w-full rounded-xl border px-4 py-2.5 placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:bg-neutral-200 transition-colors'
+const fieldClass = 'app-input w-full rounded-xl border px-4 py-2.5 placeholder:text-[var(--app-text-soft)] focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:bg-[var(--app-surface-muted)] transition-colors'
 const preferenciasKey = computed(() => `produccion_preferencias_${authStore.user?.idPersonal || 'anon'}`)
 
 // ─── Wizard steps ───
@@ -1339,7 +1343,7 @@ const revisionItems = computed(() => [
   { label: 'Operador', value: getOperadorNombre(form.operador_id) || 'Pendiente' },
   { label: 'Equipo', value: movilSeleccionadoDetalle.value || 'Pendiente' },
   { label: 'Proceso', value: tipoProcesoNombre.value || 'Pendiente' },
-  { label: 'Horario', value: `${form.hr_inicio || '-'} a ${form.hr_fin || '-'}` },
+  { label: 'Horómetros', value: `${form.hr_inicio || '-'} a ${form.hr_fin || '-'}` },
   { label: 'Producción', value: `${resolveProduccion() || 0} ${resolveUnidadProduccion() || ''}`.trim() },
   {
     label: 'Hs No Operativas',
@@ -1364,9 +1368,9 @@ const mensajePasoIncompleto = computed(() => {
   if (pasoActual.value === 4 && !horasValidas.value) {
     const inicio = Number(form.hr_inicio)
     if (ultimaHoraFinRef.value > 0 && inicio > 0 && inicio < ultimaHoraFinRef.value) {
-      return `La hora de inicio (${form.hr_inicio}) no puede ser menor al fin del registro anterior (${ultimaHoraFinRef.value}).`
+      return `El horómetro inicial (${form.hr_inicio}) no puede ser menor al horómetro final del registro anterior (${ultimaHoraFinRef.value}).`
     }
-    return 'Revisá las horas: inicio y fin deben ser mayores a 0, y fin no puede ser menor al inicio.'
+    return 'Revisá las lecturas de horómetro: inicio y fin deben ser mayores a 0, y la lectura final no puede ser menor a la inicial.'
   }
   if (pasoActual.value === 5 && !produccionValida.value) {
     return 'Completá los campos de producción con valores mayores a 0 para continuar.'
@@ -1778,11 +1782,11 @@ async function handleSubmit() {
     if (!horasValidas.value) {
       const inicio = Number(form.hr_inicio)
       const msg = (ultimaHoraFinRef.value > 0 && inicio > 0 && inicio < ultimaHoraFinRef.value)
-        ? `La hora de inicio (${form.hr_inicio}) no puede ser menor al fin del registro anterior (${ultimaHoraFinRef.value}).`
-        : 'La hora de inicio y fin deben ser mayores a 0, y la hora final no puede ser menor a la inicial.'
+        ? `El horómetro inicial (${form.hr_inicio}) no puede ser menor al horómetro final del registro anterior (${ultimaHoraFinRef.value}).`
+        : 'Las lecturas de horómetro deben ser mayores a 0, y la lectura final no puede ser menor a la inicial.'
       await Swal.fire({
         icon: 'warning',
-        title: 'Horas inválidas',
+        title: 'Lecturas de horómetro inválidas',
         text: msg,
         confirmButtonColor: '#3d935d',
       })
@@ -1903,4 +1907,3 @@ async function handleSubmit() {
   }
 }
 </script>
-

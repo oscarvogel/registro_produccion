@@ -1,8 +1,8 @@
 <template>
-  <div class="mx-auto max-w-7xl px-3 py-3 pb-[7rem] md:px-4 md:pt-4">
+  <div class="content-narrow mx-auto px-3 py-3 pb-[7rem] md:px-4 md:pt-4">
     <div class="mb-3 flex items-center justify-between px-1">
       <div class="flex items-center gap-2.5">
-        <button @click="$router.push({ name: 'home' })" class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-200 transition-colors">
+        <button type="button" @click="$router.push({ name: 'home' })" class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-200 transition-colors" aria-label="Volver a Inicio">
           <AppIcon name="back" />
         </button>
         <h1 class="text-2xl font-bold text-neutral-900 leading-none">Carga de Producción</h1>
@@ -33,7 +33,7 @@
               @click="irAPaso(i)"
               :class="['flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors', i === pasoActual ? 'border-primary bg-primary/10 text-primary-dark' : i < pasoActual ? 'app-surface-muted text-neutral-700 hover:border-primary/40' : 'border-neutral-200 bg-transparent text-neutral-400']"
             >
-              <span :class="['flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold', i < pasoActual ? 'bg-success text-white' : i === pasoActual ? 'bg-primary text-on-primary' : 'app-surface-muted text-neutral-500']">{{ i < pasoActual ? 'OK' : i + 1 }}</span>
+              <span :class="['flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold', i < pasoActual ? 'bg-success text-on-primary' : i === pasoActual ? 'bg-primary text-on-primary' : 'app-surface-muted text-neutral-500']">{{ i < pasoActual ? 'OK' : i + 1 }}</span>
               <span class="min-w-0 flex-1 truncate font-semibold">{{ paso }}</span>
             </button>
           </div>
@@ -120,8 +120,8 @@
 
         <SectionCard v-show="pasoActual === 4" title="Control de Tiempo">
           <div class="grid grid-cols-2 gap-4">
-            <InputField label="Hora Inicio" type="number" step="0.01" min="0" v-model.number="form.hr_inicio" />
-            <InputField label="Hora Fin" type="number" step="0.01" min="0" v-model.number="form.hr_fin" />
+            <InputField label="Horómetro inicial" type="number" step="0.01" min="0" v-model.number="form.hr_inicio" placeholder="Ej: 1200.5" />
+            <InputField label="Horómetro final" type="number" step="0.01" min="0" v-model.number="form.hr_fin" placeholder="Ej: 1850.5" />
           </div>
           <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
             <InputField label="Hs No Operativas" type="number" step="0.01" min="0" v-model.number="form.hrs_no_op" />
@@ -201,6 +201,7 @@
               type="button"
               role="switch"
               :aria-checked="cargaCombustible"
+              aria-label="¿Se cargó combustible?"
               @click="cargaCombustible = !cargaCombustible"
               :class="[
                 'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200',
@@ -249,7 +250,7 @@
             <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Unidad</small><p class="font-bold">{{ props.unidad.nombre }}</p></div>
             <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Procesos</small><p class="font-bold">{{ procesos.map(p => nombreProceso(p.tipo_proceso_id)).filter(Boolean).join(' + ') || 'Pendiente' }}</p></div>
             <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Equipo</small><p class="font-bold">{{ equipoSeleccionado()?.detalle || 'Pendiente' }}</p></div>
-            <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Horario</small><p class="font-bold">{{ form.hr_inicio }} a {{ form.hr_fin }}</p></div>
+            <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Horómetros</small><p class="font-bold">{{ form.hr_inicio }} a {{ form.hr_fin }}</p></div>
           </div>
         </SectionCard>
 
@@ -261,14 +262,14 @@
         </div>
       </div>
 
-      <div class="app-card-glass fixed bottom-0 left-0 right-0 z-30 px-3 py-3 md:hidden">
+      <ActionBar sticky mobile>
         <div class="mx-auto flex max-w-2xl items-center gap-3">
           <button v-if="pasoActual > 0" type="button" @click="retroceder" class="app-button-soft flex flex-1 items-center justify-center rounded-xl border px-4 py-3.5 font-semibold">Anterior</button>
           <div v-else class="flex-1" />
           <button v-if="pasoActual < totalPasos - 1" type="button" @click="avanzar" :disabled="!puedeAvanzar" class="flex flex-1 items-center justify-center rounded-xl bg-primary px-4 py-3.5 font-bold text-on-primary disabled:opacity-40">Siguiente</button>
           <button v-else type="submit" :disabled="store.submitting" class="flex flex-1 items-center justify-center rounded-xl bg-primary px-4 py-3.5 font-bold text-on-primary disabled:opacity-60">{{ store.submitting ? 'Guardando...' : 'Guardar Registro' }}</button>
         </div>
-      </div>
+      </ActionBar>
     </form>
   </div>
 </template>
@@ -282,6 +283,7 @@ import SectionCard from '@/components/SectionCard.vue'
 import InputField from '@/components/InputField.vue'
 import AutocompleteField from '@/components/AutocompleteField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import ActionBar from '@/components/ui/ActionBar.vue'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
 
 const props = defineProps({ unidad: { type: Object, required: true } })
@@ -392,7 +394,7 @@ function validar() {
   if (!form.cod_operador) return 'Seleccioná el operador.'
   if (!form.cod_equipo) return 'Seleccioná el equipo.'
   if (!procesosTiposValidos.value) return 'Completá los procesos del parte.'
-  if (!horasValidas.value) return 'La hora fin debe ser mayor que la hora inicio.'
+  if (!horasValidas.value) return 'La lectura final debe ser mayor que la lectura inicial.'
   if (Number(form.hrs_no_op) > 0 && !String(form.motivo_no_op || '').trim()) return 'Indicá el motivo de las horas no operativas.'
   if (!horasRemolqueValidas.value) return `Las horas de remolque suman ${formatHoras(totalHorasRemolque.value)} h, pero la diferencia entre horómetro final e inicial es ${formatHoras(horasJornada.value)} h.`
   if (!produccionValida.value) return 'Completá ubicación y métricas de todos los procesos.'

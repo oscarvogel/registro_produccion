@@ -1,19 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import HomeView from '../views/HomeView.vue'
-import ItemsView from '../views/ItemsView.vue'
-import LoginView from '../views/LoginView.vue'
-import ProduccionFormView from '../views/ProduccionFormView.vue'
 
 const routes = [
   {
     path: '/login',
     name: 'login',
-    component: LoginView,
+    component: () => import('../views/LoginView.vue'),
     meta: { requiresAuth: false },
   },
-  { path: '/', name: 'home', component: HomeView, meta: { requiresAuth: true } },
-  { path: '/produccion', name: 'produccion', component: ProduccionFormView, meta: { requiresAuth: true } },
+  { path: '/', name: 'home', component: () => import('../views/HomeView.vue'), meta: { requiresAuth: true } },
+  { path: '/produccion', name: 'produccion', component: () => import('../views/ProduccionFormView.vue'), meta: { requiresAuth: true } },
   {
     path: '/combustible',
     name: 'combustible',
@@ -50,7 +46,7 @@ const routes = [
     component: () => import('../views/ManualesView.vue'),
     meta: { requiresAuth: true },
   },
-  { path: '/items', name: 'items', component: ItemsView, meta: { requiresAuth: true } },
+  { path: '/items', name: 'items', component: () => import('../views/ItemsView.vue'), meta: { requiresAuth: true } },
   {
     path: '/configuracion',
     name: 'configuracion',

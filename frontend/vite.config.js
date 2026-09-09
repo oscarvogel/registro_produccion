@@ -53,8 +53,21 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Los manuales no son parte del flujo operativo inicial. Se cachean
+        // al visitarlos para mantener disponibilidad posterior sin inflar la
+        // descarga de instalación con todas sus capturas.
+        globIgnores: ['manuales/**'],
         // Cache API responses that are catalogue data (not production submissions)
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/manuales/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'manual-assets',
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
           {
             urlPattern: ({ url }) =>
               /^\/api\/produccion\/(unidades-negocio|tipos-proceso-all|actas|predios|operadores|moviles|tipo-proceso|rodales|lugares-carga|asignaciones|movil-by-operador|ultima-hora-fin)/.test(url.pathname),

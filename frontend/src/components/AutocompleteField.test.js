@@ -29,6 +29,8 @@ describe('AutocompleteField', () => {
 
     expect(wrapper.text()).toContain('Cargando')
     expect(wrapper.text()).toContain('Usando datos guardados en este dispositivo')
+    expect(wrapper.get('input').attributes('aria-describedby')).toMatch(/^autocomplete-status-/)
+    expect(wrapper.get(`[id^="autocomplete-status-"]`).attributes('role')).toBe('status')
 
     await wrapper.setProps({ loading: false, error: 'No se pudo cargar operadores. Reintentar' })
     expect(wrapper.text()).toContain('No se pudo cargar operadores. Reintentar')

@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-[calc(100vh-8.5rem)] bg-[var(--app-bg)] px-3 py-3 pb-20 md:min-h-[calc(100vh-3.5rem)] md:px-4 md:py-4">
-    <div class="mx-auto max-w-[112rem] space-y-3">
+    <div class="content-narrow mx-auto space-y-3">
       <PageHeader
         title="Manuales de Usuario"
         description="Guía de uso del sistema por tipo de usuario."
@@ -19,7 +19,7 @@
             :href="activeManual.pdfUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-on-primary transition-colors hover:bg-primary-dark"
+            class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-on-primary transition-colors hover:bg-primary-dark hover:text-on-primary-dark"
           >
             <AppIcon name="download" size="sm" />
             Abrir PDF
@@ -72,15 +72,9 @@
           </div>
         </div>
 
-        <div v-if="loading" class="flex min-h-64 items-center justify-center text-primary">
-          <AppIcon name="loading" size="xl" class="animate-spin" />
-        </div>
+        <FeedbackMessage v-if="loading" tone="loading" message="Cargando manual..." class="min-h-64 items-center justify-center" />
 
-        <div v-else-if="error" class="p-4">
-          <div class="rounded-lg border border-error-light bg-error-light/30 p-3 text-sm font-semibold text-error-dark">
-            {{ error }}
-          </div>
-        </div>
+        <FeedbackMessage v-else-if="error" tone="error" :message="error" class="m-4" />
 
         <article
           v-else
@@ -98,6 +92,7 @@ import { useAuthStore } from '@/stores/auth'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import FeedbackMessage from '@/components/ui/FeedbackMessage.vue'
 import { renderManualMarkdown } from '@/services/manualRenderer'
 
 const authStore = useAuthStore()
@@ -337,6 +332,22 @@ function manualButtonClass(manual) {
 
 .manual-content :deep(.note) {
   background: var(--color-active-bg);
+}
+
+@media (max-width: 767px) {
+  .manual-content :deep(.cover) {
+    margin-bottom: 1.25rem;
+    padding: 1.25rem;
+  }
+
+  .manual-content :deep(.cover img) {
+    margin-bottom: 0.75rem;
+    max-width: 8rem;
+  }
+
+  .manual-content :deep(.cover h1) {
+    font-size: 1.5rem;
+  }
 }
 
 @media print {

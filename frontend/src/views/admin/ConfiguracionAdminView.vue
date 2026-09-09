@@ -1,6 +1,7 @@
 <template>
   <div class="space-y-3">
     <SectionCard title="Configuración de Acceso">
+      <FeedbackMessage v-if="saveError" tone="error" :message="saveError" class="mb-3" />
       <div class="mb-3 rounded-lg border border-warning/30 bg-warning-light/30 px-3.5 py-2.5 text-sm font-semibold text-warning-dark">
         Desde aquí se puede habilitar o deshabilitar acceso admin a otros usuarios. No podés quitarte tu propio acceso.
       </div>
@@ -13,15 +14,11 @@
           :items="userOptions"
           labelKey="_label"
           valueKey="idPersonal"
-          placeholder="Escribi nombre o DNI"
+          placeholder="Escribí nombre o DNI"
         />
-        <button
-          @click="loadUsuarios"
-          class="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-dark"
-          type="button"
-        >
+        <AppButton :loading="store.loading" @click="loadUsuarios">
           Refrescar
-        </button>
+        </AppButton>
         <button
           v-if="selectedUserId"
           @click="selectedUserId = ''"
@@ -32,10 +29,68 @@
         </button>
       </div>
 
-      <p v-if="store.error" class="mt-2 rounded-lg border border-error/25 bg-error-light/25 px-3 py-2 text-sm font-semibold text-error-dark">{{ store.error }}</p>
+      <div v-if="store.error" role="alert" class="mt-2 flex flex-col gap-2 rounded-lg border border-error/25 bg-error-light/25 px-3 py-2 text-sm font-semibold text-error-dark sm:flex-row sm:items-center sm:justify-between">
+        <span>{{ store.error }}</span>
+        <button
+          @click="loadUsuarios"
+          class="app-button-soft min-h-9 rounded-lg border px-3 py-1.5 text-xs font-bold"
+          type="button"
+        >
+          Reintentar
+        </button>
+      </div>
     </SectionCard>
 
-    <div class="app-table overflow-x-auto rounded-xl">
+    <div class="space-y-2 sm:hidden">
+      <div v-if="store.loading" class="app-card rounded-xl px-3.5 py-4 text-center text-sm text-neutral-500">
+        Cargando usuarios...
+      </div>
+      <div v-else-if="!store.error && usuariosFiltrados.length === 0" class="app-card rounded-xl px-3.5 py-4 text-center text-sm text-neutral-500">
+        No se encontraron usuarios.
+      </div>
+      <template v-else-if="!store.error">
+        <article
+          v-for="usuario in pagedUsuarios"
+          :key="`mobile-${usuario.idPersonal}`"
+          class="app-card rounded-xl p-3.5"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="truncate text-base font-extrabold text-neutral-900">{{ usuario.nombre }}</p>
+              <p class="mt-0.5 text-xs font-semibold text-neutral-500">DNI {{ usuario.dni || 'sin informar' }} · ID {{ usuario.idPersonal }}</p>
+            </div>
+            <span :class="usuario.activo === 1 ? 'app-state-active' : 'app-state-inactive'" class="shrink-0 rounded-full border px-2 py-1 text-xs font-bold">
+              {{ usuario.activo === 1 ? 'Activo' : 'Inactivo' }}
+            </span>
+          </div>
+
+          <dl class="mt-3 grid grid-cols-2 gap-2 rounded-lg border border-neutral-100 p-2.5 text-xs">
+            <div>
+              <dt class="font-semibold uppercase tracking-wide text-neutral-400">Encargado</dt>
+              <dd class="mt-0.5 font-bold text-neutral-700">{{ usuario.encargado === 1 ? 'Sí' : 'No' }}</dd>
+            </div>
+            <div>
+              <dt class="font-semibold uppercase tracking-wide text-neutral-400">Acceso admin</dt>
+              <dd class="mt-0.5 font-bold text-neutral-700">{{ usuario.is_admin === 1 ? 'Habilitado' : 'Deshabilitado' }}</dd>
+            </div>
+          </dl>
+
+          <label class="mt-3 flex min-h-10 items-center justify-between gap-3 rounded-lg border border-neutral-100 px-3 py-2 text-sm font-semibold text-neutral-700">
+            <span>{{ savingUsers[usuario.idPersonal] ? 'Guardando...' : 'Permitir acceso admin' }}</span>
+            <input
+              type="checkbox"
+              :checked="usuario.is_admin === 1"
+              :disabled="isCurrentUser(usuario) || savingUsers[usuario.idPersonal]"
+              @change="toggleAdmin(usuario, $event.target.checked)"
+              class="h-4 w-4 accent-primary"
+              :title="isCurrentUser(usuario) ? 'No podés quitarte el acceso a vos mismo' : ''"
+            />
+          </label>
+        </article>
+      </template>
+    </div>
+
+    <div v-if="!store.error" class="app-table hidden overflow-x-auto rounded-xl sm:block">
       <table class="min-w-full text-sm">
         <thead class="app-table-head sticky top-0 z-10">
           <tr>
@@ -58,8 +113,8 @@
             <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.idPersonal }}</td>
             <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.nombre }}</td>
             <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.dni || '-' }}</td>
-            <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.activo === 1 ? 'Si' : 'No' }}</td>
-            <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.encargado === 1 ? 'Si' : 'No' }}</td>
+            <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.activo === 1 ? 'Sí' : 'No' }}</td>
+            <td class="border-b border-neutral-100 px-3 py-2">{{ usuario.encargado === 1 ? 'Sí' : 'No' }}</td>
             <td class="border-b border-neutral-100 px-3 py-2">
               <label class="inline-flex items-center gap-2">
                 <input
@@ -124,6 +179,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AutocompleteField from '@/components/AutocompleteField.vue'
 import SectionCard from '@/components/SectionCard.vue'
+import FeedbackMessage from '@/components/ui/FeedbackMessage.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useAuthStore } from '@/stores/auth'
 
@@ -135,6 +192,7 @@ const savingUsers = reactive({})
 const page = ref(1)
 const pageSize = ref(5)
 const pageSizeOptions = [5, 10, 25, 50]
+const saveError = ref('')
 
 const userOptions = computed(() => {
   return store.usuariosConfiguracion.map((usuario) => ({
@@ -162,6 +220,7 @@ function isCurrentUser(usuario) {
 }
 
 async function toggleAdmin(usuario, checked) {
+  saveError.value = ''
   const oldValue = usuario.is_admin
   usuario.is_admin = checked ? 1 : 0
   savingUsers[usuario.idPersonal] = true
@@ -171,7 +230,7 @@ async function toggleAdmin(usuario, checked) {
     usuario.is_admin = updated.is_admin
   } catch (error) {
     usuario.is_admin = oldValue
-    alert(error.response?.data?.detail || 'No se pudo actualizar el acceso')
+    saveError.value = error.response?.data?.detail || 'No se pudo actualizar el acceso'
   } finally {
     savingUsers[usuario.idPersonal] = false
   }

@@ -6,6 +6,7 @@ from datetime import date
 class KpiItem(BaseModel):
     id: int
     nombre: str
+    descripcion: str = ""
     valor: float
     unidad: str
     icono: str
@@ -24,6 +25,7 @@ class FiltrosAplicados(BaseModel):
 class KpisResponse(BaseModel):
     kpis: list[KpiItem]
     filtros_aplicados: FiltrosAplicados
+    registros_incluidos: int = 0
 
 
 # ─── Evolución temporal ───

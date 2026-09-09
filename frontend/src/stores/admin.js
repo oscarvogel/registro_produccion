@@ -31,7 +31,7 @@ export const useAdminStore = defineStore('admin', {
       if (buscar?.trim()) params.buscar = buscar.trim()
       if (unidad_id) params.unidad_id = unidad_id
       if (activo === 0 || activo === 1) params.activo = activo
-      const { data } = await api.get(config.endpoint, { params })
+      const { data } = await api.get(config.endpoint, { params, _suppressErrorToast: true })
       return data
     },
 

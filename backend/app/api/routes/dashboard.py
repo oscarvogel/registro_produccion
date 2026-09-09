@@ -245,10 +245,10 @@ def _fallback_kpis(db: Session, process_filter: dict | None, movil_id: int | Non
     principal = produccion > 0
 
     return [
-        KpiItem(id=-1, nombre="Produccion total", valor=produccion, unidad="", icono="box", es_principal=principal),
-        KpiItem(id=-2, nombre="Registros", valor=registros, unidad="", icono="clipboard-list", es_principal=not principal),
-        KpiItem(id=-3, nombre="Combustible", valor=combustible, unidad="L", icono="fuel", es_principal=False),
-        KpiItem(id=-4, nombre="Horas", valor=horas, unidad="hs", icono="clock", es_principal=False),
+        KpiItem(id=-1, nombre="Produccion total", descripcion="Suma de la producción registrada en el alcance seleccionado", valor=produccion, unidad="", icono="box", es_principal=principal),
+        KpiItem(id=-2, nombre="Registros", descripcion="Cantidad de registros incluidos en el alcance seleccionado", valor=registros, unidad="", icono="clipboard-list", es_principal=not principal),
+        KpiItem(id=-3, nombre="Combustible", descripcion="Litros de combustible registrados en el alcance seleccionado", valor=combustible, unidad="L", icono="fuel", es_principal=False),
+        KpiItem(id=-4, nombre="Horas", descripcion="Diferencia acumulada entre horómetro final e inicial por jornada", valor=horas, unidad="hs", icono="clock", es_principal=False),
     ]
 
 
@@ -404,6 +404,9 @@ async def get_kpis(
     is_multi = len(config_tp_ids) > 1
     seen = set()
     kpis_result: list[KpiItem] = []
+    scope_query = db.query(TableroProduccion).filter(TableroProduccion.cod_un == un_id)
+    scope_query = _apply_data_filters(scope_query, process_filter, movil_id, fecha_desde, fecha_hasta)
+    registros_incluidos = int(scope_query.with_entities(func.count(TableroProduccion.id)).scalar() or 0)
 
     if is_multi:
         from collections import Counter
@@ -419,7 +422,7 @@ async def get_kpis(
             is_hero = kpi_def.campo_origen == "CUSTOM:horas_trabajadas"
             valor = _compute_kpi_value(db, kpi_def, process_filter, movil_id, fecha_desde, fecha_hasta, un_id)
             variacion = _compute_variation(db, kpi_def, process_filter, movil_id, fecha_desde, fecha_hasta, un_id)
-            kpis_result.append(KpiItem(id=kpi_def.id, nombre=kpi_def.nombre, valor=valor, unidad=kpi_def.unidad, icono=kpi_def.icono, es_principal=is_hero, variacion_porcentual=variacion))
+            kpis_result.append(KpiItem(id=kpi_def.id, nombre=kpi_def.nombre, descripcion=kpi_def.descripcion or "", valor=valor, unidad=kpi_def.unidad, icono=kpi_def.icono, es_principal=is_hero, variacion_porcentual=variacion))
         kpis_result.sort(key=lambda k: (not k.es_principal, 0))
     else:
         for kpi_def, es_principal, orden in kpi_rows:
@@ -428,7 +431,7 @@ async def get_kpis(
             seen.add(kpi_def.id)
             valor = _compute_kpi_value(db, kpi_def, process_filter, movil_id, fecha_desde, fecha_hasta, un_id)
             variacion = _compute_variation(db, kpi_def, process_filter, movil_id, fecha_desde, fecha_hasta, un_id)
-            kpis_result.append(KpiItem(id=kpi_def.id, nombre=kpi_def.nombre, valor=valor, unidad=kpi_def.unidad, icono=kpi_def.icono, es_principal=bool(es_principal), variacion_porcentual=variacion))
+            kpis_result.append(KpiItem(id=kpi_def.id, nombre=kpi_def.nombre, descripcion=kpi_def.descripcion or "", valor=valor, unidad=kpi_def.unidad, icono=kpi_def.icono, es_principal=bool(es_principal), variacion_porcentual=variacion))
 
     if not kpis_result:
         kpis_result = _fallback_kpis(db, process_filter, movil_id, fecha_desde, fecha_hasta, un_id)
@@ -437,7 +440,7 @@ async def get_kpis(
     movil_nombre = None
     if movil_id:
         movil_nombre = db.query(Movil.Patente).filter(Movil.idMovil == movil_id).scalar()
-    return KpisResponse(kpis=kpis_result, filtros_aplicados=FiltrosAplicados(tipo_proceso=tp_nombre, movil=movil_nombre, fecha_desde=str(fecha_desde) if fecha_desde else None, fecha_hasta=str(fecha_hasta) if fecha_hasta else None))
+    return KpisResponse(kpis=kpis_result, filtros_aplicados=FiltrosAplicados(tipo_proceso=tp_nombre, movil=movil_nombre, fecha_desde=str(fecha_desde) if fecha_desde else None, fecha_hasta=str(fecha_hasta) if fecha_hasta else None), registros_incluidos=registros_incluidos)
 
 
 @router.get("/evolucion", response_model=EvolucionResponse)

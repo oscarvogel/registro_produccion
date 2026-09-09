@@ -73,3 +73,6 @@ mavis_ro.env
 backup_mail.env
 *.local.env
 secrets/
+
+# Evidencia local de auditorías visuales; no forma parte de los commits.
+docs/audits/

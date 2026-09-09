@@ -1,20 +1,20 @@
 <template>
   <div class="min-h-screen bg-[var(--app-bg)] px-3 py-3 pb-20 md:px-4 md:py-4 md:pb-6">
-    <div class="mx-auto max-w-[112rem] space-y-3">
+    <div class="content-wide mx-auto space-y-3">
       <PageHeader
         title="Detalle de registros"
-        :description="`${authStore.userName} · registros individuales que componen el dashboard`"
+        :description="`${authStore.userName} · registros individuales del seguimiento operativo`"
         :kicker="`Unidad: ${unidadNombre || '—'}`"
       >
         <template #actions>
           <AppButton variant="secondary" @click="volverAlDashboard">
             <AppIcon name="back" size="sm" />
-            Volver al dashboard
+            Volver a Operación
           </AppButton>
         </template>
       </PageHeader>
 
-      <FilterBar title="Filtros transferidos" eyebrow="Aplicados desde el dashboard">
+      <FilterBar title="Filtros transferidos" eyebrow="Aplicados desde Operación">
         <template #summary>
           <span class="rounded-full border px-3 py-1 text-xs font-bold app-chip-info">
             {{ store.total }} registro{{ store.total === 1 ? '' : 's' }}
@@ -56,7 +56,7 @@
       <EmptyState
         v-else-if="!store.hasRegistros"
         title="No hay registros para los filtros aplicados"
-        description="Volvé al dashboard, modificá el rango de fechas, la unidad o el tipo de proceso."
+        description="Volvé a Operación, modificá el rango de fechas, la unidad o el tipo de proceso."
         icon="empty"
       />
 
@@ -124,7 +124,7 @@
                 <p class="truncate text-xs font-semibold text-neutral-500">{{ record.operador || 'Sin operador' }}</p>
               </div>
               <span class="shrink-0 text-right text-[11px] font-bold text-neutral-500">
-                {{ formatHora(record.hr_inicio) }} – {{ formatHora(record.hr_fin) }}
+                {{ formatHorometro(record.hr_inicio) }} – {{ formatHorometro(record.hr_fin) }}
               </span>
             </div>
 
@@ -247,8 +247,8 @@ const columns = [
   { key: 'operacion', label: 'Operación', sortable: true },
   { key: 'equipo', label: 'Máquina' },
   { key: 'operador', label: 'Operador' },
-  { key: 'hr_inicio', label: 'Hr inicio' },
-  { key: 'hr_fin', label: 'Hr fin' },
+  { key: 'hr_inicio', label: 'Horómetro inicial' },
+  { key: 'hr_fin', label: 'Horómetro final' },
   { key: 'combustible', label: 'Combustible' },
   { key: 'tn_despachadas', label: 'TN' },
   { key: 'm3', label: 'm³' },
@@ -312,7 +312,7 @@ function formatNumero(valor) {
   return n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })
 }
 
-function formatHora(valor) {
+function formatHorometro(valor) {
   const n = Number(valor)
   if (!Number.isFinite(n) || n === 0) return '—'
   return n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })

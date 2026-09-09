@@ -20,7 +20,7 @@
         </span>
         <span v-if="unit" class="text-xs font-bold text-neutral-400">{{ unit }}</span>
       </div>
-      <p v-if="description" class="mt-1 truncate text-xs text-neutral-500">
+      <p v-if="description" class="mt-1 break-words text-xs leading-snug text-neutral-500">
         {{ description }}
       </p>
     </div>

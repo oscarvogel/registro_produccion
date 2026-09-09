@@ -1,80 +1,82 @@
 <template>
   <div class="min-h-[calc(100vh-8.5rem)] bg-[var(--app-bg)] px-3 py-3 pb-20 md:min-h-screen md:px-4 md:py-4">
-    <div class="mx-auto w-full max-w-[112rem] space-y-3">
-      <section class="app-card-glass rounded-xl px-4 py-3 md:px-5">
+    <div class="content-wide mx-auto w-full space-y-3">
+      <section v-motion-panel class="app-card-glass rounded-xl px-4 py-3 md:px-5">
         <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div class="min-w-0">
             <div class="mb-2 flex flex-wrap items-center gap-2">
               <span :class="['inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-extrabold uppercase', backendReachable ? 'app-chip-success' : 'app-chip-warning']">
-                <span :class="['app-led h-2 w-2 rounded-full', backendReachable ? 'bg-primary text-primary' : 'bg-warning text-warning']"></span>
+                <span :class="['app-led h-2 w-2 rounded-full', backendReachable ? 'bg-primary text-[var(--color-primary)]' : 'bg-warning text-warning']"></span>
                 {{ backendConnectionLabel }}
               </span>
               <span class="rounded-full border px-3 py-1 text-xs font-bold app-chip-info">{{ isAdmin ? 'Administrador' : roleLabel }}</span>
               <span class="rounded-full border px-3 py-1 text-xs font-bold app-state-inactive">{{ todayLabel }}</span>
             </div>
-            <h1 class="truncate text-3xl font-extrabold leading-none text-neutral-950 md:text-[2.5rem]">
-              {{ isAdmin ? 'Panel operativo' : authStore.userName }}
+            <h1 class="truncate text-3xl font-extrabold leading-none text-[var(--app-text)] md:text-[2.5rem]">
+              {{ isAdmin ? 'Inicio' : authStore.userName }}
             </h1>
-            <p class="mt-1 text-sm font-medium text-neutral-500">
+            <p class="mt-1 text-sm font-medium text-[var(--app-text-muted)]">
               {{ headerSubtitle }}
             </p>
           </div>
 
           <div class="flex flex-col gap-2 xl:items-end">
             <div class="flex flex-wrap gap-2">
-              <button
+              <AppButton
                 v-for="preset in datePresets"
                 :key="preset.key"
                 type="button"
+                variant="secondary"
+                size="sm"
                 :class="[
-                  'rounded-lg border px-3 py-2 text-xs font-bold transition active:scale-[0.98]',
+                  'font-bold',
                   selectedDatePreset === preset.key
-                    ? 'border-primary/55 bg-primary/20 text-primary-dark'
-                    : 'app-button-soft border',
+                    ? 'border-primary/55 bg-primary/20 text-[var(--color-primary)]'
+                    : '',
                 ]"
                 @click="selectDatePreset(preset.key)"
               >
                 {{ preset.label }}
-              </button>
+              </AppButton>
               <label class="app-input flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold">
                 Fecha
                 <input
                   v-model="selectedDate"
                   type="date"
-                  class="bg-transparent text-xs font-bold text-neutral-900 outline-none"
+                  class="bg-transparent text-xs font-bold text-[var(--app-text)] outline-none"
                   @change="selectCustomDate"
                 />
               </label>
             </div>
-            <div class="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:min-w-[45rem]">
-            <button
-              v-for="action in topActions"
-              :key="action.name"
-              type="button"
-              class="app-hover-glow inline-flex min-h-11 items-center justify-center gap-3 rounded-lg border border-primary/35 bg-primary-light/20 px-3 py-2 text-left text-sm font-extrabold text-neutral-800 transition active:scale-[0.98]"
-              @click="router.push(action.to)"
-            >
-              <span class="truncate">{{ action.label }}</span>
-              <AppIcon :name="action.icon" size="sm" class="shrink-0" />
-            </button>
+            <div v-if="topActions.length > 0" class="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:min-w-[45rem]">
+              <button
+                v-for="action in topActions"
+                :key="action.name"
+                type="button"
+                class="app-hover-glow inline-flex min-h-11 items-center justify-center gap-3 rounded-lg border border-primary/35 bg-primary-light/20 px-3 py-2 text-left text-sm font-extrabold text-[var(--app-text)] transition active:scale-[0.98]"
+                @click="router.push(action.to)"
+              >
+                <span class="truncate">{{ action.label }}</span>
+                <AppIcon :name="action.icon" size="sm" class="shrink-0" />
+              </button>
             </div>
           </div>
         </div>
       </section>
 
       <template v-if="isAdmin">
-        <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricTile v-for="card in adminSummaryCards" :key="card.label" :card="card" :loading="adminStore.loading" />
+        <section v-motion-panel class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricTile v-for="card in adminSummaryCards" :key="card.label" :card="card" :loading="adminStore.loading || Boolean(adminStore.error)" />
         </section>
 
-        <section class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_30rem]">
+        <section v-motion-panel class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_30rem]">
           <article class="app-card overflow-hidden rounded-xl p-0">
             <div class="flex items-center justify-between gap-3 px-4 pb-2 pt-4 md:px-5">
               <div>
-                <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Unidades de negocio</p>
-                <h2 class="mt-1 text-2xl font-extrabold leading-tight text-neutral-900">Última actividad registrada</h2>
+                <p class="text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]">Unidades de negocio</p>
+                <h2 class="mt-1 text-2xl font-extrabold leading-tight text-[var(--app-text)]">Última actividad registrada</h2>
               </div>
-              <span class="app-surface-muted hidden h-9 w-9 items-center justify-center rounded-lg border text-neutral-500 sm:flex">
+              <span class="app-surface-muted hidden h-9 w-9 items-center justify-center rounded-lg border text-[var(--app-text-muted)] sm:flex">
                 <AppIcon name="unit" size="sm" />
               </span>
             </div>
@@ -82,11 +84,11 @@
             <div class="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:px-5">
               <label class="relative block">
                 <span class="sr-only">Buscar unidad de negocio</span>
-                <AppIcon name="search" size="sm" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <AppIcon name="search" size="sm" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-text-soft)]" />
                 <input
                   v-model="unitSearch"
                   type="search"
-                  class="app-input w-full rounded-lg border py-2.5 pl-10 pr-3 text-sm font-semibold placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  class="app-input w-full rounded-lg border py-2.5 pl-10 pr-3 text-sm font-semibold placeholder:text-[var(--app-text-soft)] focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="Buscar por nombre o prefijo"
                 />
               </label>
@@ -100,6 +102,11 @@
               <div v-for="i in 12" :key="i" class="app-surface-muted h-16 animate-pulse rounded-lg"></div>
             </div>
 
+            <div v-else-if="adminStore.error" role="alert" class="flex flex-col gap-3 px-5 py-6 text-center sm:flex-row sm:items-center sm:justify-center">
+              <p class="text-sm font-semibold text-error-dark">{{ adminStore.error }}</p>
+              <AppButton variant="secondary" size="sm" :loading="adminStore.loading" @click="loadAdminSummary">Reintentar</AppButton>
+            </div>
+
             <div v-else-if="pagedAdminUnits.length > 0" class="grid gap-3 px-4 py-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:px-5">
               <button
                 v-for="unidad in pagedAdminUnits"
@@ -109,45 +116,45 @@
                   'group grid min-h-[5.35rem] grid-cols-[auto_minmax(0,1fr)] items-start gap-3 overflow-hidden rounded-lg border p-3 text-left transition duration-150 ease-out hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 active:translate-y-0 active:scale-[0.99]',
                   unitCardClass(unidad),
                 ]"
-                @click="router.push({ name: 'admin-dashboard' })"
+                @click="router.push({ name: 'dashboard', query: { un_id: String(unidad.id) } })"
               >
                 <span :class="['flex h-9 min-w-9 items-center justify-center rounded-md border px-2 text-xs font-extrabold', unitStatusClass(unidad)]">
                   {{ unidad.prefijo || 'SIN' }}
                 </span>
                 <div class="min-w-0">
-                  <p class="truncate text-sm font-extrabold text-neutral-900">{{ unidad.nombre }}</p>
-                  <p class="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-neutral-500">
+                  <p class="truncate text-sm font-extrabold text-[var(--app-text)]">{{ unidad.nombre }}</p>
+                  <p class="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-[var(--app-text-muted)]">
                     <span :class="['h-1.5 w-1.5 rounded-full', unitDotClass(unidad)]"></span>
                     {{ unitStatusText(unidad) }}
                   </p>
                   <template v-if="unidad.resumen?.ultima_actividad_fecha">
-                    <p class="mt-1.5 flex min-w-0 max-w-full items-center overflow-hidden text-[11px] text-neutral-400">
+                    <p class="mt-1.5 flex min-w-0 max-w-full items-center overflow-hidden text-[11px] text-[var(--app-text-soft)]">
                       Última: {{ formatFecha(unidad.resumen.ultima_actividad_fecha) }}
                       <span v-if="unidad.resumen.ultima_actividad_resumen" class="ml-1">-</span>
                       <span v-if="unidad.resumen.ultima_actividad_resumen" class="min-w-0 flex-1 truncate">{{ unidad.resumen.ultima_actividad_resumen }}</span>
                     </p>
                   </template>
                   <template v-else>
-                    <p class="mt-1.5 text-[11px] text-neutral-400">Sin actividad registrada</p>
+                    <p class="mt-1.5 text-[11px] text-[var(--app-text-soft)]">Sin actividad registrada</p>
                   </template>
                 </div>
               </button>
             </div>
-            <div v-else class="px-5 py-10 text-center">
-              <p class="text-sm font-bold text-neutral-700">No hay unidades para esa búsqueda.</p>
-              <button type="button" class="mt-2 text-xs font-bold text-primary-dark underline underline-offset-4" @click="unitSearch = ''">
+            <div v-else class="px-5 py-6 text-center">
+              <p class="text-sm font-bold text-[var(--app-text)]">No hay unidades para esa búsqueda.</p>
+              <button type="button" class="mt-2 text-xs font-bold text-[var(--color-primary)] underline underline-offset-4" @click="unitSearch = ''">
                 Limpiar búsqueda
               </button>
             </div>
 
             <div v-if="adminUnits.length > 0" class="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between md:px-5">
-              <p class="text-xs font-semibold text-neutral-400">
+              <p class="text-xs font-semibold text-[var(--app-text-soft)]">
                 Mostrando {{ adminUnitDisplayStart }}-{{ adminUnitPageEnd }} de {{ filteredAdminUnits.length }} unidades
               </p>
               <div class="flex items-center gap-2">
                 <button
                   type="button"
-                  class="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-bold text-neutral-600 transition hover:border-primary/35 hover:text-primary-dark disabled:cursor-not-allowed disabled:opacity-40"
+                  class="rounded-lg border border-[var(--app-border)] px-3 py-2 text-xs font-bold text-[var(--app-text-muted)] transition hover:border-primary/35 hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
                   :disabled="adminUnitPage === 1"
                   @click="adminUnitPage = Math.max(1, adminUnitPage - 1)"
                 >
@@ -158,7 +165,7 @@
                 </span>
                 <button
                   type="button"
-                  class="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-bold text-neutral-600 transition hover:border-primary/35 hover:text-primary-dark disabled:cursor-not-allowed disabled:opacity-40"
+                  class="rounded-lg border border-[var(--app-border)] px-3 py-2 text-xs font-bold text-[var(--app-text-muted)] transition hover:border-primary/35 hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
                   :disabled="adminUnitPage === adminUnitTotalPages"
                   @click="adminUnitPage = Math.min(adminUnitTotalPages, adminUnitPage + 1)"
                 >
@@ -172,7 +179,7 @@
             <AlertPanel
               :alerts="adminAlerts"
               :unit-labels="inactiveUnitLabels"
-              action-label="Abrir Dashboard Operativo"
+              action-label="Abrir Análisis de Producción"
               @action="router.push({ name: 'admin-dashboard' })"
             />
             <RecentRecordsPanel />
@@ -187,7 +194,7 @@
       </template>
 
       <template v-else>
-        <section class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <section v-motion-panel class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <button
             v-for="action in operatorMainActions"
             :key="action.name"
@@ -199,28 +206,22 @@
               <span class="flex h-11 w-11 items-center justify-center rounded-lg bg-primary-dark text-white">
                 <AppIcon :name="action.icon" size="sm" />
               </span>
-              <span v-if="Number(action.badge || 0) > 0" class="rounded-full bg-warning px-2 py-0.5 text-xs font-extrabold text-white">{{ action.badge }}</span>
+              <span v-if="Number(action.badge || 0) > 0" class="rounded-full bg-warning px-2 py-0.5 text-xs font-extrabold text-on-warning">{{ action.badge }}</span>
             </div>
-            <h2 class="text-base font-extrabold text-neutral-900 group-hover:text-info-dark">{{ action.label }}</h2>
-            <p class="mt-1 text-sm font-medium text-neutral-500">{{ action.description }}</p>
+            <h2 class="text-base font-extrabold text-[var(--app-text)] group-hover:text-[var(--color-info-dark)]">{{ action.label }}</h2>
+            <p class="mt-1 text-sm font-medium text-[var(--app-text-muted)]">{{ action.description }}</p>
           </button>
         </section>
 
         <section v-if="!recordsStore.loading && !lastRecord" class="rounded-xl border border-dashed border-warning/40 bg-warning-light/20 p-4">
-          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p class="text-xs font-extrabold uppercase tracking-wide text-neutral-400">{{ emptyRangeEyebrow }}</p>
-              <h2 class="mt-1 text-xl font-extrabold text-neutral-900">{{ emptyRangeTitle }}</h2>
-              <p class="mt-1 text-sm text-neutral-500">Podés iniciar una carga productiva o registrar combustible directamente.</p>
-            </div>
-            <div class="flex flex-col gap-2 sm:flex-row">
-              <button type="button" class="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-extrabold text-on-primary" @click="router.push({ name: 'produccion' })">Ir a Carga de Producción</button>
-              <button type="button" class="app-button-soft rounded-lg border px-4 py-2.5 text-sm font-extrabold" @click="router.push({ name: 'combustible' })">Ir a Carga de Combustible</button>
-            </div>
+          <div>
+            <p class="text-xs font-extrabold uppercase tracking-wide text-[var(--app-text-soft)]">{{ emptyRangeEyebrow }}</p>
+            <h2 class="mt-1 text-xl font-extrabold text-[var(--app-text)]">{{ emptyRangeTitle }}</h2>
+            <p class="mt-1 text-sm text-[var(--app-text-muted)]">Usá las cards principales para iniciar una carga productiva o registrar combustible.</p>
           </div>
         </section>
 
-        <section class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <section v-motion-panel class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div class="space-y-3">
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <MetricTile v-for="card in operatorSummaryCards" :key="card.label" :card="card" :loading="recordsStore.loading" />
@@ -231,8 +232,9 @@
           <aside class="space-y-3">
             <SyncCard />
             <QuickActions
-              :actions="operatorSecondaryActions"
-              :show-install="!isPwaStandalone"
+              v-if="!isPwaStandalone"
+              :actions="[]"
+              :show-install="true"
               :install-available="canInstallPwa"
               @install="handlePwaInstallAction"
             />
@@ -252,6 +254,7 @@ import { useMisRegistrosStore } from '@/stores/misRegistros'
 import { useAdminStore } from '@/stores/admin'
 import { useConnectivityStore } from '@/stores/connectivity'
 import { usePwaInstallStatus } from '@/composables/usePwaInstallStatus'
+import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 
 const authStore = useAuthStore()
@@ -335,31 +338,22 @@ const roleLabel = computed(() => authStore.user?.encargado === 1 ? 'Encargado' :
 
 const topActions = computed(() => isAdmin.value
   ? [
-      { name: 'admin-dashboard', label: 'Abrir Dashboard', icon: 'dashboard', to: { name: 'admin-dashboard' } },
+      { name: 'admin-dashboard', label: 'Abrir Análisis de Producción', icon: 'dashboard', to: { name: 'admin-dashboard' } },
       { name: 'produccion', label: 'Carga Producción', icon: 'production', to: { name: 'produccion' } },
       { name: 'combustible', label: 'Carga Combustible', icon: 'fuel', to: { name: 'combustible' } },
     ]
-  : operatorMainActions.value.slice(0, 2))
+  : [])
 
 const operatorMainActions = computed(() => [
   { name: 'produccion', label: 'Ir a Carga de Producción', description: 'Abre el formulario de producción.', icon: 'production', to: { name: 'produccion' } },
   { name: 'combustible', label: 'Ir a Carga de Combustible', description: 'Abre el formulario de combustible.', icon: 'fuel', to: { name: 'combustible' } },
   { name: 'pendientes', label: 'Ver Pendientes', description: 'Abre cola offline y reintentos.', icon: 'pending', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
   authStore.user?.encargado === 1
-    ? { name: 'dashboard', label: 'Abrir Dashboard Operativo', description: 'Abre resumen por unidad y proceso.', icon: 'dashboard', to: { name: 'dashboard' } }
+    ? { name: 'dashboard', label: 'Abrir Operación', description: 'Seguimiento por unidad, proceso, equipo y período.', icon: 'dashboard', to: { name: 'dashboard' } }
     : { name: 'mis-registros', label: 'Abrir Mis Registros', description: 'Abre historial y totales personales.', icon: 'records', to: { name: 'mis-registros' } },
 ])
 
-const operatorSecondaryActions = computed(() => [
-  { name: 'pendientes', label: 'Abrir Pendientes', description: 'Cola offline y reintentos.', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
-  authStore.user?.encargado === 1
-    ? { name: 'dashboard', label: 'Abrir Dashboard Operativo', description: 'Resumen por unidad y proceso.', to: { name: 'dashboard' }, badge: null }
-    : { name: 'mis-registros', label: 'Abrir Mis Registros', description: 'Historial y totales personales.', to: { name: 'mis-registros' }, badge: null },
-])
-
 const adminActions = computed(() => [
-  { name: 'produccion', label: 'Ir a Carga de Producción', description: 'Abre el formulario de producción.', to: { name: 'produccion' }, badge: null },
-  { name: 'combustible', label: 'Ir a Carga de Combustible', description: 'Abre el formulario de combustible.', to: { name: 'combustible' }, badge: null },
   { name: 'pendientes', label: 'Abrir Pendientes', description: 'Cola offline y reintentos.', to: { name: 'pendientes' }, badge: produccionStore.pendingCount },
   { name: 'admin', label: 'Abrir Panel Admin', description: 'Catálogos, permisos y relaciones.', to: { name: 'admin-center' }, badge: null },
 ])
@@ -409,7 +403,6 @@ const adminAlerts = computed(() => {
   if (inactiveUnits.value.length > 0) {
     alerts.push(`${inactiveUnits.value.length} unidades sin actividad registrada.`)
   }
-  if (alerts.length === 0) alerts.push('Sin alertas operativas.')
   return alerts
 })
 
@@ -430,9 +423,9 @@ watch(adminUnitTotalPages, (totalPages) => {
 const productionToday = computed(() => {
   const totals = recordsStore.totales
   const options = [
-    { label: 'Metros cubicos', value: totals.total_m3, unit: 'm3' },
+    { label: 'Metros cúbicos', value: totals.total_m3, unit: 'm³' },
     { label: 'Toneladas', value: totals.total_tn, unit: 'TN' },
-    { label: 'Hectareas', value: totals.total_has, unit: 'HAS' },
+    { label: 'Hectáreas', value: totals.total_has, unit: 'HAS' },
     { label: 'Carros', value: totals.total_carros, unit: 'uds' },
     { label: 'Plantas', value: totals.total_plantas, unit: 'uds' },
     { label: 'KM carreteo', value: totals.total_km_carreteo, unit: 'km' },
@@ -487,7 +480,7 @@ const rangeShortLabel = computed(() => {
     case 'yesterday':
       return 'ayer'
     case 'last7':
-      return 'ultimos 7 dias'
+      return 'últimos 7 días'
     case 'lastWeek':
       return 'semana pasada'
     default:
@@ -502,13 +495,13 @@ const rangeLongLabel = computed(() => {
 
 const operatorSummaryCards = computed(() => [
   {
-    label: 'Produccion',
+    label: 'Producción',
     value: fmt(productionToday.value.value),
     unit: productionToday.value.unit,
     detail: `${productionToday.value.label} (${rangeShortLabel.value})`,
     icon: 'production',
   },
-  { label: 'Horas', value: fmt(recordsStore.totales.total_horas), unit: 'hs', detail: 'Tiempo trabajado', icon: 'timer' },
+  { label: 'Diferencia de horómetro', value: fmt(recordsStore.totales.total_horas), unit: 'hs', detail: 'Diferencia acumulada', icon: 'timer' },
   {
     label: 'Registros',
     value: fmt(recordsStore.totales.total),
@@ -533,16 +526,16 @@ const MetricTile = defineComponent({
   },
   setup(props) {
     return () => h('article', { class: 'app-card app-hover-glow grid min-h-[6.7rem] grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-xl p-4' }, [
-      h('span', { class: 'flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary-light/30 text-info shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]' }, [
-        h(AppIcon, { name: props.card.icon || 'dashboard', size: 'lg', class: props.card.icon === 'fuel' ? 'text-warning-dark' : 'text-info' }),
+      h('span', { class: 'flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary-light/30 text-[var(--color-info-dark)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]' }, [
+        h(AppIcon, { name: props.card.icon || 'dashboard', size: 'lg', class: props.card.icon === 'fuel' ? 'text-warning-dark' : 'text-[var(--color-info-dark)]' }),
       ]),
       h('div', { class: 'min-w-0' }, [
-        h('p', { class: 'truncate text-xs font-bold uppercase tracking-wide text-neutral-400' }, props.card.label),
+        h('p', { class: 'truncate text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]' }, props.card.label),
         h('div', { class: 'mt-1 flex items-baseline gap-1.5' }, [
-          h('span', { class: 'text-3xl font-extrabold leading-none text-neutral-950' }, props.loading ? '-' : props.card.value),
-          props.card.unit ? h('span', { class: 'text-xs font-bold text-neutral-400' }, props.card.unit) : null,
+          h('span', { class: 'text-3xl font-extrabold leading-none text-[var(--app-text)]' }, props.loading ? '-' : props.card.value),
+          props.card.unit ? h('span', { class: 'text-xs font-bold text-[var(--app-text-soft)]' }, props.card.unit) : null,
         ]),
-        h('p', { class: 'mt-1 truncate text-xs font-medium text-neutral-400' }, props.card.detail || ''),
+        h('p', { class: 'mt-1 truncate text-xs font-medium text-[var(--app-text-soft)]' }, props.card.detail || ''),
       ]),
     ])
   },
@@ -558,8 +551,8 @@ const QuickActions = defineComponent({
   setup(props, { emit }) {
     return () => h('article', { class: 'app-card rounded-xl p-4' }, [
       h('div', { class: 'mb-3' }, [
-        h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, 'Accesos rapidos'),
-        h('h2', { class: 'mt-0.5 text-xl font-extrabold text-neutral-900' }, 'Operaciones'),
+        h('p', { class: 'text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]' }, props.actions.length > 0 ? 'Accesos rápidos' : 'Aplicación'),
+        h('h2', { class: 'mt-0.5 text-xl font-extrabold text-[var(--app-text)]' }, props.actions.length > 0 ? 'Operaciones' : 'Instalar aplicación'),
       ]),
       h('div', { class: 'grid gap-1.5' }, [
         ...props.actions.map((action) => h('button', {
@@ -569,17 +562,17 @@ const QuickActions = defineComponent({
           onClick: () => router.push(action.to),
         }, [
           h('span', { class: 'min-w-0' }, [
-            h('span', { class: 'block truncate text-sm font-bold text-neutral-800' }, action.label),
+            h('span', { class: 'block truncate text-sm font-bold text-[var(--app-text)]' }, action.label),
           ]),
-          action.badge !== null ? h('span', { class: 'rounded-md bg-warning-light px-2 py-0.5 text-xs font-extrabold text-warning-dark' }, String(action.badge)) : h(AppIcon, { name: 'forward', size: 'xs', class: 'text-neutral-400' }),
+          action.badge !== null ? h('span', { class: 'rounded-md bg-warning-light px-2 py-0.5 text-xs font-extrabold text-warning-dark' }, String(action.badge)) : h(AppIcon, { name: 'forward', size: 'xs', class: 'text-[var(--app-text-soft)]' }),
         ])),
         props.showInstall ? h('button', {
           type: 'button',
           class: 'app-hover-glow app-surface-muted flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition active:scale-[0.98]',
           onClick: () => emit('install'),
         }, h('span', [
-          h('span', { class: 'block text-sm font-bold text-neutral-800' }, 'Instalar app'),
-          h('span', { class: 'block text-xs text-neutral-400' }, props.installAvailable
+          h('span', { class: 'block text-sm font-bold text-[var(--app-text)]' }, 'Instalar app'),
+          h('span', { class: 'block text-xs text-[var(--app-text-soft)]' }, props.installAvailable
             ? 'Acceso rápido y soporte offline.'
             : 'Ver opciones para este navegador.'),
         ])) : null,
@@ -602,20 +595,19 @@ const LastPersonalRecord = defineComponent({
     return () => h('article', { class: 'app-card rounded-xl p-4' }, [
       h('div', { class: 'mb-3 flex items-center justify-between gap-3' }, [
         h('div', [
-          h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, lastRecordEyebrow.value),
-          h('h2', { class: 'mt-1 text-lg font-extrabold text-neutral-900' }, lastRecordTitle.value),
+          h('p', { class: 'text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]' }, lastRecordEyebrow.value),
+          h('h2', { class: 'mt-1 text-lg font-extrabold text-[var(--app-text)]' }, lastRecordTitle.value),
         ]),
-        h(AppIcon, { name: 'records', size: 'lg', class: 'text-info' }),
+        h(AppIcon, { name: 'records', size: 'lg', class: 'text-[var(--color-info-dark)]' }),
       ]),
       recordsStore.loading
         ? h('div', { class: 'space-y-2' }, [h('div', { class: 'app-surface-muted h-4 w-2/3 animate-pulse rounded' }), h('div', { class: 'app-surface-muted h-4 w-1/2 animate-pulse rounded' })])
         : lastRecord.value
           ? h('div', { class: 'space-y-3' }, [
-            h('p', { class: 'text-sm text-neutral-500' }, `${formatFecha(lastRecord.value.fecha)} - ${lastRecord.value.equipo || 'Sin equipo'} - ${horaRegistro(lastRecord.value)}`),
+            h('p', { class: 'text-sm text-[var(--app-text-muted)]' }, `${formatFecha(lastRecord.value.fecha)} - ${lastRecord.value.equipo || 'Sin equipo'} - Horómetro final: ${horometroRegistro(lastRecord.value)}`),
             h('div', { class: 'flex flex-wrap gap-2' }, lastRecordMetrics.value.map((metric) => h('span', { key: metric.label, class: 'rounded-md border px-2.5 py-1 text-xs font-bold app-state-inactive' }, `${metric.value} ${metric.unit}`))),
-            h('button', { type: 'button', class: 'rounded-md border border-neutral-200 px-3 py-2 text-xs font-bold text-neutral-700 hover:border-secondary/40 hover:text-info-dark', onClick: () => router.push({ name: 'mis-registros' }) }, 'Ver mis registros'),
           ])
-          : h('p', { class: 'text-sm text-neutral-500' }, isTodayRange.value ? 'Todavia no hay registros cargados para hoy.' : 'No hay registros cargados en este periodo.'),
+          : h('p', { class: 'text-sm text-[var(--app-text-muted)]' }, isTodayRange.value ? 'Todavía no hay registros cargados para hoy.' : 'No hay registros cargados en este periodo.'),
     ])
   },
 })
@@ -625,12 +617,12 @@ const SyncCard = defineComponent({
     return () => h('article', { class: 'app-card rounded-xl p-4' }, [
       h('div', { class: 'mb-3 flex items-center justify-between gap-3' }, [
         h('div', [
-          h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, 'Sincronizacion'),
-          h('h2', { class: 'mt-1 text-lg font-extrabold text-neutral-900' }, `${produccionStore.pendingCount} pendiente${produccionStore.pendingCount !== 1 ? 's' : ''}`),
+          h('p', { class: 'text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]' }, 'Sincronización'),
+          h('h2', { class: 'mt-1 text-lg font-extrabold text-[var(--app-text)]' }, `${produccionStore.pendingCount} pendiente${produccionStore.pendingCount !== 1 ? 's' : ''}`),
         ]),
         h(AppIcon, { name: isOnline.value ? 'online' : 'offline', size: 'lg', class: isOnline.value ? 'text-success' : 'text-warning-dark' }),
       ]),
-      h('p', { class: 'text-sm text-neutral-500' }, syncText.value),
+      h('p', { class: 'text-sm text-[var(--app-text-muted)]' }, syncText.value),
     ])
   },
 })
@@ -643,15 +635,17 @@ const AlertPanel = defineComponent({
   },
   emits: ['action'],
   setup(props, { emit }) {
-    return () => h('article', { class: 'rounded-xl border border-error/45 bg-error-light p-4 shadow-sm' }, [
+    return () => h('article', { class: props.alerts.length > 0 ? 'rounded-xl border border-error/45 bg-error-light p-4 shadow-sm' : 'app-card rounded-xl p-4' }, [
       h('div', { class: 'mb-3 flex items-center justify-between gap-3' }, [
         h('div', [
-          h('p', { class: 'text-xs font-bold uppercase tracking-wide text-error-dark/80' }, 'Alertas operativas'),
-          h('h2', { class: 'mt-1 text-2xl font-extrabold leading-none text-error-dark' }, `${props.alerts.length} alerta${props.alerts.length !== 1 ? 's' : ''}`),
+          h('p', { class: props.alerts.length > 0 ? 'text-xs font-bold uppercase tracking-wide text-error-dark/80' : 'text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]' }, 'Alertas operativas'),
+          h('h2', { class: props.alerts.length > 0 ? 'mt-1 text-2xl font-extrabold leading-none text-error-dark' : 'mt-1 text-2xl font-extrabold leading-none text-[var(--app-text)]' }, props.alerts.length > 0 ? `${props.alerts.length} alerta${props.alerts.length !== 1 ? 's' : ''}` : 'Sin alertas'),
         ]),
-        h(AppIcon, { name: 'warning', size: 'lg', class: 'text-error-dark opacity-80' }),
+        h(AppIcon, { name: props.alerts.length > 0 ? 'warning' : 'success', size: 'lg', class: props.alerts.length > 0 ? 'text-error-dark opacity-80' : 'text-success' }),
       ]),
-      h('div', { class: 'space-y-2' }, props.alerts.map((alert) => h('p', { key: alert, class: 'rounded-lg border border-error/25 bg-error-light/30 px-3 py-2 text-sm font-semibold text-error-dark' }, alert))),
+      props.alerts.length > 0
+        ? h('div', { class: 'space-y-2' }, props.alerts.map((alert) => h('p', { key: alert, class: 'rounded-lg border border-error/25 bg-error-light/30 px-3 py-2 text-sm font-semibold text-error-dark' }, alert)))
+        : h('p', { class: 'rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-muted)] px-3 py-2 text-sm font-semibold text-[var(--app-text-muted)]' }, 'No hay alertas operativas.'),
       props.unitLabels.length > 0
         ? h('div', { class: 'mt-3 rounded-lg p-0' }, [
           h('p', { class: 'mb-2 text-[11px] font-bold uppercase tracking-wide text-error-dark/70' }, 'Unidades afectadas'),
@@ -660,7 +654,9 @@ const AlertPanel = defineComponent({
         : null,
       h('button', {
         type: 'button',
-        class: 'mt-4 inline-flex w-full items-center justify-center rounded-lg bg-error px-3 py-2.5 text-sm font-extrabold text-white transition hover:bg-error-dark active:scale-[0.98]',
+        class: props.alerts.length > 0
+          ? 'mt-4 inline-flex w-full items-center justify-center rounded-lg bg-error px-3 py-2.5 text-sm font-extrabold text-on-error transition hover:bg-error-dark hover:text-on-error-dark active:scale-[0.98]'
+          : 'app-button-soft mt-4 inline-flex w-full items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-extrabold',
         onClick: () => emit('action'),
       }, props.actionLabel),
     ])
@@ -671,17 +667,17 @@ const RecentRecordsPanel = defineComponent({
   setup() {
     return () => h('article', { class: 'app-card rounded-xl p-4' }, [
       h('div', { class: 'mb-3' }, [
-        h('p', { class: 'text-xs font-bold uppercase tracking-wide text-neutral-400' }, 'Ultimos registros'),
-        h('h2', { class: 'mt-0.5 text-xl font-extrabold text-neutral-900' }, 'Ultimas cargas'),
+        h('p', { class: 'text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]' }, 'Últimos registros'),
+        h('h2', { class: 'mt-0.5 text-xl font-extrabold text-[var(--app-text)]' }, 'Últimas cargas'),
       ]),
       adminStore.loadingRecentRecords
         ? h('div', { class: 'space-y-2' }, [1, 2, 3].map((i) => h('div', { key: i, class: 'app-surface-muted h-12 animate-pulse rounded-lg' })))
         : adminStore.recentRecords.length > 0
-          ? h('div', { class: 'divide-y divide-neutral-100' }, adminStore.recentRecords.map((record) => h('div', { key: record.id, class: 'py-3' }, [
-            h('p', { class: 'truncate text-sm font-bold text-neutral-800' }, `${record.operacion || 'Producción'} - ${record.unidad || 'Sin unidad'}`),
-            h('p', { class: 'truncate text-xs text-neutral-400' }, `${formatFecha(record.fecha)} - ${record.operador || 'Sin operador'} - ${record.equipo || 'Sin equipo'}`),
+          ? h('div', { class: 'divide-y divide-[var(--app-border)]' }, adminStore.recentRecords.map((record) => h('div', { key: record.id, class: 'py-3' }, [
+            h('p', { class: 'truncate text-sm font-bold text-[var(--app-text)]' }, `${record.operacion || 'Producción'} - ${record.unidad || 'Sin unidad'}`),
+            h('p', { class: 'truncate text-xs text-[var(--app-text-soft)]' }, `${formatFecha(record.fecha)} - ${record.operador || 'Sin operador'} - ${record.equipo || 'Sin equipo'}`),
           ])))
-          : h('p', { class: 'text-sm text-neutral-500' }, 'Sin registros cargados.'),
+          : h('p', { class: 'text-sm text-[var(--app-text-muted)]' }, 'Sin registros cargados.'),
     ])
   },
 })
@@ -706,7 +702,7 @@ function formatFecha(fecha) {
   return `${d}/${m}/${y}`
 }
 
-function horaRegistro(record) {
+function horometroRegistro(record) {
   if (record?.hr_fin) return String(record.hr_fin)
   if (record?.hr_inicio) return String(record.hr_inicio)
   return '-'

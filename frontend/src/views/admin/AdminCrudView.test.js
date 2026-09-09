@@ -101,6 +101,33 @@ describe('AdminCrudView tipos de proceso', () => {
     expect(wrapper.text()).not.toContain('Lost connection')
   })
 
+  it('keeps the load error separate from the empty table state', async () => {
+    api.get.mockRejectedValue({
+      response: {
+        status: 503,
+        data: { detail: 'No se pudo consultar el catalogo' },
+      },
+    })
+
+    const wrapper = mount(AdminCrudView, {
+      global: {
+        directives: {
+          motionPanel: {},
+          motionPop: {},
+        },
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    })
+    await flushPromises()
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('No se pudieron cargar los datos necesarios.')
+    expect(wrapper.text()).not.toContain('Sin registros para estos filtros.')
+    expect(wrapper.text()).toContain('Datos no disponibles')
+  })
+
   it('uses a searchable sorted autocomplete when adding personal to a business unit', async () => {
     routeState.params.entity = 'unidades-negocio'
     api.get.mockImplementation((url) => {

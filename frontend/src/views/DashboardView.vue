@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-[var(--app-bg)] pb-20 md:pb-6">
-    <div class="app-card-glass border-b border-neutral-200">
-      <div class="mx-auto flex max-w-[112rem] flex-col gap-3 px-3 py-3 md:px-4 lg:flex-row lg:items-center lg:justify-between">
+    <div class="app-card-glass border-b border-[var(--app-border)]">
+      <div class="content-wide mx-auto flex flex-col gap-3 px-3 py-3 md:px-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <span class="rounded-full border px-3 py-1 text-xs font-bold app-chip-info">
@@ -15,8 +15,11 @@
               Actualizando
             </span>
           </div>
-          <h1 class="text-xl font-extrabold text-neutral-950 md:text-2xl">Dashboard de Producción</h1>
-          <p class="mt-0.5 text-sm text-neutral-500">{{ authStore.userName }} · Lectura operativa y comparativa</p>
+          <h1 class="text-xl font-extrabold text-[var(--app-text)] md:text-2xl">Operación</h1>
+          <p class="mt-0.5 text-sm text-[var(--app-text-muted)]">{{ authStore.userName }} · Seguimiento operativo por unidad, proceso, equipo y período</p>
+          <p class="mt-2 text-xs font-semibold text-[var(--app-text-soft)]" aria-live="polite">
+            {{ scopeSummary }}
+          </p>
         </div>
 
         <div class="flex flex-wrap gap-2">
@@ -28,7 +31,7 @@
             <AppIcon name="download" size="sm" />
             Exportar CSV
           </button>
-          <button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-extrabold text-on-primary transition-colors hover:bg-primary-dark" @click="abrirDetalle">
+          <button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-extrabold text-on-primary transition-colors hover:bg-primary-dark hover:text-on-primary-dark" @click="abrirDetalle">
             <AppIcon name="records" size="sm" />
             Ver detalle
           </button>
@@ -36,17 +39,17 @@
       </div>
     </div>
 
-    <div class="app-card-glass sticky top-0 z-30 border-b border-neutral-200">
-      <div class="mx-auto max-w-[112rem] px-3 py-2.5 md:px-4">
+    <div class="app-card-glass app-mobile-filter-bar sticky z-20 border-b border-[var(--app-border)] md:top-0 md:z-30">
+      <div class="content-wide mx-auto px-3 py-2.5 md:px-4">
         <button
           type="button"
           @click="showFilters = !showFilters"
-          class="flex w-full items-center justify-between text-sm font-extrabold text-neutral-700 md:hidden"
+          class="flex w-full items-center justify-between text-sm font-extrabold text-[var(--app-text)] md:hidden"
         >
           <span class="flex items-center gap-2">
             <AppIcon name="filter" size="sm" />
             Filtros
-            <span v-if="store.filtrosActivos" class="flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-xs text-white">{{ store.filtrosActivos }}</span>
+            <span v-if="store.filtrosActivos" class="flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-xs text-on-secondary">{{ store.filtrosActivos }}</span>
           </span>
           <AppIcon name="chevronDown" size="sm" :class="['transition-transform', showFilters ? 'rotate-180' : '']" />
         </button>
@@ -62,7 +65,7 @@
             >
               {{ preset.label }}
             </button>
-            <span class="ml-auto hidden text-xs font-bold uppercase tracking-wide text-neutral-400 md:inline">Filtros principales</span>
+            <span class="ml-auto hidden text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)] md:inline">Filtros principales</span>
           </div>
 
           <div class="app-card grid gap-2.5 rounded-lg p-3 md:grid-cols-[1.25fr_1fr_1fr_.75fr_.75fr_auto] md:items-end">
@@ -86,7 +89,7 @@
             />
 
             <div>
-              <label class="mb-1 block text-xs font-semibold text-neutral-500">Máquina / Equipo</label>
+              <label class="mb-1 block text-xs font-semibold text-[var(--app-text-muted)]">Máquina / Equipo</label>
               <AutocompleteField
                 v-model="movilFilter"
                 :items="movilOptions"
@@ -97,7 +100,7 @@
             </div>
 
             <div>
-              <label class="mb-1 block text-xs font-medium text-neutral-500">Desde</label>
+              <label class="mb-1 block text-xs font-medium text-[var(--app-text-muted)]">Desde</label>
               <input
                 type="date"
                 :value="store.filtros.fecha_desde"
@@ -107,7 +110,7 @@
             </div>
 
             <div>
-              <label class="mb-1 block text-xs font-medium text-neutral-500">Hasta</label>
+              <label class="mb-1 block text-xs font-medium text-[var(--app-text-muted)]">Hasta</label>
               <input
                 type="date"
                 :value="store.filtros.fecha_hasta"
@@ -134,12 +137,12 @@
       </div>
     </div>
 
-    <main class="mx-auto max-w-[112rem] space-y-3 px-3 py-3 md:px-4">
+    <main class="content-wide mx-auto space-y-3 px-3 py-3 md:px-4">
       <section v-if="missingUn" class="rounded-lg border border-warning bg-warning-light p-4 text-center">
         <AppIcon name="warning" size="xl" :stroke-width="1.8" class="mx-auto mb-3 text-warning-dark" />
         <p class="mb-1 text-base font-bold text-warning-dark">Sin unidades disponibles</p>
-        <p class="text-sm text-neutral-600">No se encontraron unidades de negocio habilitadas para consultar el dashboard.</p>
-        <button type="button" @click="handleRelogin" class="mt-3 rounded-lg bg-warning-dark px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-warning">
+        <p class="text-sm text-[var(--app-text-muted)]">No se encontraron unidades de negocio habilitadas para consultar la operación.</p>
+        <button type="button" @click="handleRelogin" class="mt-3 rounded-lg bg-warning-dark px-4 py-2 text-sm font-semibold text-on-warning-dark transition-colors hover:bg-warning hover:text-on-warning">
           Cerrar sesión
         </button>
       </section>
@@ -153,14 +156,21 @@
                 {{ store.kpiPrincipal?.nombre || 'Métrica principal' }}
               </div>
               <div v-if="store.loading.kpis" class="app-surface-muted h-12 w-56 animate-pulse rounded"></div>
-              <div v-else class="flex items-baseline gap-3">
-                <span class="text-4xl font-extrabold tracking-normal text-neutral-950 md:text-5xl">{{ animatedHeroValue }}</span>
-                <span class="text-lg font-bold text-neutral-500">{{ store.kpiPrincipal?.unidad || '' }}</span>
+              <div v-else-if="store.registrosIncluidos === 0" class="flex flex-col gap-1">
+                <span class="text-3xl font-extrabold tracking-normal text-[var(--app-text-muted)]">Sin datos</span>
+                <span class="text-sm font-semibold text-[var(--app-text-soft)]">para los filtros actuales</span>
               </div>
+              <div v-else class="flex items-baseline gap-3">
+                <span class="text-4xl font-extrabold tracking-normal text-[var(--app-text)] md:text-5xl">{{ animatedHeroValue }}</span>
+                <span class="text-lg font-bold text-[var(--app-text-muted)]">{{ store.kpiPrincipal?.unidad || '' }}</span>
+              </div>
+              <p v-if="store.kpiPrincipal?.descripcion" class="mt-2 max-w-xl text-xs text-[var(--app-text-soft)]">
+                {{ store.kpiPrincipal.descripcion }}
+              </p>
             </div>
             <div class="app-surface-muted max-w-md rounded-lg border p-3">
-              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Resumen ejecutivo</p>
-              <p class="mt-2 text-sm font-semibold leading-6 text-neutral-800">{{ executiveSummary }}</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]">Seguimiento operativo</p>
+              <p class="mt-2 text-sm font-semibold leading-6 text-[var(--app-text)]">{{ executiveSummary }}</p>
             </div>
           </div>
           <div v-if="store.kpiPrincipal?.variacion_porcentual != null" class="mt-4">
@@ -172,23 +182,23 @@
         </div>
 
         <div class="app-card rounded-lg p-4">
-          <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Lectura rápida</p>
+          <p class="text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]">Lectura rápida</p>
           <div class="mt-4 space-y-3 text-sm">
             <div class="flex items-center justify-between gap-3">
-              <span class="text-neutral-500">Unidad</span>
-              <span class="truncate font-extrabold text-neutral-900">{{ selectedUnitName || 'Sin seleccionar' }}</span>
+              <span class="text-[var(--app-text-muted)]">Unidad</span>
+              <span class="truncate font-extrabold text-[var(--app-text)]">{{ selectedUnitName || 'Sin seleccionar' }}</span>
             </div>
             <div class="flex items-center justify-between gap-3">
-              <span class="text-neutral-500">Periodo</span>
-              <span class="font-extrabold text-neutral-900">{{ dateRangeLabel }}</span>
+              <span class="text-[var(--app-text-muted)]">Periodo</span>
+              <span class="font-extrabold text-[var(--app-text)]">{{ dateRangeLabel }}</span>
             </div>
             <div class="flex items-center justify-between gap-3">
-              <span class="text-neutral-500">Registros</span>
-              <span class="font-extrabold text-neutral-900">{{ formatNumber(periodRecords) }}</span>
+              <span class="text-[var(--app-text-muted)]">Registros incluidos</span>
+              <span class="font-extrabold text-[var(--app-text)]">{{ formatNumber(periodRecords) }}</span>
             </div>
             <div class="flex items-center justify-between gap-3">
-              <span class="text-neutral-500">Filtros activos</span>
-              <span class="font-extrabold text-neutral-900">{{ store.filtrosActivos }}</span>
+              <span class="text-[var(--app-text-muted)]">Filtros activos</span>
+              <span class="font-extrabold text-[var(--app-text)]">{{ store.filtrosActivos }}</span>
             </div>
           </div>
         </div>
@@ -198,11 +208,11 @@
         <div v-for="i in 5" :key="i" class="app-card rounded-lg p-4">
           <div class="app-surface-muted mb-4 h-8 w-8 animate-pulse rounded-lg"></div>
           <div class="app-surface-muted mb-2 h-4 w-3/4 animate-pulse rounded"></div>
-          <div class="h-7 w-1/2 animate-pulse rounded bg-neutral-200"></div>
+          <div class="app-surface-muted h-7 w-1/2 animate-pulse rounded"></div>
         </div>
       </section>
 
-      <section v-else-if="store.kpisSecundarios.length > 0" :class="secondaryKpiGridClass">
+      <section v-else-if="store.registrosIncluidos > 0 && store.kpisSecundarios.length > 0" :class="secondaryKpiGridClass">
         <article
           v-for="kpi in store.kpisSecundarios"
           :key="kpi.id"
@@ -216,10 +226,13 @@
               {{ Number(kpi.variacion_porcentual) >= 0 ? '+' : '-' }}{{ Math.abs(kpi.variacion_porcentual) }}%
             </span>
           </div>
-          <p class="min-h-8 text-xs font-bold uppercase leading-4 text-neutral-400">{{ kpi.nombre }}</p>
+          <p class="min-h-8 text-xs font-bold uppercase leading-4 text-[var(--app-text-soft)]">{{ kpi.nombre }}</p>
+          <p v-if="kpi.descripcion" class="mt-1 min-h-8 text-[11px] leading-4 text-[var(--app-text-soft)]">
+            {{ kpi.descripcion }}
+          </p>
           <div class="mt-2 flex items-baseline gap-2">
-            <span class="text-2xl font-extrabold text-neutral-950">{{ formatNumber(kpi.valor) }}</span>
-            <span class="text-xs font-bold text-neutral-400">{{ kpi.unidad }}</span>
+            <span class="text-2xl font-extrabold text-[var(--app-text)]">{{ formatNumber(kpi.valor) }}</span>
+            <span class="text-xs font-bold text-[var(--app-text-soft)]">{{ kpi.unidad }}</span>
           </div>
         </article>
       </section>
@@ -230,7 +243,7 @@
           :description="emptyFilterMessage"
           icon="empty"
         >
-          <button type="button" class="rounded-lg bg-primary px-4 py-2 text-sm font-extrabold text-on-primary" @click="store.limpiarFiltros()">
+          <button type="button" class="rounded-lg bg-primary px-4 py-2 text-sm font-extrabold text-on-primary hover:bg-primary-dark hover:text-on-primary-dark" @click="store.limpiarFiltros()">
             Restablecer filtros
           </button>
         </EmptyState>
@@ -240,8 +253,8 @@
         <div class="app-card rounded-lg p-4 lg:col-span-3">
           <div class="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Evolución diaria</p>
-              <h2 class="text-lg font-extrabold text-neutral-950">{{ chartTitle }}</h2>
+              <p class="text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]">Evolución diaria</p>
+              <h2 class="text-lg font-extrabold text-[var(--app-text)]">{{ chartTitle }}</h2>
             </div>
             <div class="flex flex-wrap gap-2">
               <button type="button" :class="metricTabClass('produccion')" @click="activeChartMetric = 'produccion'">
@@ -263,7 +276,7 @@
               placeholder="Todos los procesos"
               selectedDisplay="input"
             />
-            <button type="button" class="min-h-10 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-bold text-neutral-600 hover:border-secondary/40" @click="abrirDetalle">
+            <button type="button" class="min-h-10 rounded-lg border border-[var(--app-border)] px-4 py-2 text-sm font-bold text-[var(--app-text-muted)] hover:border-secondary/40" @click="abrirDetalle">
               Abrir registros
             </button>
           </div>
@@ -276,11 +289,11 @@
             <svg :viewBox="`0 0 ${chartW} ${chartH + 30}`" class="w-full" preserveAspectRatio="xMidYMid meet">
               <line v-for="i in 4" :key="'g'+i"
                 :x1="chartPad" :y1="chartH - (chartH - chartPad) * (i/4)" :x2="chartW - chartPad" :y2="chartH - (chartH - chartPad) * (i/4)"
-                stroke="var(--color-neutral-200)" stroke-width="0.5" stroke-dasharray="4 4"
+                stroke="var(--app-border)" stroke-width="0.5" stroke-dasharray="4 4"
               />
               <text v-for="i in 4" :key="'yl'+i"
                 :x="chartPad - 4" :y="chartH - (chartH - chartPad) * (i/4) + 3"
-                text-anchor="end" fill="var(--color-neutral-400)" font-size="9"
+                text-anchor="end" fill="var(--app-text-soft)" font-size="9"
               >{{ formatNumber(maxVal * i / 4) }}</text>
               <defs>
                 <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -293,21 +306,21 @@
               <circle
                 v-for="(p, i) in chartPoints" :key="'p'+i"
                 :cx="p.x" :cy="p.y" r="4"
-                fill="white" :stroke="activeChartMetric === 'combustible' ? 'var(--color-warning-dark)' : 'var(--color-primary)'" stroke-width="2"
+                fill="var(--app-surface)" :stroke="activeChartMetric === 'combustible' ? 'var(--color-warning-dark)' : 'var(--color-primary)'" stroke-width="2"
                 class="cursor-pointer"
                 @mouseenter="tooltip = { x: p.x, y: p.y, label: activeChartData.labels[i], value: activeChartValues[i] }"
               />
               <text v-for="(p, i) in chartXLabels" :key="'xl'+i"
-                :x="p.x" :y="chartH + 20" text-anchor="middle" fill="var(--color-neutral-400)" font-size="8"
+                :x="p.x" :y="chartH + 20" text-anchor="middle" fill="var(--app-text-soft)" font-size="8"
               >{{ p.label }}</text>
             </svg>
 
             <div v-if="tooltip"
-              class="absolute pointer-events-none rounded-lg bg-neutral-900 px-3 py-1.5 text-xs text-white shadow-lg"
+              class="app-surface absolute pointer-events-none rounded-lg px-3 py-1.5 text-xs shadow-[var(--app-shadow-lg)]"
               :style="{ left: `${(tooltip.x / chartW) * 100}%`, top: `${(tooltip.y / (chartH + 30)) * 100 - 10}%`, transform: 'translate(-50%, -100%)' }"
             >
               <div class="font-bold">{{ formatNumber(tooltip.value) }} {{ activeChartUnit }}</div>
-              <div class="text-[10px] text-neutral-400">{{ tooltip.label }}</div>
+              <div class="text-[10px] text-[var(--app-text-muted)]">{{ tooltip.label }}</div>
             </div>
           </div>
 
@@ -323,10 +336,10 @@
         <div class="app-card rounded-lg p-4 lg:col-span-2">
           <div class="mb-3 flex items-start justify-between gap-3">
             <div>
-              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Ranking</p>
-              <h2 class="text-lg font-extrabold text-neutral-950">Máquinas</h2>
+              <p class="text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]">Ranking</p>
+              <h2 class="text-lg font-extrabold text-[var(--app-text)]">Máquinas</h2>
             </div>
-            <button type="button" class="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-bold text-neutral-600 hover:border-secondary/40" @click="exportCsv">
+            <button type="button" class="rounded-lg border border-[var(--app-border)] px-3 py-2 text-xs font-bold text-[var(--app-text-muted)] hover:border-secondary/40" @click="exportCsv">
               CSV
             </button>
           </div>
@@ -353,7 +366,7 @@
 
           <div v-if="store.loading.ranking" class="space-y-4">
             <div v-for="i in 5" :key="i" class="animate-pulse">
-              <div class="mb-2 h-3 w-2/3 rounded bg-neutral-200"></div>
+              <div class="app-surface-muted mb-2 h-3 w-2/3 rounded"></div>
               <div class="app-surface-muted h-5 rounded"></div>
             </div>
           </div>
@@ -364,16 +377,16 @@
                 <div class="flex min-w-0 items-center gap-2">
                   <span :class="[
                     'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold',
-                    idx === 0 ? 'bg-secondary text-white shadow-sm' : idx === 1 ? 'bg-info-light text-info-dark' : idx === 2 ? 'bg-warning-light text-warning-dark' : 'app-state-inactive border'
+                    idx === 0 ? 'bg-secondary text-on-secondary shadow-[var(--app-shadow)]' : idx === 1 ? 'bg-info-light text-info-dark' : idx === 2 ? 'bg-warning-light text-warning-dark' : 'app-state-inactive border'
                   ]">{{ idx + 1 }}</span>
                   <div class="min-w-0">
-                    <p class="truncate text-sm font-bold text-neutral-800">{{ item.patente }}</p>
-                    <p class="truncate text-[11px] text-neutral-400">{{ item.detalle }}</p>
+                    <p class="truncate text-sm font-bold text-[var(--app-text)]">{{ item.patente }}</p>
+                    <p class="truncate text-[11px] text-[var(--app-text-soft)]">{{ item.detalle }}</p>
                   </div>
                 </div>
                 <div class="ml-2 shrink-0 text-right">
-                  <span class="text-sm font-extrabold text-neutral-900">{{ formatNumber(item.valor) }}</span>
-                  <span class="block text-[10px] text-neutral-400">{{ item.registros }} reg.</span>
+                  <span class="text-sm font-extrabold text-[var(--app-text)]">{{ formatNumber(item.valor) }}</span>
+                  <span class="block text-[10px] text-[var(--app-text-soft)]">{{ item.registros }} reg.</span>
                 </div>
               </div>
               <div class="app-surface-muted h-1.5 overflow-hidden rounded-full">
@@ -401,7 +414,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/dashboard'
 import AutocompleteField from '@/components/AutocompleteField.vue'
@@ -410,6 +423,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 
 const authStore = useAuthStore()
 const store = useDashboardStore()
+const route = useRoute()
 const router = useRouter()
 
 const showFilters = ref(false)
@@ -502,7 +516,14 @@ const secondaryKpiGridClass = computed(() => {
 })
 
 const periodRecords = computed(() => {
-  return store.kpis.find((kpi) => String(kpi.nombre || '').toLowerCase().includes('registro'))?.valor || 0
+  return store.registrosIncluidos
+})
+
+const scopeSummary = computed(() => {
+  if (store.loading.kpis) return 'Calculando el alcance de los datos...'
+  if (!store.filtros.un_id) return 'Seleccioná una unidad para consultar la operación.'
+  if (store.registrosIncluidos === 0) return 'Sin registros para los filtros actuales.'
+  return `${formatNumber(store.registrosIncluidos)} registros incluidos en este alcance.`
 })
 
 const executiveSummary = computed(() => {
@@ -570,7 +591,7 @@ function datePresetClass(key) {
   return [
     'rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
     isDatePresetActive(key)
-      ? 'border-secondary bg-secondary text-white'
+      ? 'border-secondary bg-secondary text-on-secondary'
       : 'app-button-soft border',
   ]
 }
@@ -629,7 +650,7 @@ function rankingMetricClass(metric) {
   return [
     'rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
     store.filtros.ranking_metric === metric
-      ? 'border-secondary bg-secondary text-white'
+      ? 'border-secondary bg-secondary text-on-secondary'
       : 'app-button-soft border',
   ]
 }
@@ -638,7 +659,7 @@ function metricTabClass(metric) {
   return [
     'rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
     activeChartMetric.value === metric
-      ? 'border-secondary bg-secondary text-white'
+      ? 'border-secondary bg-secondary text-on-secondary'
       : 'app-button-soft border',
   ]
 }
@@ -692,7 +713,7 @@ function addDays(date, days) {
 
 function exportCsv() {
   const rows = [
-    ['Dashboard de Producción'],
+    ['Operación'],
     ['Unidad', selectedUnitName.value],
     ['Periodo', dateRangeLabel.value],
     [],
@@ -707,7 +728,7 @@ function exportCsv() {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `dashboard-produccion-${store.filtros.fecha_desde || 'inicio'}-${store.filtros.fecha_hasta || 'hoy'}.csv`
+  link.download = `operacion-${store.filtros.fecha_desde || 'inicio'}-${store.filtros.fecha_hasta || 'hoy'}.csv`
   link.click()
   URL.revokeObjectURL(url)
 }
@@ -784,6 +805,7 @@ onMounted(async () => {
   const savedFilters = store.loadPersistedFiltros()
   const availableUnits = unidadOptions.value.map((unidad) => Number(unidad.idUnidadNegocio))
   const candidates = [
+    route.query.un_id,
     savedFilters.un_id,
     authStore.user?.unidad_negocio,
     ...(Array.isArray(authStore.user?.unidad_ids) ? authStore.user.unidad_ids : []),

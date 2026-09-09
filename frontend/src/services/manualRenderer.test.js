@@ -87,7 +87,7 @@ describe('manualRenderer - renderAllowedHtmlLine (the bug from issue #28)', () =
 describe('manualRenderer - local Markdown images', () => {
   it('renders local mobile captures with a stable class', () => {
     expect(renderMarkdownImage('![Inicio móvil](/manuales/capturas/operador/02-inicio.png)'))
-      .toBe('<img class="manual-screenshot" src="/manuales/capturas/operador/02-inicio.png" alt="Inicio móvil">')
+      .toBe('<img class="manual-screenshot" src="/manuales/capturas/operador/02-inicio.png" alt="Inicio móvil" loading="lazy" decoding="async">')
   })
 
   it('rejects remote or malformed Markdown images', () => {

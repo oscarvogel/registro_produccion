@@ -30,14 +30,14 @@ export function createSidebarNavigation({
   const sections = []
   if (isAdmin || isEncargado) {
     const operationItems = [
-      link('dashboard', 'Dashboard Operativo', 'dashboard', { name: 'dashboard' }),
+      link('dashboard', 'Operación', 'dashboard', { name: 'dashboard' }),
     ]
     if (isAdmin) {
       operationItems.push(
-        link('admin-dashboard', 'Dashboard Producción', 'dashboard', { name: 'admin-dashboard' }),
+        link('admin-dashboard', 'Análisis de Producción', 'dashboard', { name: 'admin-dashboard' }),
       )
     }
-    sections.push(section('operacion', 'Operación', operationItems))
+    sections.push(section('operacion', 'Seguimiento', operationItems))
   }
 
   sections.push(section('combustible', 'Combustible', [

@@ -12,6 +12,7 @@ describe('AppButton', () => {
     })
 
     expect(wrapper.attributes('disabled')).toBeDefined()
+    expect(wrapper.attributes('aria-busy')).toBe('true')
     expect(wrapper.text()).toContain('Guardar')
     expect(wrapper.find('.animate-spin').exists()).toBe(true)
   })

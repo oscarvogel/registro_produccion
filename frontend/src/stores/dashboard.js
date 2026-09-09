@@ -6,6 +6,7 @@ const DASHBOARD_FILTERS_KEY = 'dashboard_filters'
 export const useDashboardStore = defineStore('dashboard', {
   state: () => ({
     kpis: [],
+    registrosIncluidos: 0,
     evolucion: { labels: [], datasets: [] },
     evolucionCombustible: { labels: [], datasets: [] },
     rankingMaquinas: [],
@@ -99,11 +100,13 @@ export const useDashboardStore = defineStore('dashboard', {
       try {
         const { data } = await api.get('/api/dashboard/kpis', { params: this._buildParams(), _suppressErrorToast: true })
         this.kpis = data.kpis
+        this.registrosIncluidos = Number(data.registros_incluidos || 0)
         this.filtrosAplicados = data.filtros_aplicados
       } catch (err) {
         console.error('Error cargando KPIs:', err)
         this.error = 'Error al cargar los KPIs'
         this.kpis = []
+        this.registrosIncluidos = 0
       } finally {
         this.loading.kpis = false
       }

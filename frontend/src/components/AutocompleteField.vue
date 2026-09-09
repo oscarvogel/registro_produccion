@@ -1,6 +1,6 @@
 <template>
   <div class="relative">
-    <label v-if="label" class="mb-1 block text-sm font-semibold text-neutral-700">
+    <label v-if="label" :for="inputId" class="mb-1 block text-sm font-semibold text-neutral-700">
       {{ label }}
     </label>
     <div
@@ -13,18 +13,25 @@
             ? 'border-warning/30 bg-warning-light text-warning-dark'
             : 'border-neutral-200 bg-neutral-100 text-neutral-500',
       ]"
+      :id="statusMessageId"
+      :role="error || (invalid && errorMessage) ? 'alert' : 'status'"
+      :aria-live="error || (invalid && errorMessage) ? 'assertive' : 'polite'"
     >
       {{ statusMessage }}
     </div>
     <div
       v-if="stale && statusMessage !== staleMessage"
       class="mb-1.5 rounded-lg border border-warning/30 bg-warning-light px-2.5 py-1.5 text-xs font-medium text-warning-dark"
+      role="status"
+      aria-live="polite"
     >
       {{ staleMessage }}
     </div>
     <div
       v-if="inlineEmptyMessage"
       class="mb-1.5 rounded-lg border border-neutral-200 bg-neutral-100 px-2.5 py-1.5 text-xs font-medium text-neutral-500"
+      role="status"
+      aria-live="polite"
     >
       {{ inlineEmptyMessage }}
     </div>
@@ -34,6 +41,8 @@
       v-if="selectedLabel && !searching && selectedDisplay === 'input'"
       type="button"
       :disabled="disabled"
+      :aria-invalid="invalid || undefined"
+      :aria-describedby="statusMessage ? statusMessageId : undefined"
       @click="startSearch"
       class="app-input flex min-h-10 w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-px hover:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-neutral-200 sm:px-3.5"
     >
@@ -81,6 +90,7 @@
           :aria-controls="listboxId"
           :aria-activedescendant="activeDescendantId"
           :aria-invalid="invalid || undefined"
+          :aria-describedby="statusMessage ? statusMessageId : undefined"
           :class="[
             'app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-neutral-200 transition-colors sm:px-3.5',
             invalid
@@ -94,6 +104,7 @@
           @mousedown.prevent="query = ''; isOpen = true"
           class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
           tabindex="-1"
+          aria-label="Limpiar búsqueda"
         >
           <AppIcon name="close" size="sm" />
         </button>
@@ -184,6 +195,7 @@ const inputRef = ref(null)
 const uniqueId = Math.random().toString(36).slice(2)
 const inputId = `autocomplete-input-${uniqueId}`
 const listboxId = `autocomplete-listbox-${uniqueId}`
+const statusMessageId = `autocomplete-status-${uniqueId}`
 const activeDescendantId = computed(() => highlightedIndex.value >= 0 ? optionId(highlightedIndex.value) : undefined)
 const usesInlineDropdown = computed(() => props.dropdownMode === 'inline')
 const resultsListClass = computed(() => [
@@ -197,6 +209,7 @@ const emptyListClass = computed(() => [
 const statusMessage = computed(() => {
   if (props.loading) return `Cargando${props.label ? ` ${props.label.toLowerCase()}` : ''}...`
   if (props.error) return props.errorMessage || (typeof props.error === 'string' ? props.error : 'No se pudo cargar. Reintentar')
+  if (props.invalid && props.errorMessage) return props.errorMessage
   if (props.stale) return staleMessage.value
   if ((props.items || []).length === 0 && props.emptyMessage && !props.disabled) return props.emptyMessage
   return ''

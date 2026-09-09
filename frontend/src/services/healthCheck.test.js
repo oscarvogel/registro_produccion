@@ -29,6 +29,7 @@ describe('checkBackend', () => {
     let captured
     fakeFetchOnce(jsonResponse([{ id: 1 }], { status: 200 }))
     const result = await checkBackend({
+      baseURL: '',
       path: '/api/produccion/lugares-carga?un_id=1',
       onResult: (state, latency) => {
         captured = { state, latency }

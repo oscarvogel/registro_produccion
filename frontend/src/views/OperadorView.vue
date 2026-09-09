@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-[var(--app-bg)] px-3 py-3 pb-20 md:px-4 md:py-4 md:pb-6">
-    <div class="mx-auto max-w-6xl space-y-3">
+    <div class="content-default mx-auto space-y-3">
       <PageHeader
         title="Mis Registros"
         :description="`${authStore.userName} · historial personal y totales del periodo`"
@@ -64,7 +64,7 @@
       <template v-else>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Registros" :value="store.totales.total" icon="records" tone="info" />
-          <MetricCard label="Horas trabajadas" :value="fmt(store.totales.total_horas)" unit="hs" icon="timer" />
+          <MetricCard label="Diferencia de horómetro" :value="fmt(store.totales.total_horas)" unit="hs" icon="timer" />
           <MetricCard label="Combustible" :value="fmt(store.totales.total_combustible)" unit="lts" icon="fuel" tone="warning" />
           <MetricCard
             v-if="store.totales.combustible_por_hora != null"
@@ -236,7 +236,7 @@ function quickFilterClass(key) {
   return [
     'rounded-full border px-3 py-1.5 text-xs font-bold transition-colors',
     activePreset.value === key
-      ? 'border-secondary bg-secondary text-white'
+      ? 'border-secondary bg-secondary text-on-secondary'
       : 'app-button-soft border',
   ]
 }

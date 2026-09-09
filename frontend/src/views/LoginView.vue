@@ -124,13 +124,14 @@
                   class="flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-primary bg-white px-4 text-sm font-bold text-primary transition-colors hover:bg-primary-light/20 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <AppIcon :name="authStore.syncing ? 'loading' : 'sync'" :class="authStore.syncing ? 'animate-spin' : ''" />
-                  <span>{{ authStore.syncing ? 'Sincronizando...' : 'Sincronizar' }}</span>
+                  <span>{{ authStore.syncing ? 'Actualizando datos...' : 'Actualizar datos para uso offline' }}</span>
                 </button>
+                <p class="text-center text-xs text-neutral-500">Actualiza los datos necesarios para poder trabajar sin conexión.</p>
 
                 <button
                   type="submit"
                   :disabled="authStore.loading"
-                  class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary-dark px-4 text-sm font-extrabold text-white transition-colors hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary-dark px-4 text-sm font-extrabold text-white transition-colors hover:bg-primary hover:text-on-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <AppIcon v-if="authStore.loading" name="loading" class="animate-spin" />
                   <AppIcon v-else name="login" />
@@ -180,14 +181,14 @@
             </div>
 
             <div>
-              <label for="mobile-password" class="mb-1.5 block text-sm font-bold text-neutral-700">Contrasena</label>
+              <label for="mobile-password" class="mb-1.5 block text-sm font-bold text-neutral-700">Contraseña</label>
               <div class="relative">
                 <input
                   id="mobile-password"
                   v-model="password"
                   :type="showPassword ? 'text' : 'password'"
                   autocomplete="current-password"
-                  placeholder="Ingresa tu contrasena"
+                  placeholder="Ingresá tu contraseña"
                   required
                   :disabled="authStore.loading"
                   class="h-12 w-full rounded-lg border border-neutral-300 bg-white px-4 pr-11 text-sm text-neutral-900 placeholder:text-neutral-400 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:bg-neutral-100"
@@ -195,7 +196,7 @@
                 <button
                   type="button"
                   class="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-neutral-400 transition-colors hover:text-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  :aria-label="showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'"
+                  :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                   @click="showPassword = !showPassword"
                 >
                   <AppIcon :name="showPassword ? 'hide' : 'view'" size="sm" />
@@ -258,13 +259,14 @@
                 class="flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-primary bg-white px-4 text-sm font-bold text-primary transition-colors hover:bg-primary-light/20 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <AppIcon :name="authStore.syncing ? 'loading' : 'sync'" :class="authStore.syncing ? 'animate-spin' : ''" />
-                <span>{{ authStore.syncing ? 'Sincronizando...' : 'Sincronizar' }}</span>
+                <span>{{ authStore.syncing ? 'Actualizando datos...' : 'Actualizar datos para uso offline' }}</span>
               </button>
+              <p class="text-center text-xs text-neutral-500">Actualiza los datos necesarios para poder trabajar sin conexión.</p>
 
               <button
                 type="submit"
                 :disabled="authStore.loading"
-                class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary-dark px-4 text-sm font-extrabold text-white transition-colors hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary-dark px-4 text-sm font-extrabold text-white transition-colors hover:bg-primary hover:text-on-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <AppIcon v-if="authStore.loading" name="loading" class="animate-spin" />
                 <AppIcon v-else name="login" />

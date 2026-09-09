@@ -1,5 +1,5 @@
 <template>
-  <div class="app-table overflow-x-auto rounded-xl">
+  <div class="app-table overflow-x-auto rounded-xl" :aria-busy="loading || undefined">
     <table class="min-w-full text-sm">
       <thead class="app-table-head sticky top-0 z-10">
         <tr>
@@ -24,7 +24,7 @@
       </thead>
       <tbody>
         <tr v-if="loading">
-          <td :colspan="columns.length + ($slots.actions ? 1 : 0)" class="px-3 py-5 text-center text-neutral-500">Cargando...</td>
+          <td :colspan="columns.length + ($slots.actions ? 1 : 0)" class="px-3 py-5 text-center text-neutral-500" role="status" aria-live="polite">Cargando...</td>
         </tr>
         <tr v-else-if="sortedRows.length === 0">
           <td :colspan="columns.length + ($slots.actions ? 1 : 0)" class="px-3 py-5 text-center text-neutral-500">{{ emptyText }}</td>

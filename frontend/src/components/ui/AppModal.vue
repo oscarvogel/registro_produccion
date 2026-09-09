@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import { nextTick, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -46,17 +46,119 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 const dialogRef = ref(null)
+const triggerElement = ref(null)
 const titleId = `modal-title-${Math.random().toString(36).slice(2)}`
 const descriptionId = `modal-description-${Math.random().toString(36).slice(2)}`
+const focusableSelector = [
+  'button:not([disabled])',
+  'a[href]',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"]):not([disabled])',
+].join(', ')
+
+function getFocusableElements() {
+  if (!dialogRef.value) return []
+
+  return Array.from(dialogRef.value.querySelectorAll(focusableSelector)).filter((element) => {
+    if (
+      element.hidden ||
+      element.matches(':disabled') ||
+      element.getAttribute('aria-hidden') === 'true' ||
+      element.closest('[hidden], [aria-hidden="true"]') ||
+      element.getAttribute('tabindex') === '-1'
+    ) {
+      return false
+    }
+
+    const style = window.getComputedStyle(element)
+    return style.display !== 'none' && style.visibility !== 'hidden' && element.tabIndex >= 0
+  })
+}
+
+function focusFirstElement() {
+  const [firstElement] = getFocusableElements()
+  ;(firstElement || dialogRef.value)?.focus()
+}
+
+function handleKeydown(event) {
+  if (event.key !== 'Tab' || !dialogRef.value) return
+
+  const focusableElements = getFocusableElements()
+  if (focusableElements.length === 0) {
+    event.preventDefault()
+    dialogRef.value.focus()
+    return
+  }
+
+  const firstElement = focusableElements[0]
+  const lastElement = focusableElements[focusableElements.length - 1]
+  const activeElement = document.activeElement
+
+  if (!dialogRef.value.contains(activeElement)) {
+    event.preventDefault()
+    ;(event.shiftKey ? lastElement : firstElement).focus()
+    return
+  }
+
+  if (event.shiftKey && activeElement === firstElement) {
+    event.preventDefault()
+    lastElement.focus()
+  } else if (!event.shiftKey && activeElement === lastElement) {
+    event.preventDefault()
+    firstElement.focus()
+  }
+}
+
+function handleFocusIn(event) {
+  if (!dialogRef.value || dialogRef.value.contains(event.target)) return
+
+  focusFirstElement()
+}
+
+function startFocusTrap() {
+  document.addEventListener('keydown', handleKeydown)
+  document.addEventListener('focusin', handleFocusIn)
+}
+
+function stopFocusTrap() {
+  document.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('focusin', handleFocusIn)
+}
+
+function restoreTriggerFocus() {
+  const element = triggerElement.value
+  triggerElement.value = null
+
+  if (!element || !element.isConnected || typeof element.focus !== 'function') return
+
+  element.focus()
+}
 
 watch(
   () => props.modelValue,
   async (open) => {
-    if (!open) return
+    if (open) {
+      triggerElement.value = document.activeElement
+      await nextTick()
+      if (!props.modelValue) return
+      startFocusTrap()
+      focusFirstElement()
+      return
+    }
+
+    stopFocusTrap()
     await nextTick()
-    dialogRef.value?.focus()
-  }
+    restoreTriggerFocus()
+  },
+  { immediate: true }
 )
+
+onBeforeUnmount(() => {
+  stopFocusTrap()
+  restoreTriggerFocus()
+})
 
 function close() {
   emit('update:modelValue', false)

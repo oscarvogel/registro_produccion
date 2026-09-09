@@ -105,10 +105,10 @@ const grupos = [
     ],
   },
   {
-    titulo: 'Horario y operacion',
+    titulo: 'Horómetros y operación',
     campos: [
-      { key: 'hr_inicio', label: 'Hora inicio', tipo: 'hora' },
-      { key: 'hr_fin', label: 'Hora fin', tipo: 'hora' },
+      { key: 'hr_inicio', label: 'Horómetro inicial', tipo: 'numero' },
+      { key: 'hr_fin', label: 'Horómetro final', tipo: 'numero' },
       { key: 'hr_disposicion', label: 'Horas disposicion', tipo: 'numero' },
       { key: 'hrs_no_op', label: 'Horas no operativas', tipo: 'numero' },
       { key: 'motivo_no_op', label: 'Motivo no operativo' },
@@ -177,7 +177,6 @@ function formatCampo(valor, campo) {
     return '-'
   }
   if (campo.tipo === 'fecha') return formatFecha(valor)
-  if (campo.tipo === 'hora') return formatHora(valor)
   if (campo.tipo === 'numero') return formatNumero(valor)
   if (campo.tipo === 'booleano') return Number(valor) === 1 ? 'Si' : 'No'
   return valor
@@ -189,12 +188,6 @@ function formatFecha(fecha) {
   const [y, m, d] = str.split('-')
   if (y && m && d) return `${d}/${m}/${y}`
   return str
-}
-
-function formatHora(valor) {
-  const n = Number(valor)
-  if (!Number.isFinite(n) || n === 0) return '-'
-  return n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
 function formatNumero(valor) {

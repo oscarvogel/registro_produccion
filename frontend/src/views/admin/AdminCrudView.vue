@@ -6,7 +6,7 @@
           Administración
         </span>
         <span class="rounded-full border px-3 py-1 text-xs font-bold app-state-inactive">
-          {{ filteredRows.length }} registro{{ filteredRows.length !== 1 ? 's' : '' }}
+          {{ rowCountLabel }}
         </span>
       </template>
       <template #actions>
@@ -60,8 +60,9 @@
           </div>
         </FilterBar>
 
-        <div v-if="error" class="rounded-lg border border-error/25 bg-error-light/30 p-3 text-sm font-semibold text-error-dark">
-          {{ error }}
+        <div v-if="error" role="alert" class="flex flex-col gap-2 rounded-lg border border-error/25 bg-error-light/30 p-3 text-sm font-semibold text-error-dark sm:flex-row sm:items-center sm:justify-between">
+          <span>{{ error }}</span>
+          <AppButton variant="secondary" size="sm" :loading="loading" @click="loadRows">Reintentar</AppButton>
         </div>
 
         <AdminQuickAssignment
@@ -80,7 +81,7 @@
             Cargando...
           </div>
 
-          <div v-else-if="filteredRows.length === 0" class="app-card rounded-xl px-4 py-4 text-center text-sm text-neutral-500">
+          <div v-else-if="!error && filteredRows.length === 0" class="app-card rounded-xl px-4 py-4 text-center text-sm text-neutral-500">
             Sin registros para estos filtros.
           </div>
 
@@ -167,6 +168,7 @@
                       class="app-button-soft inline-flex min-h-9 w-9 items-center justify-center rounded-md border text-info-dark hover:border-secondary/40"
                       type="button"
                       :title="`Agregar ${block.title}`"
+                      :aria-label="`Agregar ${block.title}`"
                     >
                       <AppIcon name="add" size="xs" />
                     </button>
@@ -199,10 +201,10 @@
                       {{ option.label }}
                     </option>
                   </select>
-                  <button class="rounded-md bg-primary px-2 text-white" type="button" @click="confirmRelationAdd">
+                  <button class="rounded-md bg-primary px-2 text-on-primary" type="button" aria-label="Guardar relación" @click="confirmRelationAdd">
                     <AppIcon name="save" size="xs" />
                   </button>
-                  <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" @click="cancelRelationDraft">
+                  <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" aria-label="Cancelar relación" @click="cancelRelationDraft">
                     <AppIcon name="close" size="xs" />
                   </button>
                 </div>
@@ -220,10 +222,10 @@
                       {{ option.nombre }}
                     </option>
                   </select>
-                  <button class="rounded-md bg-primary px-2 text-white" type="button" @click="confirmRelationMove">
+                  <button class="rounded-md bg-primary px-2 text-on-primary" type="button" aria-label="Guardar movimiento de relación" @click="confirmRelationMove">
                     <AppIcon name="save" size="xs" />
                   </button>
-                  <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" @click="cancelRelationDraft">
+                  <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" aria-label="Cancelar movimiento de relación" @click="cancelRelationDraft">
                     <AppIcon name="close" size="xs" />
                   </button>
                 </div>
@@ -240,6 +242,7 @@
                       class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-error/35 text-error-dark hover:bg-error-light/30"
                       type="button"
                       :title="relationActionConfig(block.key, item).title"
+                      :aria-label="relationActionConfig(block.key, item).title"
                     >
                       <AppIcon :name="relationActionConfig(block.key, item).icon" size="xs" />
                     </button>
@@ -255,7 +258,7 @@
           </template>
         </div>
 
-        <div class="app-table hidden max-h-[68vh] overflow-auto rounded-xl md:block">
+        <div v-if="!error" class="app-table hidden max-h-[68vh] overflow-auto rounded-xl md:block">
           <table class="min-w-full text-sm">
             <thead class="app-table-head sticky top-0 z-10">
               <tr>
@@ -344,6 +347,7 @@
                               class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-secondary/30 text-info-dark hover:bg-info-light"
                               type="button"
                               :title="`Agregar ${block.title}`"
+                              :aria-label="`Agregar ${block.title}`"
                             >
                               <AppIcon name="add" size="xs" />
                             </button>
@@ -368,8 +372,8 @@
                               {{ option.label }}
                             </option>
                           </select>
-                          <button class="rounded-md bg-primary px-2 text-white" type="button" @click="confirmRelationAdd"><AppIcon name="save" size="xs" /></button>
-                          <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" @click="cancelRelationDraft"><AppIcon name="close" size="xs" /></button>
+                          <button class="rounded-md bg-primary px-2 text-on-primary" type="button" aria-label="Guardar relación" @click="confirmRelationAdd"><AppIcon name="save" size="xs" /></button>
+                          <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" aria-label="Cancelar relación" @click="cancelRelationDraft"><AppIcon name="close" size="xs" /></button>
                         </div>
                         <div v-if="isRelationMoving(row[meta.idKey], block.key)" class="mb-2 flex gap-2">
                           <select v-model="relationDraft.targetUnidadId" class="app-input min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm">
@@ -378,8 +382,8 @@
                               {{ option.nombre }}
                             </option>
                           </select>
-                          <button class="rounded-md bg-primary px-2 text-white" type="button" @click="confirmRelationMove"><AppIcon name="save" size="xs" /></button>
-                          <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" @click="cancelRelationDraft"><AppIcon name="close" size="xs" /></button>
+                          <button class="rounded-md bg-primary px-2 text-on-primary" type="button" aria-label="Guardar movimiento de relación" @click="confirmRelationMove"><AppIcon name="save" size="xs" /></button>
+                          <button class="rounded-md border border-neutral-300 px-2 text-neutral-600" type="button" aria-label="Cancelar movimiento de relación" @click="cancelRelationDraft"><AppIcon name="close" size="xs" /></button>
                         </div>
                         <div class="space-y-1 max-h-32 overflow-y-auto">
                           <div
@@ -394,6 +398,7 @@
                               class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-error/35 text-error-dark hover:bg-error-light/30"
                               type="button"
                               :title="relationActionConfig(block.key, item).title"
+                              :aria-label="relationActionConfig(block.key, item).title"
                             >
                               <AppIcon :name="relationActionConfig(block.key, item).icon" size="xs" />
                             </button>
@@ -412,7 +417,7 @@
           </table>
         </div>
 
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div v-if="!error" class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <label class="flex items-center gap-2 text-xs font-semibold text-neutral-500">
             Ver
             <select
@@ -905,6 +910,10 @@ let searchTimer = null
 const entity = computed(() => String(route.params.entity || ''))
 const meta = computed(() => ENTITY_DEFINITIONS[entity.value] || null)
 const deleteLabel = computed(() => meta.value?.deleteVerb || 'Eliminar')
+const rowCountLabel = computed(() => {
+  if (error.value) return 'Datos no disponibles'
+  return `${filteredRows.value.length} registro${filteredRows.value.length !== 1 ? 's' : ''}`
+})
 
 const formSections = computed(() => {
   const fields = meta.value?.fields || []

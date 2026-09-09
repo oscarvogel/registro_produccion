@@ -2,7 +2,7 @@
   <TransitionGroup
     name="toast-list"
     tag="div"
-    class="fixed right-3 top-3 z-[70] flex w-[calc(100vw-1.5rem)] max-w-sm flex-col gap-2"
+    class="fixed right-3 top-[calc(var(--app-mobile-header-top,0px)+var(--app-mobile-header-height)+0.75rem)] z-[70] flex w-[calc(100vw-1.5rem)] max-w-sm flex-col gap-2 md:top-3"
   >
     <div
       v-for="toast in toastStore.items"

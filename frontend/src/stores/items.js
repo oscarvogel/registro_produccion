@@ -11,11 +11,13 @@ export const useItemsStore = defineStore('items', {
   actions: {
     async fetchItems() {
       this.loading = true
+      this.error = null
       try {
-        const { data } = await api.get('/api/items')
+        const { data } = await api.get('/api/items', { _suppressErrorToast: true })
         this.items = data
       } catch (err) {
-        this.error = err.message
+        this.error = err.response?.data?.detail || 'No se pudieron cargar los items.'
+        this.items = []
       } finally {
         this.loading = false
       }

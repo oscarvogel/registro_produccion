@@ -45,7 +45,7 @@ function renderMarkdownImage(value) {
 
   const src = image[2].replace(/\s+"[^"]*"$/, '')
   if (!isSafeImageSrc(src)) return ''
-  return `<img class="manual-screenshot" src="${escapeHtml(src)}" alt="${escapeHtml(image[1])}">`
+  return `<img class="manual-screenshot" src="${escapeHtml(src)}" alt="${escapeHtml(image[1])}" loading="lazy" decoding="async">`
 }
 
 /**

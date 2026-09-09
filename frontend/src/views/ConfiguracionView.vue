@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-[calc(100vh-8.5rem)] bg-[var(--app-bg)] px-3 py-3 pb-20 md:min-h-[calc(100vh-3.5rem)] md:px-4 md:py-4">
-    <div class="mx-auto flex w-full max-w-3xl flex-col gap-3">
+    <div class="content-narrow mx-auto flex w-full flex-col gap-3">
       <PageHeader title="Configuración" description="Preferencias locales, instalación y sesión." />
 
       <section class="app-card w-full rounded-xl p-3.5">
