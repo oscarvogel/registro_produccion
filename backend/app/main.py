@@ -145,6 +145,7 @@ def get_current_database_name() -> str | None:
 
 
 @app.get("/health")
+@app.get("/api/health")
 async def health():
     database_ok = False
     database_name_check = None
