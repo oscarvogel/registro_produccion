@@ -16,7 +16,9 @@ def test_root_returns_project_welcome_message():
 
 def test_health_returns_instance_and_database_status(monkeypatch):
     monkeypatch.setattr(main_module.settings, "APP_INSTANCE", "indufor")
-    monkeypatch.setattr(main_module.settings, "APP_VERSION", "test-commit")
+    monkeypatch.setattr(main_module.settings, "APP_VERSION", "test-version")
+    monkeypatch.setattr(main_module.settings, "BUILD_COMMIT", "abc123def456")
+    monkeypatch.setattr(main_module.settings, "BUILD_BRANCH", "fix/test-health")
     monkeypatch.setattr(main_module, "check_database_health", lambda: True)
     client = TestClient(app)
 
@@ -28,7 +30,9 @@ def test_health_returns_instance_and_database_status(monkeypatch):
     assert data["service"] == "registro_produccion"
     assert data["instance"] == "indufor"
     assert data["database"] == "ok"
-    assert data["version"] == "test-commit"
+    assert data["version"] == "test-version"
+    assert data["commit"] == "abc123def456"
+    assert data["branch"] == "fix/test-health"
     assert "time" in data
     assert "DATABASE_URL" not in data
 
