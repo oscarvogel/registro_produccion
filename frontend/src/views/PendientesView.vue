@@ -210,6 +210,21 @@
             </dl>
           </section>
 
+          <section
+            v-for="grupo in selectedRecordProcessGroups"
+            :key="grupo.key"
+            class="rounded-lg border border-primary/25 bg-primary/5 p-3"
+            data-testid="pending-caminos-process"
+          >
+            <h4 class="mb-2 text-xs font-extrabold uppercase tracking-wide text-primary-dark">{{ grupo.title }}</h4>
+            <dl class="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
+              <div v-for="field in grupo.fields" :key="`${grupo.key}-${field.key}`" class="min-w-0">
+                <dt class="text-[11px] font-semibold uppercase tracking-wide text-outline">{{ field.label }}</dt>
+                <dd class="mt-0.5 break-words text-sm font-semibold text-on-surface">{{ formatDetailValue(field.value, field.type) }}</dd>
+              </div>
+            </dl>
+          </section>
+
           <button
             type="button"
             class="app-button-soft inline-flex items-center rounded-lg border px-3 py-2 text-xs font-bold"
@@ -233,6 +248,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import api from '@/services/api'
 import { ensurePendingIdentity } from '@/services/pendingRecords'
+import { buildCaminosProcessGroups } from '@/services/pendingRecordDetail'
 import db from '@/services/db'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
@@ -285,6 +301,7 @@ const localFailedRecords = computed(() => records.value.filter(isFailedRecord))
 const scopedPendingRecords = computed(() => scopedRecords.value.filter(isPendingRecord))
 const scopedFailedRecords = computed(() => scopedRecords.value.filter(isFailedRecord))
 const selectedRecordText = computed(() => JSON.stringify(selectedRecord.value?.payload || {}, null, 2))
+const selectedRecordProcessGroups = computed(() => buildCaminosProcessGroups(selectedRecord.value?.payload || {}))
 const selectedRecordGroups = computed(() => {
   const payload = selectedRecord.value?.payload || {}
   const groups = [
