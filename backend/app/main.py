@@ -168,6 +168,8 @@ async def health():
         "instance": settings.APP_INSTANCE,
         "database": "ok" if healthy else "error",
         "version": settings.APP_VERSION,
+        "commit": settings.BUILD_COMMIT,
+        "branch": settings.BUILD_BRANCH,
         "time": datetime.now(timezone.utc).isoformat(),
     }
     if database_name_check is not None:
