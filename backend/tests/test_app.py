@@ -16,7 +16,9 @@ def test_root_returns_project_welcome_message():
 
 def test_health_returns_instance_and_database_status(monkeypatch):
     monkeypatch.setattr(main_module.settings, "APP_INSTANCE", "indufor")
-    monkeypatch.setattr(main_module.settings, "APP_VERSION", "test-commit")
+    monkeypatch.setattr(main_module.settings, "APP_VERSION", "test-version")
+    monkeypatch.setattr(main_module.settings, "BUILD_COMMIT", "abc123def456")
+    monkeypatch.setattr(main_module.settings, "BUILD_BRANCH", "fix/test-health")
     monkeypatch.setattr(main_module, "check_database_health", lambda: True)
     client = TestClient(app)
 
@@ -28,9 +30,27 @@ def test_health_returns_instance_and_database_status(monkeypatch):
     assert data["service"] == "registro_produccion"
     assert data["instance"] == "indufor"
     assert data["database"] == "ok"
-    assert data["version"] == "test-commit"
+    assert data["version"] == "test-version"
+    assert data["commit"] == "abc123def456"
+    assert data["branch"] == "fix/test-health"
     assert "time" in data
     assert "DATABASE_URL" not in data
+
+
+def test_health_is_available_through_public_api_prefix(monkeypatch):
+    monkeypatch.setattr(main_module.settings, "BUILD_COMMIT", "public-sha")
+    monkeypatch.setattr(main_module.settings, "BUILD_BRANCH", "main")
+    monkeypatch.setattr(main_module.settings, "EXPECTED_DB_NAME", "")
+    monkeypatch.setattr(main_module, "check_database_health", lambda: True)
+    client = TestClient(app)
+
+    response = client.get("/api/health")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["commit"] == "public-sha"
+    assert data["branch"] == "main"
 
 
 def test_health_returns_unhealthy_when_database_check_fails(monkeypatch):

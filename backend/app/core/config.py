@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     APP_INSTANCE: str = "local"
     APP_ENV: str = "development"
     APP_VERSION: str = "unknown"
+    BUILD_COMMIT: str = "unknown"
+    BUILD_BRANCH: str = "unknown"
     EXPECTED_DB_NAME: str = ""
     MYSQL_SSL_CA: str = ""
     MYSQL_SSL_VERIFY_CERT: bool = True
