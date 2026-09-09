@@ -57,6 +57,10 @@ export default defineConfig({
         // al visitarlos para mantener disponibilidad posterior sin inflar la
         // descarga de instalación con todas sus capturas.
         globIgnores: ['manuales/**'],
+        // Nunca convertir endpoints del backend en navegaciones de la SPA.
+        // Sin esta exclusión, Workbox puede responder index.html al abrir
+        // directamente /api/health u otro endpoint desde el navegador.
+        navigateFallbackDenylist: [/^\/api\//, /^\/health$/],
         // Cache API responses that are catalogue data (not production submissions)
         runtimeCaching: [
           {
