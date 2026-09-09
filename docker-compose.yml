@@ -19,6 +19,8 @@ services:
     container_name: registro_produccion_indufor
     environment:
       REGISTRO_ENV_FILE: /run/secrets/registro.env
+      BUILD_COMMIT: ${SOURCE_COMMIT:-unknown}
+      BUILD_BRANCH: ${COOLIFY_BRANCH:-unknown}
     volumes:
       - /srv/env/registro_produccion/indufor.env:/run/secrets/registro.env:ro
       - /srv/env/registro_produccion/mysql-central-ca.pem:/run/secrets/mysql-central-ca.pem:ro
