@@ -37,6 +37,22 @@ def test_health_returns_instance_and_database_status(monkeypatch):
     assert "DATABASE_URL" not in data
 
 
+def test_health_is_available_through_public_api_prefix(monkeypatch):
+    monkeypatch.setattr(main_module.settings, "BUILD_COMMIT", "public-sha")
+    monkeypatch.setattr(main_module.settings, "BUILD_BRANCH", "main")
+    monkeypatch.setattr(main_module.settings, "EXPECTED_DB_NAME", "")
+    monkeypatch.setattr(main_module, "check_database_health", lambda: True)
+    client = TestClient(app)
+
+    response = client.get("/api/health")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["commit"] == "public-sha"
+    assert data["branch"] == "main"
+
+
 def test_health_returns_unhealthy_when_database_check_fails(monkeypatch):
     monkeypatch.setattr(main_module.settings, "APP_INSTANCE", "produccion_fg")
     monkeypatch.setattr(main_module.settings, "EXPECTED_DB_NAME", "")
