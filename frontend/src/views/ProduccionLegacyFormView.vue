@@ -1,5 +1,5 @@
 <template>
-  <div class="content-narrow mx-auto px-3 py-3 pb-[7rem] md:px-4 md:pt-4">
+  <div class="content-narrow mx-auto px-3 py-3 pb-[9rem] md:px-4 md:pt-4">
     <!-- Header -->
     <div class="mb-3 flex items-center justify-between px-1">
       <div class="flex items-center gap-2.5">
@@ -13,9 +13,6 @@
       </button>
       <h1 class="text-2xl font-bold text-[var(--app-text)] leading-none">Carga de Producción</h1>
       </div>
-      <button class="p-2 text-[var(--app-text-muted)]" type="button" aria-label="Más opciones">
-        <AppIcon name="more" />
-      </button>
     </div>
 
     <!-- Loading catalogs -->
@@ -32,7 +29,14 @@
             <span class="text-xs font-medium text-[var(--app-text-soft)]">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
             <span class="text-xs font-semibold text-[var(--app-text-muted)]">{{ pasos[pasoActual] }}</span>
           </div>
-          <div class="app-surface-muted h-2 rounded-full overflow-hidden">
+          <div
+            class="app-surface-muted h-2 rounded-full overflow-hidden"
+            role="progressbar"
+            :aria-valuemin="1"
+            :aria-valuemax="totalPasos"
+            :aria-valuenow="pasoActual + 1"
+            :aria-valuetext="`Paso ${pasoActual + 1} de ${totalPasos}: ${pasos[pasoActual]}`"
+          >
             <div class="h-full bg-primary rounded-full transition-all duration-500 ease-out" :style="{ width: `${((pasoActual + 1) / totalPasos) * 100}%` }"></div>
           </div>
         </div>
@@ -46,6 +50,7 @@
               :key="paso"
               type="button"
               :disabled="i > pasoActual"
+              :aria-current="i === pasoActual ? 'step' : undefined"
               @click="irAPaso(i)"
               :class="[
                 'flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors',
@@ -82,11 +87,11 @@
           <span class="w-fit rounded-full bg-warning-light px-3 py-1 text-xs font-bold text-warning-dark">Borrador local</span>
         </div>
         <div class="grid grid-cols-1 gap-2 text-sm text-[var(--app-text-muted)] sm:grid-cols-2 lg:grid-cols-5">
-          <div class="truncate"><span class="font-bold text-[var(--app-text)]">Fecha:</span> {{ formatFechaResumen(form.fecha) }}</div>
-          <div class="truncate"><span class="font-bold text-[var(--app-text)]">UN:</span> {{ getUnidadNombre(form.un_id) || 'Pendiente' }}</div>
-          <div class="truncate"><span class="font-bold text-[var(--app-text)]">Operador:</span> {{ getOperadorNombre(form.operador_id) || 'Pendiente' }}</div>
-          <div class="truncate"><span class="font-bold text-[var(--app-text)]">Equipo:</span> {{ movilSeleccionadoDetalle || 'Pendiente' }}</div>
-          <div class="truncate"><span class="font-bold text-[var(--app-text)]">Proceso:</span> {{ tipoProcesoNombre || 'Pendiente' }}</div>
+          <div class="min-w-0 break-words"><span class="font-bold text-[var(--app-text)]">Fecha:</span> {{ formatFechaResumen(form.fecha) }}</div>
+          <div class="min-w-0 break-words"><span class="font-bold text-[var(--app-text)]">UN:</span> {{ getUnidadNombre(form.un_id) || 'Pendiente' }}</div>
+          <div class="min-w-0 break-words"><span class="font-bold text-[var(--app-text)]">Operador:</span> {{ getOperadorNombre(form.operador_id) || 'Pendiente' }}</div>
+          <div class="min-w-0 break-words"><span class="font-bold text-[var(--app-text)]">Equipo:</span> {{ movilSeleccionadoDetalle || 'Pendiente' }}</div>
+          <div class="min-w-0 break-words"><span class="font-bold text-[var(--app-text)]">Proceso:</span> {{ tipoProcesoNombre || 'Pendiente' }}</div>
         </div>
       </div>
 
@@ -888,7 +893,7 @@
         <span>{{ store.error }}</span>
       </div>
       <div class="app-card hidden items-center justify-between gap-3 rounded-xl p-3.5 md:flex">
-        <p class="max-w-md text-sm font-semibold text-error-dark">
+        <p v-if="mensajePasoIncompleto" id="production-step-hint" class="max-w-md text-sm font-semibold text-[var(--app-text-muted)]">
           {{ mensajePasoIncompleto }}
         </p>
         <div class="flex items-center justify-end gap-3">
@@ -912,6 +917,7 @@
           type="button"
           @click="avanzar"
           :disabled="!puedeAvanzar"
+          :aria-describedby="!puedeAvanzar && mensajePasoIncompleto ? 'production-step-hint' : undefined"
           class="rounded-xl bg-primary px-5 py-2.5 text-sm font-extrabold text-on-primary disabled:cursor-not-allowed disabled:opacity-40"
         >
           Siguiente
@@ -1365,6 +1371,19 @@ function stepStatus(index) {
 }
 
 const mensajePasoIncompleto = computed(() => {
+  if (pasoActual.value === 0) {
+    if (!form.fecha) return 'Indicá la fecha para continuar.'
+    if (!form.un_id) return 'Seleccioná una unidad de negocio para continuar.'
+  }
+  if (pasoActual.value === 1 && !form.operador_id) {
+    return 'Seleccioná un operador para continuar.'
+  }
+  if (pasoActual.value === 2 && !form.cod_equipo) {
+    return 'Seleccioná un equipo para continuar.'
+  }
+  if (pasoActual.value === 3 && !form.tipo_de_proceso_id) {
+    return 'Seleccioná un proceso para continuar.'
+  }
   if (pasoActual.value === 4 && !horasValidas.value) {
     const inicio = Number(form.hr_inicio)
     if (ultimaHoraFinRef.value > 0 && inicio > 0 && inicio < ultimaHoraFinRef.value) {

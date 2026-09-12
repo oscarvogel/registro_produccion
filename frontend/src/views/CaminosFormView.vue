@@ -1,5 +1,5 @@
 <template>
-  <div class="content-narrow mx-auto px-3 py-3 pb-[7rem] md:px-4 md:pt-4">
+  <div class="content-narrow mx-auto px-3 py-3 pb-[9rem] md:px-4 md:pt-4">
     <div class="mb-3 flex items-center justify-between px-1">
       <div class="flex items-center gap-2.5">
         <button type="button" @click="$router.push({ name: 'home' })" class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-200 transition-colors" aria-label="Volver a Inicio">
@@ -7,7 +7,6 @@
         </button>
         <h1 class="text-2xl font-bold text-neutral-900 leading-none">Carga de Producción</h1>
       </div>
-      <button class="p-2 text-neutral-500" type="button" aria-label="Más opciones"><AppIcon name="more" /></button>
     </div>
 
     <form class="md:grid md:grid-cols-[13.5rem_minmax(0,1fr)] md:items-start md:gap-3 xl:grid-cols-[14.5rem_minmax(0,1fr)]" novalidate @submit.prevent="guardar">
@@ -17,7 +16,14 @@
             <span class="text-xs font-medium text-neutral-400">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
             <span class="text-xs font-semibold text-neutral-700">{{ pasos[pasoActual] }}</span>
           </div>
-          <div class="h-2 bg-neutral-200 rounded-full overflow-hidden">
+          <div
+            class="h-2 bg-neutral-200 rounded-full overflow-hidden"
+            role="progressbar"
+            :aria-valuemin="1"
+            :aria-valuemax="totalPasos"
+            :aria-valuenow="pasoActual + 1"
+            :aria-valuetext="`Paso ${pasoActual + 1} de ${totalPasos}: ${pasos[pasoActual]}`"
+          >
             <div class="h-full bg-primary rounded-full transition-all" :style="{ width: `${((pasoActual + 1) / totalPasos) * 100}%` }"></div>
           </div>
         </div>
@@ -30,6 +36,7 @@
               :key="paso"
               type="button"
               :disabled="i > pasoActual"
+              :aria-current="i === pasoActual ? 'step' : undefined"
               @click="irAPaso(i)"
               :class="['flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors', i === pasoActual ? 'border-primary bg-primary/10 text-primary-dark' : i < pasoActual ? 'app-surface-muted text-neutral-700 hover:border-primary/40' : 'border-neutral-200 bg-transparent text-neutral-400']"
             >
@@ -45,11 +52,11 @@
           <p class="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Carga en curso</p>
           <p class="text-lg font-extrabold text-primary-dark">Estado: Sin guardar</p>
           <div class="mt-2 grid grid-cols-1 gap-2 text-sm text-neutral-700 sm:grid-cols-2 lg:grid-cols-5">
-            <div><b>Fecha:</b> {{ form.fecha }}</div>
-            <div><b>UN:</b> {{ props.unidad.nombre }}</div>
-            <div><b>Operador:</b> {{ operadorNombre(form.cod_operador) || 'Pendiente' }}</div>
-            <div><b>Equipo:</b> {{ equipoSeleccionado()?.detalle || 'Pendiente' }}</div>
-            <div><b>Procesos:</b> {{ procesos.length }}</div>
+            <div class="min-w-0 break-words"><b>Fecha:</b> {{ form.fecha }}</div>
+            <div class="min-w-0 break-words"><b>UN:</b> {{ props.unidad.nombre }}</div>
+            <div class="min-w-0 break-words"><b>Operador:</b> {{ operadorNombre(form.cod_operador) || 'Pendiente' }}</div>
+            <div class="min-w-0 break-words"><b>Equipo:</b> {{ equipoSeleccionado()?.detalle || 'Pendiente' }}</div>
+            <div class="min-w-0 break-words"><b>Procesos:</b> {{ procesos.length }}</div>
           </div>
         </div>
 
@@ -255,14 +262,17 @@
         </SectionCard>
 
         <div v-if="errorLocal" class="rounded-xl border border-error/30 bg-error-light/40 px-4 py-3 text-sm font-semibold text-error-dark">{{ errorLocal }}</div>
-        <div class="app-card hidden items-center justify-end gap-3 rounded-xl p-3.5 md:flex">
+        <div class="app-card hidden items-center justify-between gap-3 rounded-xl p-3.5 md:flex">
+          <p v-if="mensajePasoIncompleto" id="caminos-step-hint" class="max-w-md text-sm font-semibold text-[var(--app-text-muted)]">
+            {{ mensajePasoIncompleto }}
+          </p>
           <button v-if="pasoActual > 0" type="button" class="app-button-soft rounded-xl border px-4 py-2.5 font-bold" @click="retroceder">Anterior</button>
-          <button v-if="pasoActual < totalPasos - 1" type="button" class="rounded-xl bg-primary px-5 py-2.5 font-extrabold text-on-primary disabled:opacity-40" :disabled="!puedeAvanzar" @click="avanzar">Siguiente</button>
+          <button v-if="pasoActual < totalPasos - 1" type="button" class="rounded-xl bg-primary px-5 py-2.5 font-extrabold text-on-primary disabled:opacity-40" :disabled="!puedeAvanzar" :aria-describedby="!puedeAvanzar && mensajePasoIncompleto ? 'caminos-step-hint' : undefined" @click="avanzar">Siguiente</button>
           <button v-else type="submit" class="rounded-xl bg-primary px-5 py-2.5 font-extrabold text-on-primary disabled:opacity-60" :disabled="store.submitting">{{ store.submitting ? 'Guardando...' : `Guardar parte (${procesos.length} proceso${procesos.length === 1 ? '' : 's'})` }}</button>
         </div>
       </div>
 
-      <ActionBar sticky mobile>
+      <ActionBar sticky mobile :message="mensajePasoIncompleto">
         <div class="mx-auto flex max-w-2xl items-center gap-3">
           <button v-if="pasoActual > 0" type="button" @click="retroceder" class="app-button-soft flex flex-1 items-center justify-center rounded-xl border px-4 py-3.5 font-semibold">Anterior</button>
           <div v-else class="flex-1" />
@@ -386,6 +396,21 @@ const produccionValida = computed(() => horasRemolqueValidas.value && procesos.e
 }))
 const consumosValidos = computed(() => !cargaCombustible.value || (Number(form.combustible) > 0 && Number(form.km_combustible) > 0 && Number(form.lugar_carga) > 0 && String(form.remito || '').trim().length > 0))
 const puedeAvanzar = computed(() => [!!form.fecha, !!form.cod_operador, !!form.cod_equipo, procesosTiposValidos.value, horasValidas.value, produccionValida.value, consumosValidos.value, true, true][pasoActual.value])
+const mensajePasoIncompleto = computed(() => {
+  if (puedeAvanzar.value || pasoActual.value >= totalPasos - 1) return ''
+
+  const mensajes = {
+    0: 'Indicá la fecha para continuar.',
+    1: 'Seleccioná un operador para continuar.',
+    2: 'Seleccioná un equipo para continuar.',
+    3: 'Completá al menos un proceso para continuar.',
+    4: 'Ingresá lecturas de horómetro válidas para continuar.',
+    5: 'Completá la ubicación y las métricas de producción para continuar.',
+    6: 'Completá los datos de combustible para continuar.',
+  }
+
+  return mensajes[pasoActual.value] || 'Completá este paso para continuar.'
+})
 function avanzar() { if (puedeAvanzar.value && pasoActual.value < totalPasos - 1) { pasoActual.value += 1; window.scrollTo({ top: 0, behavior: 'smooth' }) } }
 function retroceder() { if (pasoActual.value > 0) { pasoActual.value -= 1; window.scrollTo({ top: 0, behavior: 'smooth' }) } }
 function irAPaso(i) { if (i < pasoActual.value) { pasoActual.value = i; window.scrollTo({ top: 0, behavior: 'smooth' }) } }

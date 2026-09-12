@@ -18,10 +18,18 @@
             <AppIcon name="refresh" size="sm" />
             Refrescar
           </AppButton>
-          <AppButton :loading="syncing" :disabled="!backendReachable || scopedPendingRecords.length === 0" @click="syncAll">
+          <AppButton
+            :loading="syncing"
+            :disabled="Boolean(syncDisabledReason)"
+            :title="syncDisabledReason || 'Sincronizar registros pendientes'"
+            @click="syncAll"
+          >
             <AppIcon name="sync" size="sm" />
             Sincronizar
           </AppButton>
+          <span v-if="syncDisabledReason" class="basis-full text-right text-xs text-on-surface-variant">
+            {{ syncDisabledReason }}
+          </span>
         </template>
       </PageHeader>
 
@@ -40,8 +48,14 @@
         </div>
       </section>
 
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div
+        :class="[
+          'grid grid-cols-1 gap-3 sm:grid-cols-2',
+          isAdmin ? 'lg:grid-cols-2' : 'lg:grid-cols-4',
+        ]"
+      >
         <MetricCard
+          v-if="!isAdmin"
           label="Pendientes locales"
           :value="localPendingRecords.length"
           description="Registros esperando sincronización"
@@ -49,6 +63,7 @@
           tone="warning"
         />
         <MetricCard
+          v-if="!isAdmin"
           label="Fallidos locales"
           :value="localFailedRecords.length"
           description="Registros con error al enviar"
@@ -83,6 +98,7 @@
               v-for="filter in filters"
               :key="filter.value"
               type="button"
+              :aria-pressed="activeFilter === filter.value"
               :class="[
                 'rounded-full border px-3 py-1.5 text-xs font-bold transition-colors',
                 activeFilter === filter.value
@@ -172,7 +188,7 @@
             <AppIcon name="refresh" />
           </div>
           <div>
-            <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Actividad reciente</p>
+            <p class="text-xs font-extrabold uppercase tracking-wide text-on-surface-variant">Actividad de sincronización</p>
             <p class="mt-1 text-sm font-semibold text-on-surface">{{ recentActivityTitle }}</p>
             <p class="mt-1 text-sm text-on-surface-variant">{{ recentActivityDescription }}</p>
           </div>
@@ -240,6 +256,23 @@
           >{{ selectedRecordText }}</pre>
         </div>
       </AppModal>
+
+      <AppModal
+        v-model="showDiscardConfirm"
+        title="Eliminar registro local"
+        description="El registro se quitará de este dispositivo y ya no podrá enviarse desde esta cola."
+      >
+        <div class="flex flex-col gap-4">
+          <p class="text-sm text-on-surface-variant">
+            Confirmá que querés eliminar
+            <strong class="text-on-surface">{{ discardRecordLabel }}</strong>.
+          </p>
+          <div class="flex justify-end gap-2">
+            <AppButton variant="secondary" :disabled="discarding" @click="cancelDiscard">Cancelar</AppButton>
+            <AppButton variant="danger" :loading="discarding" @click="confirmDiscard">Eliminar</AppButton>
+          </div>
+        </div>
+      </AppModal>
     </div>
   </div>
 </template>
@@ -274,6 +307,9 @@ const retryingId = ref(null)
 const showDetail = ref(false)
 const showTechnicalData = ref(false)
 const selectedRecord = ref(null)
+const showDiscardConfirm = ref(false)
+const recordToDiscard = ref(null)
+const discarding = ref(false)
 const navigatorOnline = ref(navigator.onLine)
 const backendReachable = computed(() => navigatorOnline.value && connectivityStore.isBackendUp)
 const lastCheckAt = ref(null)
@@ -400,14 +436,22 @@ const visibleRecords = computed(() => {
   return scopedRecords.value
 })
 
+const syncDisabledReason = computed(() => {
+  if (syncing.value) return ''
+  if (!navigatorOnline.value) return 'Conectate para sincronizar.'
+  if (!backendReachable.value) return 'El servidor no está disponible.'
+  if (scopedPendingRecords.value.length === 0) return 'No hay registros pendientes para sincronizar.'
+  return ''
+})
+
 const emptyStateTitle = computed(() => {
   if (scopedRecords.value.length > 0) return 'No hay registros en este filtro'
-  return 'Todo sincronizado'
+  return 'Sin registros pendientes'
 })
 
 const emptyStateDescription = computed(() => {
   if (scopedRecords.value.length > 0) return 'Cambiá el filtro para ver los registros que todavía requieren atención.'
-  return 'No hay registros pendientes ni fallidos en este teléfono.'
+  return 'Este dispositivo no tiene registros pendientes ni fallidos para mostrar.'
 })
 
 const scopeDescription = computed(() => {
@@ -459,14 +503,14 @@ const healthMessage = computed(() => {
 
 const queueTitle = computed(() => {
   if (loading.value) return 'Revisando cola offline'
-  if (scopedRecords.value.length === 0) return 'Todo sincronizado'
+  if (scopedRecords.value.length === 0) return 'Cola vacía'
   return `${scopedRecords.value.length} registro(s) requieren atención`
 })
 
 const recentActivityTitle = computed(() => {
   const transientAttempts = scopedPendingRecords.value.filter((record) => Number(record.retryCount || 0) > 0 || record.syncError)
   if (transientAttempts.length > 0) return `${transientAttempts.length} envío(s) intentado(s) sin confirmación.`
-  if (scopedFailedRecords.value.length === 0) return 'No hubo intentos fallidos de sincronización.'
+  if (scopedFailedRecords.value.length === 0) return 'Sin actividad reciente de sincronización.'
   return `${scopedFailedRecords.value.length} intento(s) fallidos detectados.`
 })
 
@@ -476,7 +520,7 @@ const recentActivityDescription = computed(() => {
     const lastAttempt = [...transientAttempts].sort((a, b) => Number(b.lastAttemptAt || b.timestamp || 0) - Number(a.lastAttemptAt || a.timestamp || 0))[0]
     return `Último intento sin confirmar: ${lastAttempt?.syncError || 'el servidor no respondió'}.`
   }
-  if (scopedFailedRecords.value.length === 0) return 'La cola offline no registra errores para el alcance actual.'
+  if (scopedFailedRecords.value.length === 0) return 'Todavía no hay eventos de sincronización para mostrar.'
   const lastFailed = [...scopedFailedRecords.value].sort((a, b) => Number(b.failedAt || b.timestamp || 0) - Number(a.failedAt || a.timestamp || 0))[0]
   return `Último error: ${lastFailed?.syncError || 'sin detalle disponible'}.`
 })
@@ -589,11 +633,35 @@ async function retryRecord(record) {
   }
 }
 
-async function discardRecord(record) {
-  if (!confirm('Confirma eliminar este registro local?')) return
-  await db.pendingRecords.delete(record.id)
-  await loadRecords()
-  toast.info('Registro eliminado')
+function discardRecord(record) {
+  recordToDiscard.value = record
+  showDiscardConfirm.value = true
+}
+
+const discardRecordLabel = computed(() => {
+  const record = recordToDiscard.value
+  if (!record) return 'este registro local'
+  return `el registro de ${record.payload?.UN || 'la unidad sin definir'}`
+})
+
+function cancelDiscard() {
+  showDiscardConfirm.value = false
+  recordToDiscard.value = null
+}
+
+async function confirmDiscard() {
+  const record = recordToDiscard.value
+  if (!record || discarding.value) return
+
+  discarding.value = true
+  try {
+    await db.pendingRecords.delete(record.id)
+    await loadRecords()
+    toast.info('Registro eliminado')
+    cancelDiscard()
+  } finally {
+    discarding.value = false
+  }
 }
 
 function openDetail(record) {

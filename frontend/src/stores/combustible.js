@@ -22,7 +22,7 @@ export const useCombustibleStore = defineStore('combustible', {
         const { data } = await api.get('/api/combustible/moviles', { params, _suppressErrorToast: true })
         this.moviles = data
       } catch (error) {
-        this.error = error.response?.data?.detail || 'No se pudieron cargar los moviles disponibles'
+        this.error = error.response?.data?.detail || 'No se pudieron cargar los móviles disponibles'
         this.moviles = []
       } finally {
         this.loadingMoviles = false

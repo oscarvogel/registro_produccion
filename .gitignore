@@ -76,3 +76,4 @@ secrets/
 
 # Evidencia local de auditorías visuales; no forma parte de los commits.
 docs/audits/
+design-qa.md

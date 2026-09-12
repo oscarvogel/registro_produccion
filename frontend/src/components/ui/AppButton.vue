@@ -4,7 +4,7 @@
     :disabled="disabled || loading"
     :aria-busy="loading || undefined"
     :class="[
-      'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-150 ease-out hover:-translate-y-px focus:outline-none focus:ring-2 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:active:scale-100',
+      'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg font-semibold focus:outline-none focus:ring-2 motion-safe:transition-all motion-safe:duration-150 motion-safe:ease-out motion-safe:hover:-translate-y-px motion-safe:active:translate-y-0 motion-safe:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:active:scale-100',
       sizeClass,
       variantClass,
       block ? 'w-full' : '',
