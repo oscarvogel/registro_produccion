@@ -44,9 +44,10 @@ describe('CombustibleFormView', () => {
 
     await wrapper.get('form').trigger('submit')
 
-    expect(wrapper.text()).toContain('Selecciona un equipo o movil.')
+    expect(wrapper.get('form').attributes('novalidate')).toBeDefined()
+    expect(wrapper.text()).toContain('Seleccioná un equipo o móvil.')
     expect(wrapper.text()).toContain('Ingresa una cantidad de litros mayor a cero.')
-    expect(wrapper.text()).toContain('Ingresa el Remito 1.')
+    expect(wrapper.text()).toContain('Ingresá el remito 1.')
     expect(combustibleStore.createCarga).not.toHaveBeenCalled()
     expect(wrapper.find('input[aria-invalid="true"]').exists()).toBe(true)
   })

@@ -7,52 +7,50 @@
 
 <div class="page-break"></div>
 
-# Manual de Usuario - Admin
-
 ## Índice
 
-1. Alcance, acceso y navegación
-2. Inicio y dashboards
-3. Centro administrativo y catálogos
-4. Asignaciones operativas
-5. Configuración de acceso
-6. Carga manual, offline y Pendientes
-7. Errores frecuentes y buenas prácticas
+1. [Alcance, acceso y navegación](#1-alcance-acceso-y-navegacion)
+2. [Inicio, Operación y análisis](#2-inicio-operacion-y-analisis)
+3. [Centro administrativo y catálogos](#3-centro-administrativo-y-catalogos)
+4. [Asignaciones operativas](#4-asignaciones-operativas)
+5. [Configuración de acceso](#5-configuracion-de-acceso)
+6. [Carga manual, offline y Pendientes](#6-carga-manual-offline-y-pendientes)
+7. [Errores frecuentes y buenas prácticas](#7-errores-frecuentes-y-buenas-practicas)
 
 ## 1. Alcance, acceso y navegación
 
-El rol admin puede operar, consultar dashboards, administrar catálogos y configurar accesos administrativos. No permite quitarse el acceso admin a sí mismo desde `Configuración de acceso`.
+El rol admin puede operar, consultar `Operación` y `Análisis de Producción`, administrar catálogos y configurar accesos administrativos. No permite quitarse el acceso admin a sí mismo desde `Configuración de acceso`.
 
 ![Login admin](/manuales/capturas/admin/01-login.png)
 
 Para ingresar:
 
 1. Abrí la aplicación.
-2. Completá `DNI` y `Contrasena`.
-3. Presioná `Sincronizar` si hubo cambios de usuarios, permisos o catálogos.
+2. Completá `DNI` y `Contraseña`.
+3. Presioná `Actualizar datos para uso offline` si hubo cambios de usuarios, permisos o catálogos.
 4. Presioná `Ingresar`.
 
 ![Menú móvil admin](/manuales/capturas/admin/04-menu-movil.png)
 
-En la navegación móvil están disponibles `Inicio`, `Manuales`, `Administración`, `Operación`, `Combustible`, `Producción`, `Pendientes`, `Mis Registros`, `Configuración` y `Salir`. Abrí el panel con `Abrir navegacion` y cerralo con `Cerrar menu`.
+En la navegación móvil están disponibles `Inicio`, `Manuales`, `Administración`, `Operación`, `Combustible`, `Producción`, `Pendientes`, `Mis Registros`, `Configuración` y `Salir`. Abrí el panel con `Abrir navegación` y cerralo con `Cerrar menú`.
 
-## 2. Inicio y dashboards
+## 2. Inicio, Operación y análisis
 
 ![Inicio admin](/manuales/capturas/admin/03-inicio.png)
 
-`Inicio` muestra el panel operativo general: estado de conexión, producción del período, registros, unidades con actividad, pendientes offline, actividad por unidad y últimos registros. Los accesos rápidos permiten abrir `Dashboard`, `Carga de Producción`, `Carga de Combustible`, `Pendientes` y `Panel Admin`.
+`Inicio` muestra el resumen general: estado de conexión, producción del período, registros, unidades con actividad, pendientes offline, actividad por unidad y últimos registros. Los accesos rápidos permiten abrir `Operación`, `Análisis de Producción`, `Carga de Producción`, `Carga de Combustible`, `Pendientes` y `Administración`.
 
-### Dashboard Producción
+### Análisis de Producción
 
-![Dashboard Producción](/manuales/capturas/admin/16-admin-dashboard.png)
+![Análisis de Producción](/manuales/capturas/admin/16-admin-dashboard.png)
 
-Entrá desde `Operación > Dashboard Producción` o desde el acceso rápido. Elegí un período con `Hoy`, `Últimos 7 días`, `Últimos 30 días` o `Este mes`, o definí `Desde` y `Hasta`. Presioná `Actualizar`.
+Entrá desde `Análisis de Producción` o desde el acceso rápido. Elegí un período con `Hoy`, `Últimos 7 días`, `Últimos 30 días` o `Este mes`, o definí `Desde` y `Hasta`. Presioná `Actualizar`.
 
 El panel muestra producción total, toneladas, combustible, registros, unidades con actividad, operadores, equipos, comparativa con el período anterior, evolución diaria, ranking de unidades, procesos y últimos registros. Si no hay datos, ampliá el período o verificá que existan cargas en el rango.
 
-### Dashboard Operativo
+### Operación
 
-Desde `Operación > Dashboard Operativo` consultá indicadores por unidad, tipo de proceso y máquina. En el teléfono el botón `Filtros` abre la zona de filtros. `Limpiar` quita las selecciones adicionales.
+Desde `Operación` consultá indicadores por unidad, tipo de proceso y máquina. En el teléfono el botón `Filtros` abre la zona de filtros. `Limpiar` quita las selecciones adicionales.
 
 ## 3. Centro administrativo y catálogos
 
@@ -77,7 +75,7 @@ Las pantallas usan búsqueda, filtros, `Refrescar`, `Nuevo` cuando corresponde y
 - `Rodales`: rodales y valores productivos.
 - `Actas`: actas habilitadas para registrar producción.
 
-En `Tipos de proceso`, `Nombre` es obligatorio. Las opciones `Requiere Acta`, `Requiere Predio` y `Requiere Rodal` determinan qué aparece y qué se exige en `Ubicación y Referencia`. La vinculación con unidades controla la lista visible en la carga y los dashboards.
+En `Tipos de proceso`, `Nombre` es obligatorio. Las opciones `Requiere Acta`, `Requiere Predio` y `Requiere Rodal` determinan qué aparece y qué se exige en `Ubicación y Referencia`. La vinculación con unidades controla la lista visible en la carga, `Operación` y `Análisis de Producción`.
 
 En `Personal`, verificá nombre y al menos una unidad vinculada. Si editás una persona y dejás la contraseña vacía, la contraseña existente no cambia. En `Móviles`, `Patente` y `Detalle` son obligatorios.
 
@@ -134,7 +132,7 @@ La cola de Pendientes es local al dispositivo. El admin no ve automáticamente l
 
 ### Mis Registros
 
-`Producción > Mis Registros` permite consultar la actividad cargada por el propio usuario admin. Para revisar la actividad global usá los dashboards.
+`Producción > Mis Registros` permite consultar la actividad cargada por el propio usuario admin. Para revisar la actividad global usá `Operación` y `Análisis de Producción`.
 
 ## 7. Errores frecuentes y buenas prácticas
 
@@ -144,7 +142,7 @@ La cola de Pendientes es local al dispositivo. El admin no ve automáticamente l
 | No se puede guardar Personal | Completá `Nombre` y al menos una unidad vinculada. |
 | No se puede guardar un Móvil | Completá `Patente` y `Detalle`. |
 | Asignación rechazada | Revisá unidad del chofer, móvil y proceso; evitá duplicados. |
-| Dashboard sin datos | Ampliá el período o quitá filtros. |
+| Operación o Análisis de Producción sin datos | Ampliá el período o quitá filtros. |
 | Usuario sin acceso | Revisá estado `Activo`, rol `Encargado` y `Acceso Admin`. |
 | Horas o producción inválidas | Corregí valores mayores a 0 y respetá las validaciones del formulario. |
 | Pendiente fallido | Abrí `Ver detalle`, revisá el error y usá `Reintentar`. |

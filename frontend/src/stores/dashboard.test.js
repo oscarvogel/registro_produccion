@@ -112,4 +112,18 @@ describe('dashboard store - toast suppression on local fallback', () => {
     )
     expect(store.rankingMaquinas).toEqual([])
   })
+
+  it('counts a date range as one logical active filter', () => {
+    const store = useDashboardStore()
+
+    store.filtros.fecha_desde = '2026-09-01'
+    store.filtros.fecha_hasta = '2026-09-11'
+
+    expect(store.filtrosActivos).toBe(1)
+
+    store.filtros.tipo_proceso_key = 'tipo:1'
+    store.filtros.movil_id = 7
+
+    expect(store.filtrosActivos).toBe(3)
+  })
 })

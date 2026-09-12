@@ -31,8 +31,22 @@ function escapeHtml(value) {
 
 function inline(value) {
   return escapeHtml(value)
+    .replace(/\[([^\]]+)\]\(#([a-z0-9][a-z0-9-]*)\)/gi, '<a href="#$2">$1</a>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+}
+
+function slugifyHeading(value) {
+  const slug = String(value)
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return slug || 'seccion'
 }
 
 function isSafeImageSrc(value) {
@@ -99,6 +113,7 @@ export function renderManualMarkdown(markdown) {
   let paragraph = []
   let listType = ''
   let tableRows = []
+  const headingIds = new Map()
 
   function flushParagraph() {
     if (paragraph.length === 0) return
@@ -166,7 +181,11 @@ export function renderManualMarkdown(markdown) {
       flushParagraph()
       flushList()
       const level = heading[1].length
-      html.push(`<h${level}>${inline(heading[2])}</h${level}>`)
+      const baseId = slugifyHeading(heading[2])
+      const occurrence = (headingIds.get(baseId) || 0) + 1
+      headingIds.set(baseId, occurrence)
+      const id = occurrence === 1 ? baseId : `${baseId}-${occurrence}`
+      html.push(`<h${level} id="${id}">${inline(heading[2])}</h${level}>`)
       continue
     }
 
@@ -204,4 +223,4 @@ export function renderManualMarkdown(markdown) {
   return html.join('\n')
 }
 
-export { escapeHtml, inline, isSafeImageSrc, renderAllowedHtmlLine, renderMarkdownImage, HTML_WHITELIST_TAGS }
+export { escapeHtml, inline, isSafeImageSrc, renderAllowedHtmlLine, renderMarkdownImage, slugifyHeading, HTML_WHITELIST_TAGS }

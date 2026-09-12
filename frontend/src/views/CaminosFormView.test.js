@@ -266,4 +266,17 @@ describe('CaminosFormView', () => {
     expect(store.fetchMoviles).toHaveBeenCalledWith(7)
     expect(store.fetchLugaresCarga).toHaveBeenCalledWith(7)
   })
+
+  it('exposes the current step and explains why the wizard cannot continue', async () => {
+    const wrapper = mountView()
+
+    expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('1')
+    expect(wrapper.get('button[aria-current="step"]')).toBeTruthy()
+    expect(wrapper.find('button[aria-label="Más opciones"]').exists()).toBe(false)
+
+    wrapper.vm.form.fecha = ''
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Indicá la fecha para continuar.')
+  })
 })

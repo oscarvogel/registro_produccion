@@ -41,8 +41,7 @@ export const useDashboardStore = defineStore('dashboard', {
       let count = 0
       if (state.filtros.tipo_proceso_key) count++
       if (state.filtros.movil_id) count++
-      if (state.filtros.fecha_desde) count++
-      if (state.filtros.fecha_hasta) count++
+      if (state.filtros.fecha_desde || state.filtros.fecha_hasta) count++
       return count
     },
   },

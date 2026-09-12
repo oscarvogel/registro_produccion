@@ -23,18 +23,25 @@
         </div>
 
         <div class="flex flex-wrap gap-2">
-          <button type="button" class="app-button-soft inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold transition-colors" @click="refreshDashboard">
+          <AppButton
+            variant="secondary"
+            size="sm"
+            class="min-h-10 px-3 font-bold"
+            :loading="store.isLoading"
+            :disabled="store.isLoading"
+            @click="refreshDashboard"
+          >
             <AppIcon name="refresh" size="sm" />
             Actualizar
-          </button>
-          <button type="button" class="app-button-soft inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold transition-colors" @click="exportCsv">
+          </AppButton>
+          <AppButton variant="secondary" size="sm" class="min-h-10 px-3 font-bold" @click="exportCsv">
             <AppIcon name="download" size="sm" />
             Exportar CSV
-          </button>
-          <button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-extrabold text-on-primary transition-colors hover:bg-primary-dark hover:text-on-primary-dark" @click="abrirDetalle">
+          </AppButton>
+          <AppButton size="sm" class="min-h-10 px-3 font-extrabold shadow-none" @click="abrirDetalle">
             <AppIcon name="records" size="sm" />
             Ver detalle
-          </button>
+          </AppButton>
         </div>
       </div>
     </div>
@@ -44,6 +51,9 @@
         <button
           type="button"
           @click="showFilters = !showFilters"
+          :aria-expanded="showFilters"
+          aria-controls="dashboard-filters"
+          :aria-label="showFilters ? 'Ocultar filtros' : 'Mostrar filtros'"
           class="flex w-full items-center justify-between text-sm font-extrabold text-[var(--app-text)] md:hidden"
         >
           <span class="flex items-center gap-2">
@@ -54,7 +64,7 @@
           <AppIcon name="chevronDown" size="sm" :class="['transition-transform', showFilters ? 'rotate-180' : '']" />
         </button>
 
-        <div :class="['gap-3', showFilters ? 'mt-3 grid' : 'hidden md:grid']">
+        <div id="dashboard-filters" :class="['gap-3', showFilters ? 'mt-3 grid' : 'hidden md:grid']">
           <div class="flex flex-wrap items-center gap-2">
             <button
               v-for="preset in datePresets"
@@ -88,16 +98,14 @@
               placeholder="Todos los procesos"
             />
 
-            <div>
-              <label class="mb-1 block text-xs font-semibold text-[var(--app-text-muted)]">Máquina / Equipo</label>
-              <AutocompleteField
-                v-model="movilFilter"
-                :items="movilOptions"
-                labelKey="_label"
-                valueKey="idMovil"
-                placeholder="Todas las máquinas"
-              />
-            </div>
+            <AutocompleteField
+              v-model="movilFilter"
+              label="Máquina / Equipo"
+              :items="movilOptions"
+              labelKey="_label"
+              valueKey="idMovil"
+              placeholder="Todas las máquinas"
+            />
 
             <div>
               <label class="mb-1 block text-xs font-medium text-[var(--app-text-muted)]">Desde</label>
@@ -147,13 +155,25 @@
         </button>
       </section>
 
+      <section v-else-if="store.error" class="app-card rounded-lg p-4">
+        <FeedbackMessage
+          tone="error"
+          title="No se pudo cargar el Dashboard"
+          :message="store.error"
+        />
+        <AppButton variant="secondary" class="mt-3" :loading="store.isLoading" @click="refreshDashboard">
+          <AppIcon name="refresh" size="sm" />
+          Reintentar
+        </AppButton>
+      </section>
+
       <section v-else class="grid gap-4 lg:grid-cols-[1.6fr_.9fr]">
         <div class="app-card app-hover-glow rounded-lg p-4">
           <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <div class="mb-2 flex items-center gap-2 text-sm font-bold text-primary-dark">
                 <AppIcon :name="getIconName(store.kpiPrincipal?.icono)" size="sm" />
-                {{ store.kpiPrincipal?.nombre || 'Métrica principal' }}
+                {{ displayKpiName(store.kpiPrincipal) || 'Métrica principal' }}
               </div>
               <div v-if="store.loading.kpis" class="app-surface-muted h-12 w-56 animate-pulse rounded"></div>
               <div v-else-if="store.registrosIncluidos === 0" class="flex flex-col gap-1">
@@ -161,11 +181,13 @@
                 <span class="text-sm font-semibold text-[var(--app-text-soft)]">para los filtros actuales</span>
               </div>
               <div v-else class="flex items-baseline gap-3">
-                <span class="text-4xl font-extrabold tracking-normal text-[var(--app-text)] md:text-5xl">{{ animatedHeroValue }}</span>
+                <span class="text-4xl font-extrabold tracking-normal text-[var(--app-text)] md:text-5xl">
+                  <CountUpValue :value="store.kpiPrincipal?.valor || 0" :from="0" :format="formatNumber" />
+                </span>
                 <span class="text-lg font-bold text-[var(--app-text-muted)]">{{ store.kpiPrincipal?.unidad || '' }}</span>
               </div>
-              <p v-if="store.kpiPrincipal?.descripcion" class="mt-2 max-w-xl text-xs text-[var(--app-text-soft)]">
-                {{ store.kpiPrincipal.descripcion }}
+              <p v-if="displayKpiDescription(store.kpiPrincipal)" class="mt-2 max-w-xl text-xs text-[var(--app-text-soft)]">
+                {{ displayKpiDescription(store.kpiPrincipal) }}
               </p>
             </div>
             <div class="app-surface-muted max-w-md rounded-lg border p-3">
@@ -185,26 +207,18 @@
           <p class="text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]">Lectura rápida</p>
           <div class="mt-4 space-y-3 text-sm">
             <div class="flex items-center justify-between gap-3">
-              <span class="text-[var(--app-text-muted)]">Unidad</span>
-              <span class="truncate font-extrabold text-[var(--app-text)]">{{ selectedUnitName || 'Sin seleccionar' }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-3">
-              <span class="text-[var(--app-text-muted)]">Periodo</span>
-              <span class="font-extrabold text-[var(--app-text)]">{{ dateRangeLabel }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-3">
               <span class="text-[var(--app-text-muted)]">Registros incluidos</span>
               <span class="font-extrabold text-[var(--app-text)]">{{ formatNumber(periodRecords) }}</span>
             </div>
             <div class="flex items-center justify-between gap-3">
-              <span class="text-[var(--app-text-muted)]">Filtros activos</span>
+              <span class="text-[var(--app-text-muted)]">Filtros adicionales</span>
               <span class="font-extrabold text-[var(--app-text)]">{{ store.filtrosActivos }}</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section v-if="store.loading.kpis" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <section v-if="!store.error && store.loading.kpis" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div v-for="i in 5" :key="i" class="app-card rounded-lg p-4">
           <div class="app-surface-muted mb-4 h-8 w-8 animate-pulse rounded-lg"></div>
           <div class="app-surface-muted mb-2 h-4 w-3/4 animate-pulse rounded"></div>
@@ -212,7 +226,11 @@
         </div>
       </section>
 
-      <section v-else-if="store.registrosIncluidos > 0 && store.kpisSecundarios.length > 0" :class="secondaryKpiGridClass">
+      <RevealStagger
+        v-else-if="!store.error && store.registrosIncluidos > 0 && store.kpisSecundarios.length > 0"
+        as="section"
+        :class="secondaryKpiGridClass"
+      >
         <article
           v-for="kpi in store.kpisSecundarios"
           :key="kpi.id"
@@ -226,18 +244,20 @@
               {{ Number(kpi.variacion_porcentual) >= 0 ? '+' : '-' }}{{ Math.abs(kpi.variacion_porcentual) }}%
             </span>
           </div>
-          <p class="min-h-8 text-xs font-bold uppercase leading-4 text-[var(--app-text-soft)]">{{ kpi.nombre }}</p>
-          <p v-if="kpi.descripcion" class="mt-1 min-h-8 text-[11px] leading-4 text-[var(--app-text-soft)]">
-            {{ kpi.descripcion }}
+          <p class="min-h-8 text-xs font-bold uppercase leading-4 text-[var(--app-text-soft)]">{{ displayKpiName(kpi) }}</p>
+          <p v-if="displayKpiDescription(kpi)" class="mt-1 min-h-8 text-[11px] leading-4 text-[var(--app-text-soft)]">
+            {{ displayKpiDescription(kpi) }}
           </p>
           <div class="mt-2 flex items-baseline gap-2">
-            <span class="text-2xl font-extrabold text-[var(--app-text)]">{{ formatNumber(kpi.valor) }}</span>
+            <span class="text-2xl font-extrabold text-[var(--app-text)]">
+              <CountUpValue :value="kpi.valor" :format="formatNumber" />
+            </span>
             <span class="text-xs font-bold text-[var(--app-text-soft)]">{{ kpi.unidad }}</span>
           </div>
         </article>
-      </section>
+      </RevealStagger>
 
-      <section v-else-if="!store.loading.kpis">
+      <section v-else-if="!store.error && !store.loading.kpis">
         <EmptyState
           title="No hay datos para los filtros seleccionados"
           :description="emptyFilterMessage"
@@ -249,7 +269,7 @@
         </EmptyState>
       </section>
 
-      <section class="grid grid-cols-1 gap-3 lg:grid-cols-5">
+      <section v-if="!store.error" class="grid grid-cols-1 gap-3 lg:grid-cols-5">
         <div class="app-card rounded-lg p-4 lg:col-span-3">
           <div class="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
@@ -257,10 +277,10 @@
               <h2 class="text-lg font-extrabold text-[var(--app-text)]">{{ chartTitle }}</h2>
             </div>
             <div class="flex flex-wrap gap-2">
-              <button type="button" :class="metricTabClass('produccion')" @click="activeChartMetric = 'produccion'">
+              <button type="button" :aria-pressed="activeChartMetric === 'produccion'" :class="metricTabClass('produccion')" @click="activeChartMetric = 'produccion'">
                 Producción
               </button>
-              <button type="button" :class="metricTabClass('combustible')" @click="activeChartMetric = 'combustible'">
+              <button type="button" :aria-pressed="activeChartMetric === 'combustible'" :class="metricTabClass('combustible')" @click="activeChartMetric = 'combustible'">
                 Combustible
               </button>
             </div>
@@ -269,7 +289,7 @@
           <div class="mb-3 grid gap-2.5 md:grid-cols-[1fr_auto] md:items-end">
             <AutocompleteField
               v-model="evolucionTipoProcesoFilter"
-              label="Tipo de Proceso"
+              label="Proceso del gráfico"
               :items="store.tiposProceso"
               labelKey="nombre"
               valueKey="value"
@@ -286,14 +306,24 @@
           </div>
 
           <div v-else-if="chartPoints.length > 1" class="relative" @mouseleave="tooltip = null">
-            <svg :viewBox="`0 0 ${chartW} ${chartH + 30}`" class="w-full" preserveAspectRatio="xMidYMid meet">
+            <svg
+              :key="activeChartMetric"
+              :viewBox="`0 0 ${chartW} ${chartH + 30}`"
+              class="app-dashboard-chart w-full"
+              role="img"
+              aria-labelledby="dashboard-chart-title"
+              aria-describedby="dashboard-chart-description"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              <title id="dashboard-chart-title">{{ chartTitle }}</title>
+              <desc id="dashboard-chart-description">{{ chartAccessibilityDescription }}</desc>
               <line v-for="i in 4" :key="'g'+i"
                 :x1="chartPad" :y1="chartH - (chartH - chartPad) * (i/4)" :x2="chartW - chartPad" :y2="chartH - (chartH - chartPad) * (i/4)"
                 stroke="var(--app-border)" stroke-width="0.5" stroke-dasharray="4 4"
               />
               <text v-for="i in 4" :key="'yl'+i"
                 :x="chartPad - 4" :y="chartH - (chartH - chartPad) * (i/4) + 3"
-                text-anchor="end" fill="var(--app-text-soft)" font-size="9"
+                text-anchor="end" fill="var(--app-text-soft)" font-size="10"
               >{{ formatNumber(maxVal * i / 4) }}</text>
               <defs>
                 <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -307,11 +337,16 @@
                 v-for="(p, i) in chartPoints" :key="'p'+i"
                 :cx="p.x" :cy="p.y" r="4"
                 fill="var(--app-surface)" :stroke="activeChartMetric === 'combustible' ? 'var(--color-warning-dark)' : 'var(--color-primary)'" stroke-width="2"
-                class="cursor-pointer"
+                class="cursor-pointer focus:outline-none"
+                tabindex="0"
+                role="img"
+                :aria-label="`${activeChartData.labels[i]}: ${formatNumber(activeChartValues[i])} ${activeChartUnit}`"
                 @mouseenter="tooltip = { x: p.x, y: p.y, label: activeChartData.labels[i], value: activeChartValues[i] }"
+                @focus="tooltip = { x: p.x, y: p.y, label: activeChartData.labels[i], value: activeChartValues[i] }"
+                @blur="tooltip = null"
               />
               <text v-for="(p, i) in chartXLabels" :key="'xl'+i"
-                :x="p.x" :y="chartH + 20" text-anchor="middle" fill="var(--app-text-soft)" font-size="8"
+                :x="p.x" :y="chartH + 20" text-anchor="middle" fill="var(--app-text-soft)" font-size="9"
               >{{ p.label }}</text>
             </svg>
 
@@ -322,6 +357,9 @@
               <div class="font-bold">{{ formatNumber(tooltip.value) }} {{ activeChartUnit }}</div>
               <div class="text-[10px] text-[var(--app-text-muted)]">{{ tooltip.label }}</div>
             </div>
+            <p v-if="tooltip" class="sr-only" aria-live="polite">
+              {{ tooltip.label }}: {{ formatNumber(tooltip.value) }} {{ activeChartUnit }}
+            </p>
           </div>
 
           <div v-else class="h-72 flex items-center justify-center">
@@ -347,7 +385,7 @@
           <div class="mb-3 space-y-2.5">
             <AutocompleteField
               v-model="rankingTipoProcesoFilter"
-              label="Tipo de Proceso"
+              label="Proceso del ranking"
               :items="store.tiposProceso"
               labelKey="nombre"
               valueKey="value"
@@ -355,10 +393,10 @@
               selectedDisplay="input"
             />
             <div class="grid grid-cols-2 gap-2">
-              <button type="button" :class="rankingMetricClass('produccion')" @click="store.setRankingMetric('produccion')">
+              <button type="button" :aria-pressed="store.filtros.ranking_metric === 'produccion'" :class="rankingMetricClass('produccion')" @click="store.setRankingMetric('produccion')">
                 Producción
               </button>
-              <button type="button" :class="rankingMetricClass('combustible')" @click="store.setRankingMetric('combustible')">
+              <button type="button" :aria-pressed="store.filtros.ranking_metric === 'combustible'" :class="rankingMetricClass('combustible')" @click="store.setRankingMetric('combustible')">
                 Combustible
               </button>
             </div>
@@ -371,7 +409,7 @@
             </div>
           </div>
 
-          <div v-else-if="store.rankingMaquinas.length > 0" class="space-y-3">
+          <AnimatedList v-else-if="store.rankingMaquinas.length > 0" tag="div" class="space-y-3" :stagger="45">
             <div v-for="(item, idx) in store.rankingMaquinas" :key="idx" class="group">
               <div class="mb-1 flex items-center justify-between">
                 <div class="flex min-w-0 items-center gap-2">
@@ -386,7 +424,9 @@
                 </div>
                 <div class="ml-2 shrink-0 text-right">
                   <span class="text-sm font-extrabold text-[var(--app-text)]">{{ formatNumber(item.valor) }}</span>
-                  <span class="block text-[10px] text-[var(--app-text-soft)]">{{ item.registros }} reg.</span>
+                  <span class="block text-[10px] text-[var(--app-text-soft)]">
+                    <template v-if="Number(item.valor) === 0">Sin datos para este indicador · </template>{{ item.registros }} reg.
+                  </span>
                 </div>
               </div>
               <div class="app-surface-muted h-1.5 overflow-hidden rounded-full">
@@ -397,7 +437,7 @@
                 ></div>
               </div>
             </div>
-          </div>
+          </AnimatedList>
 
           <div v-else class="h-56 flex items-center justify-center">
             <EmptyState
@@ -413,13 +453,18 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/dashboard'
 import AutocompleteField from '@/components/AutocompleteField.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import AnimatedList from '@/components/ui/AnimatedList.vue'
+import CountUpValue from '@/components/ui/CountUpValue.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import FeedbackMessage from '@/components/ui/FeedbackMessage.vue'
+import RevealStagger from '@/components/ui/RevealStagger.vue'
 
 const authStore = useAuthStore()
 const store = useDashboardStore()
@@ -526,13 +571,30 @@ const scopeSummary = computed(() => {
   return `${formatNumber(store.registrosIncluidos)} registros incluidos en este alcance.`
 })
 
+function displayKpiName(kpi) {
+  const name = String(kpi?.nombre || '')
+  const normalized = name.toLowerCase()
+  if ((normalized.includes('hora') && normalized.includes('trabajad')) || normalized.includes('horomet')) {
+    return 'Diferencia de horómetro'
+  }
+  return name
+}
+
+function displayKpiDescription(kpi) {
+  const description = String(kpi?.descripcion || '')
+  if (/hr_(inicio|fin)|horomet|horas trabajadas calculadas/i.test(description)) {
+    return 'Diferencia calculada entre el horómetro inicial y el final.'
+  }
+  return description
+}
+
 const executiveSummary = computed(() => {
   if (store.loading.kpis) return 'Cargando métricas para el periodo seleccionado.'
   if (!store.kpiPrincipal) return 'Sin datos suficientes para generar lectura del periodo.'
   const primary = `${formatNumber(store.kpiPrincipal.valor)} ${store.kpiPrincipal.unidad || ''}`.trim()
   const efficiency = store.kpis.find((kpi) => String(kpi.nombre || '').toLowerCase().includes('eficiencia'))
   const fuel = store.kpis.find((kpi) => String(kpi.nombre || '').toLowerCase().includes('combustible'))
-  const parts = [`${store.kpiPrincipal.nombre}: ${primary}`]
+  const parts = [`${displayKpiName(store.kpiPrincipal)}: ${primary}`]
   if (efficiency) parts.push(`eficiencia ${formatNumber(efficiency.valor)}${efficiency.unidad || ''}`)
   if (fuel) parts.push(`combustible ${formatNumber(fuel.valor)} ${fuel.unidad || ''}`.trim())
   return `${parts.join(' · ')}.`
@@ -609,25 +671,6 @@ function isDatePresetActive(key) {
   const range = ranges[key]
   return range ? current === `${toISODate(range[0])}|${toISODate(range[1])}` : false
 }
-
-const animatedHeroValue = ref('0')
-
-function animateValue(start, end, duration = 600) {
-  const startTime = performance.now()
-  const step = (now) => {
-    const elapsed = now - startTime
-    const progress = Math.min(elapsed / duration, 1)
-    const eased = 1 - Math.pow(1 - progress, 3)
-    const current = start + (end - start) * eased
-    animatedHeroValue.value = formatNumber(current)
-    if (progress < 1) requestAnimationFrame(step)
-  }
-  requestAnimationFrame(step)
-}
-
-watch(() => store.kpiPrincipal?.valor, (newVal, oldVal) => {
-  if (newVal != null) animateValue(oldVal || 0, newVal)
-})
 
 const iconMap = {
   truck: 'truck',
@@ -718,7 +761,7 @@ function exportCsv() {
     ['Periodo', dateRangeLabel.value],
     [],
     ['KPI', 'Valor', 'Unidad', 'Variacion %'],
-    ...store.kpis.map((kpi) => [kpi.nombre, kpi.valor, kpi.unidad || '', kpi.variacion_porcentual ?? '']),
+    ...store.kpis.map((kpi) => [displayKpiName(kpi), kpi.valor, kpi.unidad || '', kpi.variacion_porcentual ?? '']),
     [],
     ['Ranking', 'Detalle', 'Valor', 'Registros'],
     ...store.rankingMaquinas.map((item) => [item.patente, item.detalle, item.valor, item.registros]),
@@ -753,6 +796,10 @@ const activeChartLoading = computed(() => (
 const activeChartValues = computed(() => activeChartData.value.datasets?.[0]?.valores || [])
 const activeChartUnit = computed(() => (activeChartMetric.value === 'combustible' ? 'L' : (activeChartData.value.datasets?.[0]?.unidad || '')))
 const chartTitle = computed(() => activeChartMetric.value === 'combustible' ? 'Combustible consumido' : (activeChartData.value.datasets?.[0]?.nombre || 'Producción'))
+
+const chartAccessibilityDescription = computed(() => (
+  `Evolución diaria de ${chartTitle.value}. ${activeChartValues.value.length} puntos en el período seleccionado.`
+))
 
 const maxVal = computed(() => Math.max(...activeChartValues.value, 1))
 
@@ -824,6 +871,5 @@ onMounted(async () => {
   await store.fetchAll()
 
   await nextTick()
-  if (store.kpiPrincipal?.valor) animateValue(0, store.kpiPrincipal.valor)
 })
 </script>

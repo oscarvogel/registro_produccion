@@ -53,7 +53,12 @@
                 v-for="action in topActions"
                 :key="action.name"
                 type="button"
-                class="app-hover-glow inline-flex min-h-11 items-center justify-center gap-3 rounded-lg border border-primary/35 bg-primary-light/20 px-3 py-2 text-left text-sm font-extrabold text-[var(--app-text)] transition active:scale-[0.98]"
+                :class="[
+                  'app-hover-glow inline-flex min-h-11 items-center justify-center gap-3 rounded-lg border px-3 py-2 text-left text-sm font-extrabold text-[var(--app-text)] transition active:scale-[0.98]',
+                  action.primary
+                    ? 'border-primary/50 bg-primary-light/25'
+                    : 'border-[var(--app-border)] bg-[var(--app-surface-muted)]',
+                ]"
                 @click="router.push(action.to)"
               >
                 <span class="truncate">{{ action.label }}</span>
@@ -65,16 +70,17 @@
       </section>
 
       <template v-if="isAdmin">
-        <section v-motion-panel class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <RevealStagger as="section" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricTile v-for="card in adminSummaryCards" :key="card.label" :card="card" :loading="adminStore.loading || Boolean(adminStore.error)" />
-        </section>
+        </RevealStagger>
 
-        <section v-motion-panel class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_30rem]">
+        <RevealStagger as="section" class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_27rem]">
           <article class="app-card overflow-hidden rounded-xl p-0">
             <div class="flex items-center justify-between gap-3 px-4 pb-2 pt-4 md:px-5">
               <div>
                 <p class="text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]">Unidades de negocio</p>
-                <h2 class="mt-1 text-2xl font-extrabold leading-tight text-[var(--app-text)]">Última actividad registrada</h2>
+                <h2 class="mt-1 text-2xl font-extrabold leading-tight text-[var(--app-text)]">Actividad por unidad</h2>
+                <p class="mt-1 text-xs font-medium text-[var(--app-text-muted)]">Último registro disponible, independiente del período seleccionado.</p>
               </div>
               <span class="app-surface-muted hidden h-9 w-9 items-center justify-center rounded-lg border text-[var(--app-text-muted)] sm:flex">
                 <AppIcon name="unit" size="sm" />
@@ -93,8 +99,8 @@
                 />
               </label>
               <div class="flex flex-wrap gap-2 text-xs font-extrabold">
-                <span class="rounded-lg border px-3 py-2 app-state-active">{{ adminTotals.unidadesActivas }} con actividad</span>
-                <span class="rounded-lg border px-3 py-2 app-state-idle">{{ inactiveUnits.length }} sin actividad registrada</span>
+                <span class="rounded-lg border px-3 py-2 app-state-active">{{ adminTotals.unidadesActivas }} con historial</span>
+                <span class="rounded-lg border px-3 py-2 app-state-idle">{{ inactiveUnits.length }} sin historial</span>
               </div>
             </div>
 
@@ -116,13 +122,15 @@
                   'group grid min-h-[5.35rem] grid-cols-[auto_minmax(0,1fr)] items-start gap-3 overflow-hidden rounded-lg border p-3 text-left transition duration-150 ease-out hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 active:translate-y-0 active:scale-[0.99]',
                   unitCardClass(unidad),
                 ]"
+                :aria-label="unitCardAriaLabel(unidad)"
+                :title="unitCardTitle(unidad)"
                 @click="router.push({ name: 'dashboard', query: { un_id: String(unidad.id) } })"
               >
                 <span :class="['flex h-9 min-w-9 items-center justify-center rounded-md border px-2 text-xs font-extrabold', unitStatusClass(unidad)]">
                   {{ unidad.prefijo || 'SIN' }}
                 </span>
                 <div class="min-w-0">
-                  <p class="truncate text-sm font-extrabold text-[var(--app-text)]">{{ unidad.nombre }}</p>
+                  <p class="truncate text-sm font-extrabold text-[var(--app-text)]" :title="unidad.nombre">{{ unidad.nombre }}</p>
                   <p class="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-[var(--app-text-muted)]">
                     <span :class="['h-1.5 w-1.5 rounded-full', unitDotClass(unidad)]"></span>
                     {{ unitStatusText(unidad) }}
@@ -131,7 +139,7 @@
                     <p class="mt-1.5 flex min-w-0 max-w-full items-center overflow-hidden text-[11px] text-[var(--app-text-soft)]">
                       Última: {{ formatFecha(unidad.resumen.ultima_actividad_fecha) }}
                       <span v-if="unidad.resumen.ultima_actividad_resumen" class="ml-1">-</span>
-                      <span v-if="unidad.resumen.ultima_actividad_resumen" class="min-w-0 flex-1 truncate">{{ unidad.resumen.ultima_actividad_resumen }}</span>
+                      <span v-if="unidad.resumen.ultima_actividad_resumen" class="min-w-0 flex-1 truncate" :title="unidad.resumen.ultima_actividad_resumen">{{ unidad.resumen.ultima_actividad_resumen }}</span>
                     </p>
                   </template>
                   <template v-else>
@@ -179,7 +187,9 @@
             <AlertPanel
               :alerts="adminAlerts"
               :unit-labels="inactiveUnitLabels"
-              action-label="Abrir Análisis de Producción"
+              :show-action="adminAlerts.length > 0"
+              action-label="Revisar en Análisis de Producción"
+              action-variant="soft"
               @action="router.push({ name: 'admin-dashboard' })"
             />
             <RecentRecordsPanel />
@@ -190,11 +200,11 @@
               @install="handlePwaInstallAction"
             />
           </aside>
-        </section>
+        </RevealStagger>
       </template>
 
       <template v-else>
-        <section v-motion-panel class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <RevealStagger as="section" class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <button
             v-for="action in operatorMainActions"
             :key="action.name"
@@ -211,7 +221,7 @@
             <h2 class="text-base font-extrabold text-[var(--app-text)] group-hover:text-[var(--color-info-dark)]">{{ action.label }}</h2>
             <p class="mt-1 text-sm font-medium text-[var(--app-text-muted)]">{{ action.description }}</p>
           </button>
-        </section>
+        </RevealStagger>
 
         <section v-if="!recordsStore.loading && !lastRecord" class="rounded-xl border border-dashed border-warning/40 bg-warning-light/20 p-4">
           <div>
@@ -221,7 +231,7 @@
           </div>
         </section>
 
-        <section v-motion-panel class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <RevealStagger as="section" class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div class="space-y-3">
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <MetricTile v-for="card in operatorSummaryCards" :key="card.label" :card="card" :loading="recordsStore.loading" />
@@ -239,7 +249,7 @@
               @install="handlePwaInstallAction"
             />
           </aside>
-        </section>
+        </RevealStagger>
       </template>
     </div>
   </div>
@@ -256,6 +266,8 @@ import { useConnectivityStore } from '@/stores/connectivity'
 import { usePwaInstallStatus } from '@/composables/usePwaInstallStatus'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import AnimatedList from '@/components/ui/AnimatedList.vue'
+import RevealStagger from '@/components/ui/RevealStagger.vue'
 
 const authStore = useAuthStore()
 const produccionStore = useProduccionStore()
@@ -326,8 +338,8 @@ const isTodayRange = computed(() => selectedDatePreset.value === 'today')
 const headerSubtitle = computed(() => {
   if (isAdmin.value) {
     return isTodayRange.value
-      ? 'Resumen de hoy y accesos de administración. La sección de unidades muestra la última actividad registrada.'
-      : `Resumen de ${rangeLabel.value} y accesos de administración. La sección de unidades muestra la última actividad registrada.`
+      ? 'Resumen del período de hoy y accesos de administración. Unidades y últimas cargas muestran la actividad más reciente disponible.'
+      : `Resumen del período ${rangeLabel.value} y accesos de administración. Unidades y últimas cargas muestran la actividad más reciente disponible.`
   }
   return isTodayRange.value
     ? 'Accesos del día, estado de sincronización y actividad personal.'
@@ -338,7 +350,7 @@ const roleLabel = computed(() => authStore.user?.encargado === 1 ? 'Encargado' :
 
 const topActions = computed(() => isAdmin.value
   ? [
-      { name: 'admin-dashboard', label: 'Abrir Análisis de Producción', icon: 'dashboard', to: { name: 'admin-dashboard' } },
+      { name: 'admin-dashboard', label: 'Abrir Análisis de Producción', icon: 'dashboard', to: { name: 'admin-dashboard' }, primary: true },
       { name: 'produccion', label: 'Carga Producción', icon: 'production', to: { name: 'produccion' } },
       { name: 'combustible', label: 'Carga Combustible', icon: 'fuel', to: { name: 'combustible' } },
     ]
@@ -389,11 +401,13 @@ const adminUnitPageEnd = computed(() => Math.min(adminUnitPageStart.value + admi
 const adminUnitDisplayStart = computed(() => filteredAdminUnits.value.length === 0 ? 0 : adminUnitPageStart.value + 1)
 const pagedAdminUnits = computed(() => filteredAdminUnits.value.slice(adminUnitPageStart.value, adminUnitPageEnd.value))
 
+const adminSelectedPeriodLabel = computed(() => isTodayRange.value ? 'hoy' : rangeLabel.value)
+
 const adminSummaryCards = computed(() => [
-  { label: 'Producción total periodo', value: fmt(adminTotals.value.produccion), detail: 'Todas las unidades', icon: 'production' },
-  { label: 'Registros periodo', value: fmt(adminTotals.value.registros), detail: 'Cargas del sistema', icon: 'records' },
-  { label: 'Unidades con actividad', value: `${adminTotals.value.unidadesActivas} / ${adminUnits.value.length}`, detail: inactiveUnits.value.length ? `${inactiveUnits.value.length} sin actividad registrada` : 'Todas con actividad', icon: 'unit' },
-  { label: 'Pendientes offline', value: fmt(produccionStore.pendingCount), detail: syncText.value, icon: 'pending' },
+  { label: 'Producción del período', value: fmt(adminTotals.value.produccion), detail: `Todas las unidades · ${adminSelectedPeriodLabel.value}`, icon: 'production' },
+  { label: 'Registros del período', value: fmt(adminTotals.value.registros), detail: `Cargas del sistema · ${adminSelectedPeriodLabel.value}`, icon: 'records' },
+  { label: 'Unidades con historial', value: `${adminTotals.value.unidadesActivas} / ${adminUnits.value.length}`, detail: inactiveUnits.value.length ? `${inactiveUnits.value.length} sin historial · última actividad` : 'Todas con historial', icon: 'unit' },
+  { label: 'Pendientes en este dispositivo', value: fmt(produccionStore.pendingCount), detail: syncText.value, icon: 'pending' },
 ])
 
 const adminAlerts = computed(() => {
@@ -530,12 +544,12 @@ const MetricTile = defineComponent({
         h(AppIcon, { name: props.card.icon || 'dashboard', size: 'lg', class: props.card.icon === 'fuel' ? 'text-warning-dark' : 'text-[var(--color-info-dark)]' }),
       ]),
       h('div', { class: 'min-w-0' }, [
-        h('p', { class: 'truncate text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]' }, props.card.label),
+        h('p', { class: 'min-h-[2rem] text-xs font-bold uppercase leading-tight tracking-wide text-[var(--app-text-muted)]', title: props.card.label }, props.card.label),
         h('div', { class: 'mt-1 flex items-baseline gap-1.5' }, [
           h('span', { class: 'text-3xl font-extrabold leading-none text-[var(--app-text)]' }, props.loading ? '-' : props.card.value),
-          props.card.unit ? h('span', { class: 'text-xs font-bold text-[var(--app-text-soft)]' }, props.card.unit) : null,
+          props.card.unit ? h('span', { class: 'text-xs font-bold text-[var(--app-text-muted)]' }, props.card.unit) : null,
         ]),
-        h('p', { class: 'mt-1 truncate text-xs font-medium text-[var(--app-text-soft)]' }, props.card.detail || ''),
+        h('p', { class: 'mt-1 truncate text-xs font-medium text-[var(--app-text-soft)]', title: props.card.detail || '' }, props.card.detail || ''),
       ]),
     ])
   },
@@ -632,6 +646,8 @@ const AlertPanel = defineComponent({
     alerts: { type: Array, required: true },
     unitLabels: { type: Array, default: () => [] },
     actionLabel: { type: String, default: 'Abrir detalle' },
+    actionVariant: { type: String, default: 'danger' },
+    showAction: { type: Boolean, default: true },
   },
   emits: ['action'],
   setup(props, { emit }) {
@@ -652,13 +668,15 @@ const AlertPanel = defineComponent({
           h('div', { class: 'flex flex-wrap gap-1.5' }, props.unitLabels.map((label) => h('span', { key: label, class: 'rounded-md border border-error/40 bg-error-light px-2.5 py-1 text-xs font-bold text-error-dark' }, label))),
         ])
         : null,
-      h('button', {
-        type: 'button',
-        class: props.alerts.length > 0
-          ? 'mt-4 inline-flex w-full items-center justify-center rounded-lg bg-error px-3 py-2.5 text-sm font-extrabold text-on-error transition hover:bg-error-dark hover:text-on-error-dark active:scale-[0.98]'
-          : 'app-button-soft mt-4 inline-flex w-full items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-extrabold',
-        onClick: () => emit('action'),
-      }, props.actionLabel),
+      props.showAction
+        ? h('button', {
+          type: 'button',
+          class: props.actionVariant === 'soft'
+            ? 'app-button-soft mt-4 inline-flex w-full items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-extrabold'
+            : 'mt-4 inline-flex w-full items-center justify-center rounded-lg bg-error px-3 py-2.5 text-sm font-extrabold text-on-error transition hover:bg-error-dark hover:text-on-error-dark active:scale-[0.98]',
+          onClick: () => emit('action'),
+        }, props.actionLabel)
+        : null,
     ])
   },
 })
@@ -667,16 +685,24 @@ const RecentRecordsPanel = defineComponent({
   setup() {
     return () => h('article', { class: 'app-card rounded-xl p-4' }, [
       h('div', { class: 'mb-3' }, [
-        h('p', { class: 'text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]' }, 'Últimos registros'),
+        h('p', { class: 'text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]' }, 'Actividad reciente'),
         h('h2', { class: 'mt-0.5 text-xl font-extrabold text-[var(--app-text)]' }, 'Últimas cargas'),
+        h('p', { class: 'mt-1 text-xs font-medium text-[var(--app-text-muted)]' }, 'Más recientes del sistema, sin filtro de período.'),
       ]),
       adminStore.loadingRecentRecords
         ? h('div', { class: 'space-y-2' }, [1, 2, 3].map((i) => h('div', { key: i, class: 'app-surface-muted h-12 animate-pulse rounded-lg' })))
         : adminStore.recentRecords.length > 0
-          ? h('div', { class: 'divide-y divide-[var(--app-border)]' }, adminStore.recentRecords.map((record) => h('div', { key: record.id, class: 'py-3' }, [
-            h('p', { class: 'truncate text-sm font-bold text-[var(--app-text)]' }, `${record.operacion || 'Producción'} - ${record.unidad || 'Sin unidad'}`),
-            h('p', { class: 'truncate text-xs text-[var(--app-text-soft)]' }, `${formatFecha(record.fecha)} - ${record.operador || 'Sin operador'} - ${record.equipo || 'Sin equipo'}`),
-          ])))
+          ? h(AnimatedList, { tag: 'div', class: 'divide-y divide-[var(--app-border)]', stagger: 55 }, { default: () => adminStore.recentRecords.map((record) => h('div', { key: record.id, class: 'py-2.5', 'aria-label': recentRecordAriaLabel(record) }, [
+            h('div', { class: 'flex items-start justify-between gap-2' }, [
+              h('p', { class: 'min-w-0 truncate text-sm font-bold text-[var(--app-text)]', title: `${record.operacion || 'Producción'} - ${record.unidad || 'Sin unidad'}` }, `${record.operacion || 'Producción'} - ${record.unidad || 'Sin unidad'}`),
+              h('span', { class: 'shrink-0 text-[11px] font-semibold text-[var(--app-text-soft)]', title: `Registro ${record.id}` }, `#${record.id}`),
+            ]),
+            h('p', { class: 'truncate text-xs text-[var(--app-text-soft)]' }, `${formatFecha(record.fecha)} · ${record.operador || 'Sin operador'} · ${record.equipo || 'Sin equipo'}`),
+            h('div', { class: 'mt-1 flex flex-wrap gap-1.5' }, [
+              h('span', { class: 'rounded-md border px-1.5 py-0.5 text-[11px] font-semibold app-state-inactive' }, `Producción ${fmt(record.produccion)}`),
+              h('span', { class: 'rounded-md border px-1.5 py-0.5 text-[11px] font-semibold app-state-inactive' }, `Combustible ${fmt(record.combustible)} L`),
+            ]),
+          ])) })
           : h('p', { class: 'text-sm text-[var(--app-text-muted)]' }, 'Sin registros cargados.'),
     ])
   },
@@ -733,6 +759,30 @@ function unitStatusText(unidad) {
     return `Última: ${formatFecha(unidad.resumen.ultima_actividad_fecha)}`
   }
   return `${fmt(unidad.resumen.total_registros)} registro${unidad.resumen.total_registros !== 1 ? 's' : ''} en el periodo`
+}
+
+function unitCardTitle(unidad) {
+  const name = unidad.nombre || 'Unidad de negocio'
+  const summary = unidad.resumen?.ultima_actividad_resumen
+  if (!summary) return `${name}. ${unitStatusText(unidad)}.`
+  return `${name}. ${unitStatusText(unidad)}. Última actividad: ${summary}.`
+}
+
+function unitCardAriaLabel(unidad) {
+  return `Abrir Operación para ${unitCardTitle(unidad)}`
+}
+
+function recentRecordAriaLabel(record) {
+  return [
+    `Registro ${record.id}`,
+    record.operacion || 'Producción',
+    record.unidad || 'Sin unidad',
+    formatFecha(record.fecha),
+    record.operador || 'Sin operador',
+    record.equipo || 'Sin equipo',
+    `Producción ${fmt(record.produccion)}`,
+    `Combustible ${fmt(record.combustible)} litros`,
+  ].join('. ')
 }
 
 function compareUnitsByLastActivity(a, b) {

@@ -8,6 +8,8 @@ import {
   renderMarkdownImage,
   isSafeImageSrc,
   escapeHtml,
+  inline,
+  slugifyHeading,
 } from './manualRenderer.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -96,6 +98,19 @@ describe('manualRenderer - local Markdown images', () => {
   })
 })
 
+describe('manualRenderer - internal navigation', () => {
+  it('renders safe local fragment links', () => {
+    expect(inline('[Ir al inicio](#3-inicio)'))
+      .toBe('<a href="#3-inicio">Ir al inicio</a>')
+    expect(inline('[Sitio externo](https://example.com)')).not.toContain('<a')
+  })
+
+  it('normalizes heading text into stable ids', () => {
+    expect(slugifyHeading('2. Sincronización y navegación móvil'))
+      .toBe('2-sincronizacion-y-navegacion-movil')
+  })
+})
+
 describe('manualRenderer - renderManualMarkdown (full pipeline)', () => {
   it('renders the cover + page-break block without leaking raw tags', () => {
     const md = `<div class="cover">
@@ -144,7 +159,7 @@ describe('manualRenderer - renderManualMarkdown (full pipeline)', () => {
 | a | 1 |
 `
     const out = renderManualMarkdown(md)
-    expect(out).toContain('<h2>Seccion</h2>')
+    expect(out).toContain('<h2 id="seccion">Seccion</h2>')
     expect(out).toContain('<li>item <strong>uno</strong></li>')
     expect(out).toContain('<li>item <code>dos</code></li>')
     expect(out).toContain('<ol>')
