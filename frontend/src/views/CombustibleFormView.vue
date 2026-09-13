@@ -16,13 +16,12 @@
 
     <div class="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <SectionCard title="Nueva carga">
-        <form class="space-y-3" :aria-busy="store.saving || undefined" @submit.prevent="submit">
-          <FeedbackMessage v-if="store.error || formError" tone="error" :message="formError || store.error" />
-
-          <FeedbackMessage v-if="successMessage" tone="success" :message="successMessage" />
+        <form class="space-y-3" novalidate :aria-busy="store.saving || undefined" @submit.prevent="submit">
+          <FeedbackMessage v-if="store.error" tone="error" :message="store.error" />
 
           <div class="rounded-lg border border-info/30 bg-info-light/40 p-3 text-sm text-info-dark">
-            Usá esta sección sólo cuando el abastecimiento no esté asociado a un parte de producción. Si lo registraste en Producción, no lo repitas aquí.
+            <p class="font-bold">Cuándo usar este formulario</p>
+            <p class="mt-1">Usá esta sección solo cuando el abastecimiento no esté asociado a un parte de producción. Si lo registraste en Producción, no lo repitas aquí.</p>
           </div>
 
           <div class="grid gap-3 md:grid-cols-2">
@@ -39,7 +38,7 @@
               <AutocompleteField
                 v-model="form.id_movil"
                 :items="movilOptions"
-                label="Equipo / movil"
+                label="Equipo / móvil"
                 labelKey="_label"
                 valueKey="idMovil"
                 placeholder="Buscar por patente o detalle"
@@ -48,15 +47,16 @@
                 :invalid="Boolean(fieldErrors.id_movil)"
                 :error-message="fieldErrors.id_movil"
               />
-              <p class="mt-1 text-xs font-semibold text-neutral-400">
-                {{ store.loadingMoviles ? 'Cargando moviles...' : `${movilOptions.length} moviles disponibles` }}
+              <p class="mt-1 text-xs font-semibold text-[var(--app-text-muted)]">
+                {{ store.loadingMoviles ? 'Cargando móviles...' : `${movilOptions.length} móviles disponibles` }}
               </p>
             </div>
 
             <InputField
               v-model.number="form.litros"
-              label="Litros"
+              label="Litros (L)"
               type="number"
+              placeholder="Ej: 120,5"
               min="0.01"
               step="0.01"
               required
@@ -66,8 +66,9 @@
 
             <InputField
               v-model.number="form.km"
-              label="Kilometraje / horometro"
+              label="Kilometraje / horómetro"
               type="number"
+              placeholder="Ej: 1200,5"
               min="1"
               required
               :invalid="Boolean(fieldErrors.km)"
@@ -89,14 +90,17 @@
                 :error-message="fieldErrors.id_lugar_carga"
                 emptyMessage="Sin lugares habilitados para la unidad del equipo"
               />
+              <p v-if="!form.id_movil" class="mt-1 text-xs font-semibold text-[var(--app-text-muted)]">
+                Seleccioná un equipo para habilitar los lugares de carga.
+              </p>
             </div>
           </div>
 
           <div class="grid gap-3 sm:grid-cols-3">
             <InputField
               v-model="form.remito"
-              label="Remito 1"
-              placeholder="Obligatorio"
+              label="Remito (obligatorio)"
+              placeholder="Número de remito"
               maxlength="12"
               required
               :invalid="Boolean(fieldErrors.remito)"
@@ -104,24 +108,24 @@
             />
             <InputField
               v-model="form.remito2"
-              label="Remito 2"
+              label="Remito adicional 2"
               placeholder="Opcional"
               maxlength="12"
             />
             <InputField
               v-model="form.remito3"
-              label="Remito 3"
+              label="Remito adicional 3"
               placeholder="Opcional"
               maxlength="12"
             />
           </div>
 
           <label class="block">
-            <span class="mb-1 block text-sm font-medium text-neutral-700">Observaciones</span>
+            <span class="mb-1 block text-sm font-medium text-[var(--app-text)]">Observaciones</span>
             <textarea
               v-model="form.observaciones"
               rows="3"
-              class="app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 sm:px-3.5"
+              class="app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm placeholder:text-[var(--app-input-placeholder)] focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 sm:px-3.5"
               placeholder="Opcional"
             ></textarea>
           </label>
@@ -136,6 +140,8 @@
               Registrar carga
             </AppButton>
           </div>
+
+          <FeedbackMessage v-if="successMessage" tone="success" :message="successMessage" />
         </form>
       </SectionCard>
 
@@ -143,21 +149,21 @@
         <SectionCard title="Operador">
           <div class="space-y-3 text-sm">
             <div>
-              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Nombre</p>
-              <p class="mt-1 font-extrabold text-neutral-900">{{ authStore.userName }}</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-[var(--app-text-muted)]">Nombre</p>
+              <p class="mt-1 font-extrabold text-[var(--app-text)]">{{ authStore.userName }}</p>
             </div>
             <div>
-              <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Unidades habilitadas</p>
-              <p class="mt-1 font-semibold text-neutral-700">{{ unidadLabel }}</p>
+              <p class="text-xs font-bold uppercase tracking-wide text-[var(--app-text-muted)]">Unidades habilitadas</p>
+              <p class="mt-1 font-semibold text-[var(--app-text)]">{{ unidadLabel }}</p>
             </div>
           </div>
         </SectionCard>
 
         <SectionCard v-if="store.lastCarga" title="Última carga">
-          <div class="space-y-2 text-sm text-neutral-700">
+          <div class="space-y-2 text-sm text-[var(--app-text)]">
             <p><strong>{{ store.lastCarga.movil }}</strong></p>
             <p>{{ Number(store.lastCarga.litros).toLocaleString('es-AR') }} L</p>
-            <p>KM/HM {{ Number(store.lastCarga.km).toLocaleString('es-AR') }}</p>
+            <p>Lectura km/horómetro: {{ Number(store.lastCarga.km).toLocaleString('es-AR') }}</p>
           </div>
         </SectionCard>
       </aside>
@@ -166,7 +172,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCombustibleStore } from '@/stores/combustible'
 import AutocompleteField from '@/components/AutocompleteField.vue'
@@ -229,11 +235,11 @@ watch(() => form.id_movil, async () => {
 function validateForm() {
   const errors = {
     fecha: form.fecha ? '' : 'Selecciona la fecha de carga.',
-    id_movil: form.id_movil ? '' : 'Selecciona un equipo o movil.',
+    id_movil: form.id_movil ? '' : 'Seleccioná un equipo o móvil.',
     litros: Number(form.litros) > 0 ? '' : 'Ingresa una cantidad de litros mayor a cero.',
-    km: Number(form.km) > 0 ? '' : 'Ingresa un kilometraje u horometro mayor a cero.',
-    id_lugar_carga: form.id_lugar_carga ? '' : 'Selecciona el lugar de carga.',
-    remito: form.remito.trim() ? '' : 'Ingresa el Remito 1.',
+    km: Number(form.km) > 0 ? '' : 'Ingresá un kilometraje u horómetro mayor a cero.',
+    id_lugar_carga: form.id_lugar_carga ? '' : 'Seleccioná el lugar de carga.',
+    remito: form.remito.trim() ? '' : 'Ingresá el remito 1.',
   }
   fieldErrors.value = errors
   return Object.values(errors).find(Boolean) || ''
@@ -262,7 +268,10 @@ function resetForm() {
 async function submit() {
   formError.value = validateForm()
   successMessage.value = ''
-  if (formError.value) return
+  if (formError.value) {
+    await focusFirstInvalidField()
+    return
+  }
 
   try {
     const carga = await store.createCarga({
@@ -283,5 +292,10 @@ async function submit() {
   } catch {
     formError.value = store.error
   }
+}
+
+async function focusFirstInvalidField() {
+  await nextTick()
+  document.querySelector('[aria-invalid="true"]')?.focus()
 }
 </script>

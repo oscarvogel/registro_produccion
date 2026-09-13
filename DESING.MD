@@ -155,20 +155,20 @@ Solid semantic backgrounds must use their `on-*` foreground token. White text is
 
 ## Navigation Theme Strategy (Light/Dark)
 
-La sidebar de escritorio y el header móvil son superficies de navegación de marca. Permanecen oscuros tanto en `Light` como en `Dark`; esta persistencia es intencional y no una superficie pendiente de adaptación al tema.
+La sidebar de escritorio y el header móvil son superficies de navegación integradas al tema activo. En `Dark` usan la superficie forestal de marca; en `Light` usan una superficie clara con texto oscuro y los mismos acentos esmeralda.
 
-El modo `Light` aplica principalmente al canvas principal, cards, tablas, formularios, superficies, modales y demás contenido. La navegación conserva su fondo oscuro para reforzar la identidad visual, mantener una orientación espacial estable y sostener el contraste con el contenido claro.
+El modo `Light` aplica al canvas principal, cards, tablas, formularios, superficies, modales, contenido y navegación. El header y la sidebar mantienen su posición, jerarquía y acentos al cambiar de tema, pero alternan sus superficies y foregrounds para conservar legibilidad.
 
 ### Navigation state contract
 
-- **Estado activo**: borde/acento esmeralda, superficie verde profunda y texto blanco.
-- **Hover y focus**: superficie forestal sutil, texto blanco y anillo de foco visible.
-- **Usuario y servidor**: nombre, rol y estado de conexión usan texto claro sobre la superficie oscura; el indicador esmeralda identifica conexión disponible.
+- **Estado activo**: borde/acento esmeralda; la superficie y el texto se adaptan al tema, manteniendo contraste suficiente.
+- **Hover y focus**: superficie semántica de navegación, foreground del tema y anillo de foco visible.
+- **Usuario y servidor**: nombre, rol y estado de conexión usan los tokens de navegación del tema; el indicador esmeralda identifica conexión disponible.
 - **Badges**: cuando se renderizan, mantienen el color funcional de advertencia con el foreground semántico `on-warning` y permanecen visibles en navegación expandida o como indicador compacto en navegación colapsada.
-- **Cambio de tema**: actualiza el contenido principal, pero no convierte la sidebar ni el header móvil en superficies claras.
+- **Cambio de tema**: actualiza contenido, sidebar y header móvil sin cambiar layout, navegación ni permisos.
 - **Navegación colapsada**: conserva iconos, estado activo, indicadores y foco; las etiquetas siguen disponibles mediante `title` o nombre accesible.
 
-No se deben reemplazar estas superficies por fondos claros como parte de una futura adaptación del modo `Light`, salvo que se revise explícitamente esta decisión de identidad visual.
+Los iconos de navegación se sirven como activos SVG emparejados por tema: trazos claros sobre el shell Dark y trazos oscuros sobre el shell Light, con acentos esmeralda consistentes.
 
 ## Typography
 The system relies exclusively on **Inter**, declared in `frontend/src/style.css`, to maintain a neutral, systematic, and highly legible appearance across data-dense tables and technical labels.

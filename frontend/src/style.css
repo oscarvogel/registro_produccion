@@ -186,11 +186,59 @@
   --app-text: #151813;
   --app-text-muted: #687064;
   --app-text-soft: #969f92;
+  --app-input-placeholder: #687064;
   --app-shadow: 0 1px 2px rgba(7, 24, 16, 0.06), 0 8px 22px rgba(7, 24, 16, 0.05);
   --app-shadow-lg: 0 18px 50px rgba(7, 24, 16, 0.14);
   --app-focus: rgba(29, 158, 117, 0.28);
 
-  /* Persistent dark navigation tokens */
+  /* Light navigation tokens: the shell follows the active theme. */
+  --app-nav-bg: #ffffff;
+  --app-nav-header: #f8fbf9;
+  --app-nav-surface: #eef8f2;
+  --app-nav-surface-open: rgba(238, 248, 242, 0.88);
+  --app-nav-border: #dfe5dc;
+  --app-nav-text: #151813;
+  --app-nav-text-muted: #42483f;
+  --app-nav-text-subtle: #687064;
+  --app-nav-text-soft: #687064;
+  --app-nav-control-text: #42483f;
+  --app-nav-control-border: rgba(21, 24, 19, 0.14);
+  --app-nav-active-bg: #d1fae5;
+  --app-nav-active-border: rgba(5, 150, 105, 0.55);
+  --app-nav-active-border-soft: rgba(5, 150, 105, 0.38);
+  --app-nav-active-glow: rgba(5, 150, 105, 0.08);
+  --app-nav-accent: #059669;
+  --app-nav-accent-strong: #0f6e56;
+  --app-nav-status: #0f9f75;
+  --app-nav-status-text: #0f6e56;
+  --app-nav-user-bg: #d1fae5;
+  --app-nav-user-text: #065f46;
+  --app-nav-user-ring: rgba(5, 150, 105, 0.28);
+  --app-nav-logo-ring: rgba(15, 110, 86, 0.18);
+  --app-nav-logo-glow: rgba(5, 150, 105, 0.18);
+  --app-nav-muted-indicator: #96a19a;
+  --app-nav-toggle-off-bg: rgba(21, 24, 19, 0.06);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --app-bg: #090e0b;
+  --app-bg-soft: #0f1511;
+  --app-surface: #141c17;
+  --app-surface-muted: #101712;
+  --app-surface-raised: rgba(20, 28, 23, 0.88);
+  --app-glass: rgba(17, 24, 20, 0.72);
+  --app-border: #222d26;
+  --app-border-strong: #34423a;
+  --app-text: #f2f8f4;
+  --app-text-muted: #b8c7bd;
+  --app-text-soft: #829286;
+  --app-input-placeholder: #b8c7bd;
+  --app-shadow: 0 0 0 1px rgba(34, 45, 38, 0.74), 0 8px 28px rgba(0, 0, 0, 0.18);
+  --app-shadow-lg: 0 0 0 1px rgba(78, 222, 163, 0.12), 0 22px 70px rgba(0, 0, 0, 0.42);
+  --app-focus: rgba(16, 185, 129, 0.32);
+
+  /* Dark navigation tokens: forest shell with high-contrast custom icons. */
   --app-nav-bg: #07100c;
   --app-nav-header: #090e0b;
   --app-nav-surface: #141c17;
@@ -217,24 +265,6 @@
   --app-nav-logo-glow: rgba(16, 185, 129, 0.28);
   --app-nav-muted-indicator: #86948a;
   --app-nav-toggle-off-bg: rgba(255, 255, 255, 0.06);
-}
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --app-bg: #090e0b;
-  --app-bg-soft: #0f1511;
-  --app-surface: #141c17;
-  --app-surface-muted: #101712;
-  --app-surface-raised: rgba(20, 28, 23, 0.88);
-  --app-glass: rgba(17, 24, 20, 0.72);
-  --app-border: #222d26;
-  --app-border-strong: #34423a;
-  --app-text: #f2f8f4;
-  --app-text-muted: #b8c7bd;
-  --app-text-soft: #829286;
-  --app-shadow: 0 0 0 1px rgba(34, 45, 38, 0.74), 0 8px 28px rgba(0, 0, 0, 0.18);
-  --app-shadow-lg: 0 0 0 1px rgba(78, 222, 163, 0.12), 0 22px 70px rgba(0, 0, 0, 0.42);
-  --app-focus: rgba(16, 185, 129, 0.32);
 
   --color-surface: #090e0b;
   --color-surface-dim: #060a08;
@@ -400,6 +430,90 @@
   .app-hover-glow:hover {
     border-color: color-mix(in srgb, var(--color-primary) 32%, var(--app-border));
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 10%, transparent), 0 0 14px color-mix(in srgb, var(--color-primary) 5%, transparent);
+  }
+
+  .app-reveal-stagger > * {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 260ms cubic-bezier(0.22, 1, 0.36, 1), transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .app-reveal-stagger--visible > * {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .app-reveal-stagger--visible > :nth-child(1) { transition-delay: 0ms; }
+  .app-reveal-stagger--visible > :nth-child(2) { transition-delay: calc(var(--app-motion-stagger) * 1); }
+  .app-reveal-stagger--visible > :nth-child(3) { transition-delay: calc(var(--app-motion-stagger) * 2); }
+  .app-reveal-stagger--visible > :nth-child(4) { transition-delay: calc(var(--app-motion-stagger) * 3); }
+  .app-reveal-stagger--visible > :nth-child(5) { transition-delay: calc(var(--app-motion-stagger) * 4); }
+  .app-reveal-stagger--visible > :nth-child(6) { transition-delay: calc(var(--app-motion-stagger) * 5); }
+  .app-reveal-stagger--visible > :nth-child(7) { transition-delay: calc(var(--app-motion-stagger) * 6); }
+  .app-reveal-stagger--visible > :nth-child(8) { transition-delay: calc(var(--app-motion-stagger) * 7); }
+
+  .app-animated-list-enter-active,
+  .app-animated-list-leave-active {
+    transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1), transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .app-animated-list-enter-from,
+  .app-animated-list-leave-to {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  .app-animated-list-move {
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .app-animated-list-enter-active:nth-child(2) { transition-delay: calc(var(--app-list-stagger) * 1); }
+  .app-animated-list-enter-active:nth-child(3) { transition-delay: calc(var(--app-list-stagger) * 2); }
+  .app-animated-list-enter-active:nth-child(4) { transition-delay: calc(var(--app-list-stagger) * 3); }
+  .app-animated-list-enter-active:nth-child(5) { transition-delay: calc(var(--app-list-stagger) * 4); }
+  .app-animated-list-enter-active:nth-child(6) { transition-delay: calc(var(--app-list-stagger) * 5); }
+
+  .app-dashboard-chart {
+    transform-origin: center;
+  }
+
+  .app-dashboard-chart circle:focus-visible {
+    outline: 2px solid var(--app-focus);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .app-dashboard-chart {
+      animation: app-chart-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+  }
+
+  @keyframes app-chart-enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app-reveal-stagger > *,
+    .app-reveal-stagger--visible > *,
+    .app-animated-list-enter-active,
+    .app-animated-list-leave-active,
+    .app-animated-list-move {
+      transition-duration: 0ms;
+      transform: none;
+    }
+
+    .app-reveal-stagger > *,
+    .app-animated-list-enter-from,
+    .app-animated-list-leave-to {
+      opacity: 1;
+    }
   }
 
   .app-input {

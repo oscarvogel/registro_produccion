@@ -6,7 +6,7 @@
     ]"
   >
     <div class="mx-auto flex max-w-5xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <p v-if="message" class="text-xs font-semibold text-error-dark sm:max-w-md">
+      <p v-if="message" class="text-xs font-semibold text-[var(--app-text-muted)] sm:max-w-md">
         {{ message }}
       </p>
       <div class="flex w-full gap-2 sm:ml-auto sm:w-auto sm:justify-end">

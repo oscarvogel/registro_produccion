@@ -44,7 +44,7 @@
       :aria-invalid="invalid || undefined"
       :aria-describedby="statusMessage ? statusMessageId : undefined"
       @click="startSearch"
-      class="app-input flex min-h-10 w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-px hover:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-neutral-200 sm:px-3.5"
+      class="app-input flex min-h-10 w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-px hover:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-[var(--app-text-muted)] sm:px-3.5"
     >
       <span class="min-w-0 truncate">{{ selectedLabel }}</span>
       <AppIcon name="chevronDown" size="sm" class="shrink-0 text-neutral-500" />
@@ -92,7 +92,7 @@
           :aria-invalid="invalid || undefined"
           :aria-describedby="statusMessage ? statusMessageId : undefined"
           :class="[
-            'app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm placeholder:text-neutral-400 focus:border-primary/40 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-neutral-200 transition-colors sm:px-3.5',
+            'app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm placeholder:text-[var(--app-input-placeholder)] focus:border-primary/40 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-[var(--app-text-muted)] transition-colors sm:px-3.5',
             invalid
               ? 'border-error focus:ring-error/30 focus:border-error'
               : 'border-neutral-300 focus:ring-primary/30 focus:border-primary/40',

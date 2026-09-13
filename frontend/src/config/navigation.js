@@ -2,8 +2,8 @@ function link(key, label, icon, to, extra = {}) {
   return { key, label, icon, to, ...extra }
 }
 
-function section(key, label, items) {
-  return { key, label, items }
+function section(key, label, items, icon = key) {
+  return { key, label, items, icon }
 }
 
 export function createSidebarNavigation({
@@ -34,18 +34,18 @@ export function createSidebarNavigation({
     ]
     if (isAdmin) {
       operationItems.push(
-        link('admin-dashboard', 'Análisis de Producción', 'dashboard', { name: 'admin-dashboard' }),
+        link('admin-dashboard', 'Análisis de Producción', 'analysis', { name: 'admin-dashboard' }),
       )
     }
-    sections.push(section('operacion', 'Seguimiento', operationItems))
+    sections.push(section('operacion', 'Seguimiento', operationItems, 'tracking'))
   }
 
   sections.push(section('combustible', 'Combustible', [
-    link('carga-combustible', 'Carga de Combustible', 'fuel', { name: 'combustible' }),
-  ]))
+    link('carga-combustible', 'Carga de Combustible', 'fuel-add', { name: 'combustible' }),
+  ], 'fuel'))
 
   const productionItems = [
-    link('carga-produccion', 'Carga de Producción', 'production', { name: 'produccion' }),
+    link('carga-produccion', 'Carga de Producción', 'production-add', { name: 'produccion' }),
     link(
       'pendientes',
       'Pendientes',
@@ -59,7 +59,7 @@ export function createSidebarNavigation({
       link('mis-registros', 'Mis Registros', 'records', { name: 'mis-registros' }),
     )
   }
-  sections.push(section('produccion', 'Producción', productionItems))
+  sections.push(section('produccion', 'Producción', productionItems, 'production'))
 
   return { primaryItems, sections, trailingItems }
 }

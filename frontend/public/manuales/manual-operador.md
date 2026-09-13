@@ -7,17 +7,15 @@
 
 <div class="page-break"></div>
 
-# Manual de Usuario - Operador
-
 ## Índice
 
-1. Alcance y acceso
-2. Sincronización y navegación móvil
-3. Inicio
-4. Carga de Producción en 9 pasos
-5. Borradores, offline y Pendientes
-6. Mis Registros y Configuración
-7. Errores frecuentes y buenas prácticas
+1. [Alcance y acceso](#1-alcance-y-acceso)
+2. [Sincronización y navegación móvil](#2-sincronizacion-y-navegacion-movil)
+3. [Inicio](#3-inicio)
+4. [Carga de Producción en 9 pasos](#4-carga-de-produccion-en-9-pasos)
+5. [Borradores, offline y Pendientes](#5-borradores-offline-y-pendientes)
+6. [Mis Registros y Configuración](#6-mis-registros-y-configuracion)
+7. [Errores frecuentes y buenas prácticas](#7-errores-frecuentes-y-buenas-practicas)
 
 ## 1. Alcance y acceso
 
@@ -29,24 +27,24 @@ El operador carga la producción de su usuario y de las unidades, equipos y proc
 
 1. Abrí la aplicación.
 2. En `DNI`, ingresá tu documento.
-3. En `Contrasena`, ingresá tu contraseña.
+3. En `Contraseña`, ingresá tu contraseña.
 4. Presioná `Ingresar`.
 
 La primera validación del dispositivo necesita conexión. Si el ingreso falla, la pantalla muestra `Credenciales incorrectas`, `Sin conexión` o `No se pudo validar el ingreso` según el caso. No compartas tu contraseña ni la guardes en una captura.
 
 ## 2. Sincronización y navegación móvil
 
-### Sincronizar al iniciar
+### Actualizar datos para uso offline
 
 ![Sincronización inicial](/manuales/capturas/operador/02-sincronizar.png)
 
-Presioná `Sincronizar` en el login cuando se hayan modificado usuarios, permisos o catálogos. Esperá el mensaje `Catálogos sincronizados`. Luego ingresá normalmente.
+Presioná `Actualizar datos para uso offline` en el login cuando se hayan modificado usuarios, permisos o catálogos. Esperá el mensaje `Catálogos sincronizados`. Luego ingresá normalmente.
 
 ### Menú del teléfono
 
 ![Menú móvil](/manuales/capturas/operador/04-menu-movil.png)
 
-En la barra superior, presioná el botón `Abrir navegacion`. Desde el menú podés abrir:
+En la barra superior, presioná el botón `Abrir navegación`. Desde el menú podés abrir:
 
 - `Inicio`.
 - `Manuales`.
@@ -57,7 +55,7 @@ En la barra superior, presioná el botón `Abrir navegacion`. Desde el menú pod
 - `Configuración`.
 - `Salir`.
 
-Para cerrar el menú, presioná `Cerrar menu`, tocá el fondo oscuro o elegí una pantalla. La barra superior también permite `Cerrar sesión`.
+Para cerrar el menú, presioná `Cerrar menú`, tocá el fondo oscuro o elegí una pantalla. La barra superior también permite `Cerrar sesión`.
 
 ## 3. Inicio
 
@@ -118,12 +116,12 @@ En `Tipo de Proceso`, elegí el proceso correspondiente. La lista depende de la 
 
 Completá:
 
-- `Hora Inicio`.
-- `Hora Fin`.
+- `Horómetro inicial`.
+- `Horómetro final`.
 - `Hs No Operativas`, si corresponde.
 - `Motivo (lista)` y `Motivo (detalle libre)` cuando haya horas no operativas.
 
-Las horas deben ser mayores a 0. La hora final no puede ser menor que la inicial. Además, el inicio no puede ser menor al fin del registro anterior del equipo. Si la validación falla, la pantalla muestra `Revisá las horas...`.
+Las lecturas de horómetro deben ser mayores a 0. El horómetro final no puede ser menor que el inicial. Además, el inicio no puede ser menor al fin del registro anterior del equipo. Si la validación falla, la pantalla muestra `Revisá las horas...`.
 
 ![Paso 6: producción dinámica](/manuales/capturas/operador/10-produccion.png)
 

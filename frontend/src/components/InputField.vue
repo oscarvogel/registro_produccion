@@ -24,7 +24,7 @@
         :aria-invalid="invalid || undefined"
         :aria-describedby="invalid && errorMessage ? errorId : undefined"
         :class="[
-          'app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-[var(--app-surface-muted)] disabled:text-neutral-500 disabled:opacity-100 transition-colors sm:px-3.5',
+          'app-input min-h-10 w-full rounded-lg border px-3 py-2 text-sm placeholder:text-[var(--app-input-placeholder)] focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-[var(--app-surface-muted)] disabled:text-neutral-500 disabled:opacity-100 transition-colors sm:px-3.5',
           invalid
             ? 'border-error/60 bg-error-light/10 text-error-dark focus:border-error focus:ring-error/30'
             : 'border-neutral-300 focus:border-primary/40 focus:ring-primary/30',

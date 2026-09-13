@@ -16,7 +16,7 @@
               ref="mobileMenuButton"
               type="button"
               class="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--app-nav-control-border)] text-[var(--app-nav-text)]"
-              aria-label="Abrir navegacion"
+              aria-label="Abrir navegación"
               aria-controls="app-mobile-navigation"
               :aria-expanded="mobileMenuOpen"
               @click="openMobileMenu"
@@ -49,7 +49,7 @@
         <aside
           ref="mobileNavigation"
           id="app-mobile-navigation"
-          aria-label="Navegacion principal"
+              aria-label="Navegación principal"
           :class="[
             'app-navigation fixed left-0 z-50 flex w-72 max-w-[86vw] flex-col border-r border-[var(--app-nav-border)] bg-[var(--app-nav-bg)] text-[var(--app-nav-text)] shadow-xl transition-[transform,width] duration-200 md:z-20 md:max-w-none md:translate-x-0 md:shadow-none',
             sidebarCollapsed ? 'md:w-20' : 'md:w-64',
@@ -69,7 +69,7 @@
             <button
               type="button"
               class="hidden h-9 w-9 items-center justify-center rounded-lg text-[var(--app-nav-control-text)] hover:bg-[var(--app-nav-control-border)] hover:text-[var(--app-nav-text)] md:flex"
-              :aria-label="sidebarCollapsed ? 'Expandir navegacion' : 'Contraer navegacion'"
+              :aria-label="sidebarCollapsed ? 'Expandir navegación' : 'Contraer navegación'"
               @click="toggleSidebar"
             >
               <AppIcon name="menu" size="sm" />
@@ -77,7 +77,7 @@
             <button
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--app-nav-control-text)] hover:bg-[var(--app-nav-control-border)] md:hidden"
-              aria-label="Cerrar menu"
+              aria-label="Cerrar menú"
               @click="closeMobileMenu"
             >
               <AppIcon name="close" size="sm" />
@@ -111,7 +111,7 @@
                 @click="mobileMenuOpen = false"
               >
                 <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
-                  <AppIcon :name="item.icon" size="sm" class="shrink-0" />
+                  <NavigationIcon :name="item.icon" :theme="isDark ? 'dark' : 'light'" size="sm" class="shrink-0" />
                   <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ item.label }}</span>
                 </span>
               </router-link>
@@ -125,13 +125,12 @@
                   @click="toggleSection(section.key)"
                 >
                   <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-2' : 'gap-2']">
-                    <span
-                      :class="[
-                        'rounded-full transition-colors',
-                        sidebarCollapsed ? 'md:h-2 md:w-2 h-1.5 w-1.5' : 'h-1.5 w-1.5',
-                        isSectionActive(section) ? 'bg-[var(--app-nav-status)]' : 'bg-[var(--app-nav-muted-indicator)]',
-                      ]"
-                    ></span>
+                    <NavigationIcon
+                      :name="section.icon"
+                      :theme="isDark ? 'dark' : 'light'"
+                      size="sm"
+                      class="shrink-0"
+                    />
                     <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ section.label }}</span>
                   </span>
                   <AppIcon
@@ -152,7 +151,7 @@
                       @click="mobileMenuOpen = false"
                     >
                       <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
-                        <AppIcon :name="item.icon" size="sm" class="shrink-0" />
+                        <NavigationIcon :name="item.icon" :theme="isDark ? 'dark' : 'light'" size="sm" class="shrink-0" />
                         <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ item.label }}</span>
                       </span>
                       <span
@@ -179,7 +178,7 @@
                 @click="mobileMenuOpen = false"
               >
                 <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
-                  <AppIcon :name="item.icon" size="sm" class="shrink-0" />
+                  <NavigationIcon :name="item.icon" :theme="isDark ? 'dark' : 'light'" size="sm" class="shrink-0" />
                   <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ item.label }}</span>
                 </span>
               </router-link>
@@ -223,7 +222,7 @@
               @click="mobileMenuOpen = false"
             >
               <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
-                <AppIcon name="settings" size="sm" />
+                <NavigationIcon name="settings" :theme="isDark ? 'dark' : 'light'" size="sm" />
                 <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">Configuración</span>
               </span>
             </router-link>
@@ -236,7 +235,7 @@
               @click="handleLogout"
             >
               <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
-                <AppIcon name="logout" size="sm" />
+                <NavigationIcon name="logout" :theme="isDark ? 'dark' : 'light'" size="sm" />
                 <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">Salir</span>
               </span>
             </button>
@@ -246,8 +245,15 @@
         <main :class="['min-h-screen transition-[padding] duration-200', sidebarCollapsed ? 'md:pl-20' : 'md:pl-64']">
           <router-view v-slot="{ Component, route: viewRoute }">
             <Transition name="route-fade" mode="out-in">
-              <div :key="viewRoute.fullPath" v-motion-page class="min-h-screen">
-                <component :is="Component" />
+              <div :key="viewRoute.fullPath" class="min-h-screen">
+                <Suspense>
+                  <template #default>
+                    <component :is="Component" />
+                  </template>
+                  <template #fallback>
+                    <AppPreloader />
+                  </template>
+                </Suspense>
               </div>
             </Transition>
           </router-view>
@@ -257,8 +263,15 @@
 
     <router-view v-else v-slot="{ Component, route: viewRoute }">
       <Transition name="route-fade" mode="out-in">
-        <div :key="viewRoute.fullPath" v-motion-page class="min-h-screen">
-          <component :is="Component" />
+        <div :key="viewRoute.fullPath" class="min-h-screen">
+          <Suspense>
+            <template #default>
+              <component :is="Component" />
+            </template>
+            <template #fallback>
+              <AppPreloader />
+            </template>
+          </Suspense>
         </div>
       </Transition>
     </router-view>
@@ -276,6 +289,8 @@ import { useTheme } from '@/composables/useTheme'
 import OfflineBanner from '@/components/ui/OfflineBanner.vue'
 import ToastHost from '@/components/ToastHost.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import NavigationIcon from '@/components/ui/NavigationIcon.vue'
+import AppPreloader from '@/components/ui/AppPreloader.vue'
 import { createSidebarNavigation } from '@/config/navigation'
 
 const router = useRouter()

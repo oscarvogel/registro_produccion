@@ -11,7 +11,7 @@
           </span>
         </template>
         <template #actions>
-          <AppButton variant="secondary" :disabled="loading" @click="loadManual(activeManual.id)">
+          <AppButton variant="secondary" :disabled="loading" :loading="loading" @click="loadManual(activeManual.id)">
             <AppIcon name="refresh" size="sm" />
             Refrescar
           </AppButton>
@@ -27,12 +27,13 @@
         </template>
       </PageHeader>
 
-      <section class="grid gap-3 md:grid-cols-3">
+      <section class="grid gap-3 md:grid-cols-3" aria-label="Seleccionar manual por rol">
         <button
           v-for="manual in manuals"
           :key="manual.id"
           type="button"
           :class="manualButtonClass(manual)"
+          :aria-pressed="activeManualId === manual.id"
           @click="selectManual(manual.id)"
         >
           <span class="app-surface-muted flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-primary-dark">
@@ -45,11 +46,11 @@
         </button>
       </section>
 
-      <section class="app-card overflow-hidden rounded-xl">
+      <section class="app-card overflow-hidden rounded-xl" aria-labelledby="manual-title" :aria-busy="loading">
         <div class="flex flex-col gap-3 border-b border-neutral-100 px-4 py-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p class="text-xs font-bold uppercase tracking-wide text-neutral-400">Lectura en línea</p>
-            <h2 class="mt-1 text-xl font-extrabold text-neutral-950">{{ activeManual.title }}</h2>
+            <h2 id="manual-title" class="mt-1 text-xl font-extrabold text-neutral-950">{{ activeManual.title }}</h2>
           </div>
           <div class="flex flex-wrap gap-2">
             <a
@@ -59,7 +60,7 @@
               class="app-button-soft inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-bold"
             >
               <AppIcon name="view" size="sm" />
-              Markdown
+              Ver versión técnica
             </a>
             <button
               type="button"
@@ -72,12 +73,13 @@
           </div>
         </div>
 
-        <FeedbackMessage v-if="loading" tone="loading" message="Cargando manual..." class="min-h-64 items-center justify-center" />
+        <FeedbackMessage v-if="loading" tone="loading" message="Cargando manual..." class="min-h-64 items-center justify-center" role="status" />
 
         <FeedbackMessage v-else-if="error" tone="error" :message="error" class="m-4" />
 
         <article
           v-else
+          id="manual-content"
           class="manual-content prose-safe max-w-none px-4 py-4 md:px-5"
           v-html="renderedManual"
         ></article>
@@ -115,7 +117,7 @@ const manuals = [
     id: 'encargado',
     label: 'Encargado',
     title: 'Manual de Usuario - Encargado',
-    description: 'Carga por operador, dashboard y pendientes por unidad.',
+    description: 'Carga por operador, Operación y pendientes por unidad.',
     icon: 'personnel',
     sourceUrl: '/manuales/manual-encargado.md',
     pdfUrl: '/manuales/pdf/manual-encargado.pdf',
@@ -124,7 +126,7 @@ const manuals = [
     id: 'admin',
     label: 'Admin',
     title: 'Manual de Usuario - Admin',
-    description: 'Panel admin, catálogos, accesos y asignaciones.',
+    description: 'Administración, catálogos, accesos y asignaciones.',
     icon: 'admin',
     sourceUrl: '/manuales/manual-admin.md',
     pdfUrl: '/manuales/pdf/manual-admin.pdf',
@@ -213,11 +215,25 @@ function manualButtonClass(manual) {
   border-radius: 0.75rem;
   display: block;
   height: auto;
+  width: min(100%, 24rem);
+  aspect-ratio: auto 390 / 844;
+  contain-intrinsic-size: auto 42rem;
   margin: 1rem auto 1.25rem;
   max-height: 42rem;
   max-width: min(100%, 24rem);
   object-fit: contain;
   padding: 0.25rem;
+}
+
+.manual-content :deep(a) {
+  color: var(--color-primary-dark);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.manual-content :deep(:is(h1, h2, h3, h4)) {
+  scroll-margin-top: calc(var(--app-mobile-header-height, 3.5rem) + 1rem);
 }
 
 .manual-content :deep(.cover h1) {

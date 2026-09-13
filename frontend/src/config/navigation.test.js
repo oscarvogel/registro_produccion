@@ -46,4 +46,18 @@ describe('role-aware sidebar navigation', () => {
     expect(names).not.toContain('admin-crud')
     expect(new Set(names).size).toBe(names.length)
   })
+
+  it('assigns a distinct themed icon key to each navigation responsibility', () => {
+    const navigation = createSidebarNavigation({ isAdmin: true, isEncargado: true })
+    const items = flattenNavigation(navigation)
+
+    expect(navigation.sections.map((section) => section.icon)).toEqual([
+      'tracking',
+      'fuel',
+      'production',
+    ])
+    expect(items.find((item) => item.key === 'admin-dashboard').icon).toBe('analysis')
+    expect(items.find((item) => item.key === 'carga-combustible').icon).toBe('fuel-add')
+    expect(items.find((item) => item.key === 'carga-produccion').icon).toBe('production-add')
+  })
 })

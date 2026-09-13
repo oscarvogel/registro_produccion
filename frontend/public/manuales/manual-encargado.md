@@ -7,28 +7,26 @@
 
 <div class="page-break"></div>
 
-# Manual de Usuario - Encargado
-
 ## Índice
 
-1. Alcance y acceso
-2. Inicio y navegación móvil
-3. Carga de Producción por operador
-4. Dashboard Operativo
-5. Pendientes por unidad y trabajo offline
-6. Configuración y buenas prácticas
+1. [Alcance y acceso](#1-alcance-y-acceso)
+2. [Inicio y navegación móvil](#2-inicio-y-navegacion-movil)
+3. [Carga de Producción por operador](#3-carga-de-produccion-por-operador)
+4. [Operación](#4-operacion)
+5. [Pendientes por unidad y trabajo offline](#5-pendientes-por-unidad-y-trabajo-offline)
+6. [Configuración y buenas prácticas](#6-configuracion-y-buenas-practicas)
 
 ## 1. Alcance y acceso
 
-El encargado registra producción para sus unidades asignadas y puede elegir el operador de cada carga. También consulta el `Dashboard de Producción` con filtros operativos. No administra catálogos, personal, accesos admin ni asignaciones.
+El encargado registra producción para sus unidades asignadas y puede elegir el operador de cada carga. También consulta `Operación` con filtros operativos. No administra catálogos, personal, accesos admin ni asignaciones.
 
 ![Login del encargado](/manuales/capturas/encargado/01-login.png)
 
 Para ingresar:
 
 1. Abrí la aplicación.
-2. Completá `DNI` y `Contrasena`.
-3. Presioná `Sincronizar` si hubo cambios de permisos o catálogos.
+2. Completá `DNI` y `Contraseña`.
+3. Presioná `Actualizar datos para uso offline` si hubo cambios de permisos o catálogos.
 4. Presioná `Ingresar`.
 
 La primera entrada al dispositivo necesita conexión. Los mensajes de error visibles son `Credenciales incorrectas`, `Sin conexión` y `No se pudo validar el ingreso`.
@@ -37,11 +35,11 @@ La primera entrada al dispositivo necesita conexión. Los mensajes de error visi
 
 ![Inicio del encargado](/manuales/capturas/encargado/03-inicio.png)
 
-En `Inicio` revisá estado de servidor, fecha, indicadores de producción, horas, registros, combustible y pendientes. Los accesos principales son `Ir a Carga de Producción`, `Ir a Carga de Combustible`, `Ver Pendientes` y `Abrir Dashboard Operativo`.
+En `Inicio` revisá estado de servidor, fecha, indicadores de producción, horas, registros, combustible y pendientes. Los accesos principales son `Ir a Carga de Producción`, `Ir a Carga de Combustible`, `Ver Pendientes` y `Abrir Operación`.
 
 ![Menú móvil del encargado](/manuales/capturas/encargado/04-menu-movil.png)
 
-Presioná `Abrir navegacion` para abrir `Inicio`, `Manuales`, `Combustible`, `Producción`, `Pendientes`, `Dashboard Operativo`, `Configuración` y `Salir`. Tocá `Cerrar menu` o el fondo para cerrar el panel.
+Presioná `Abrir navegación` para abrir `Inicio`, `Manuales`, `Combustible`, `Producción`, `Pendientes`, `Operación`, `Configuración` y `Salir`. Tocá `Cerrar menú` o el fondo para cerrar el panel.
 
 ## 3. Carga de Producción por operador
 
@@ -79,7 +77,7 @@ En `Tipo de Proceso`, seleccioná el proceso disponible para la unidad. Esta sel
 
 ### Paso 5 - Control de Tiempo
 
-Completá `Hora Inicio`, `Hora Fin`, `Hs No Operativas`, `Motivo (lista)` y `Motivo (detalle libre)` cuando corresponda. Inicio y fin deben ser mayores a 0; el fin no puede ser menor que el inicio; y el inicio no puede ser menor al último fin registrado para el equipo.
+Completá `Horómetro inicial`, `Horómetro final`, `Hs No Operativas`, `Motivo (lista)` y `Motivo (detalle libre)` cuando corresponda. Inicio y fin deben ser mayores a 0; el fin no puede ser menor que el inicio; y el inicio no puede ser menor al último fin registrado para el equipo.
 
 ![Paso 6: producción](/manuales/capturas/encargado/10-produccion.png)
 
@@ -113,11 +111,11 @@ Completá `Lugar de Carga` cuando haya combustible. `Acta`, `Predio` y `Rodal` a
 
 Revisá fecha, unidad, operador, equipo, proceso, horario, producción, consumos y ubicación. Si la carga es correcta, presioná `Guardar Registro`. Si falta un dato, volvé con `Anterior` y corregilo antes de guardar.
 
-## 4. Dashboard Operativo
+## 4. Operación
 
-![Dashboard operativo](/manuales/capturas/encargado/15-dashboard-operativo.png)
+![Operación](/manuales/capturas/encargado/15-dashboard-operativo.png)
 
-Entrá desde `Operación > Dashboard Operativo` o desde el acceso rápido. La pantalla permite analizar sólo las unidades que tiene asignadas el encargado.
+Entrá desde `Operación` o desde el acceso rápido. La pantalla permite analizar sólo las unidades que tiene asignadas el encargado.
 
 ### Filtros
 
@@ -128,7 +126,7 @@ Entrá desde `Operación > Dashboard Operativo` o desde el acceso rápido. La pa
 5. En el teléfono, presioná `Filtros` para mostrar u ocultar los campos.
 6. Usá `Limpiar` para quitar filtros adicionales.
 
-El dashboard muestra la métrica principal, KPIs secundarios, `Evolución diaria`, evolución de combustible y `Ranking de Máquinas`. Si no hay resultados, ampliá el período o quitá filtros. Si aparece `Sin unidades disponibles`, solicitá la revisión de tus permisos.
+La vista de Operación muestra la métrica principal, KPIs secundarios, `Evolución diaria`, evolución de combustible y `Ranking de Máquinas`. Si no hay resultados, ampliá el período o quitá filtros. Si aparece `Sin unidades disponibles`, solicitá la revisión de tus permisos.
 
 ## 5. Pendientes por unidad y trabajo offline
 
@@ -161,7 +159,7 @@ En `Configuración` podés usar `Instalar App` si el navegador ofrece la instala
 | No aparecen procesos | Verificá que existan procesos habilitados para la unidad. |
 | Horas inválidas | Usá valores mayores a 0 y respetá la secuencia del último registro del equipo. |
 | Falta ubicación | Completá los campos que exige el proceso y el `Lugar de Carga` si hay combustible. |
-| Dashboard sin datos | Ampliá fechas o quitá filtros. |
+| Operación sin datos | Ampliá fechas o quitá filtros. |
 | Pendiente fallido | Abrí `Ver detalle`, revisá el error y usá `Reintentar`. |
 
 Buenas prácticas:
