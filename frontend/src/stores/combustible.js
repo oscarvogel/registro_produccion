@@ -1,5 +1,11 @@
 import { defineStore } from 'pinia'
 import api from '@/services/api'
+import { queuePendingProductionRecord, SUBMISSION_KIND_FIELD, SUBMISSION_KIND_COMBUSTIBLE } from '@/services/pendingRecords'
+import { useProduccionStore } from '@/stores/produccion'
+
+const createFormUuid = () => (
+  globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`
+)
 
 export const useCombustibleStore = defineStore('combustible', {
   state: () => ({
@@ -54,11 +60,33 @@ export const useCombustibleStore = defineStore('combustible', {
     async createCarga(payload) {
       this.saving = true
       this.error = null
+      const submissionPayload = {
+        ...payload,
+        form_uuid: payload.form_uuid || createFormUuid(),
+      }
+      const pendingPayload = {
+        ...submissionPayload,
+        [SUBMISSION_KIND_FIELD]: SUBMISSION_KIND_COMBUSTIBLE,
+      }
+
       try {
-        const { data } = await api.post('/api/combustible/cargas', payload)
+        if (!navigator.onLine) {
+          await queuePendingProductionRecord(pendingPayload)
+          await useProduccionStore().refreshPendingCount()
+          this.lastCarga = { ...submissionPayload, offline: true }
+          return this.lastCarga
+        }
+
+        const { data } = await api.post('/api/combustible/cargas', submissionPayload)
         this.lastCarga = data
         return data
       } catch (error) {
+        if (!error.response || Number(error.response?.status) >= 500) {
+          await queuePendingProductionRecord(pendingPayload)
+          await useProduccionStore().refreshPendingCount()
+          this.lastCarga = { ...submissionPayload, offline: true }
+          return this.lastCarga
+        }
         this.error = error.response?.data?.detail || 'No se pudo registrar la carga de combustible'
         throw error
       } finally {
