@@ -341,7 +341,7 @@ export const useProduccionStore = defineStore('produccion', {
         return data
       } catch (err) {
         // Network error → queue for later
-        if (!err.response) {
+        if (!err.response || Number(err.response?.status) >= 500) {
           await queuePendingProductionRecord(submissionPayload)
           await this.refreshPendingCount()
           useToastStore().info(
