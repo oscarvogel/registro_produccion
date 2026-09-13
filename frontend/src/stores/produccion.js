@@ -1,13 +1,18 @@
 import api from '@/services/api'
 import db from '@/services/db'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
-import { ensurePendingIdentity, queuePendingProductionRecord } from '@/services/pendingRecords'
+import {
+  ensurePendingIdentity,
+  pendingSubmissionEndpoint,
+  queuePendingProductionRecord,
+  stripPendingMetadata,
+  SUBMISSION_KIND_FIELD,
+  SUBMISSION_KIND_CAMINOS,
+} from '@/services/pendingRecords'
 import { useToastStore } from '@/stores/toast'
 import { extractApiErrorMessage, extractValidationErrorMessage } from '@/utils/apiError'
 import { useProduccionStore as useLegacyProduccionStore } from '@/stores/produccionLegacy'
 
-const CAMINOS_MARKER = '__submission_kind'
-const CAMINOS_KIND = 'caminos'
 const MOTIVOS_CACHE_PREFIX = 'motivosNoOperativos'
 
 const createFormUuid = () => (
@@ -17,17 +22,6 @@ const createFormUuid = () => (
 const isPermanentSyncError = (status) => (
   status >= 400 && status < 500 && ![401, 403, 408, 429].includes(status)
 )
-
-function withoutSyncMetadata(payload = {}) {
-  const { [CAMINOS_MARKER]: _kind, ...clean } = payload
-  return clean
-}
-
-function pendingEndpoint(payload = {}) {
-  return payload?.[CAMINOS_MARKER] === CAMINOS_KIND
-    ? '/api/produccion/caminos'
-    : '/api/produccion/'
-}
 
 function motivosCacheKey(unId) {
   return `${MOTIVOS_CACHE_PREFIX}:${Number(unId || 0)}`
@@ -98,7 +92,7 @@ export function useProduccionStore(...args) {
     }
     const pendingPayload = {
       ...payload,
-      [CAMINOS_MARKER]: CAMINOS_KIND,
+      [SUBMISSION_KIND_FIELD]: SUBMISSION_KIND_CAMINOS,
     }
 
     try {
@@ -116,7 +110,7 @@ export function useProduccionStore(...args) {
       useToastStore().success('Parte de Caminos guardado')
       return data
     } catch (err) {
-      if (!err.response) {
+      if (!err.response || Number(err.response?.status) >= 500) {
         await queuePendingProductionRecord(pendingPayload)
         await store.refreshPendingCount()
         useToastStore().info(
@@ -164,8 +158,8 @@ export function useProduccionStore(...args) {
           })
 
           const identifiedPayload = await ensurePendingIdentity(record)
-          const endpoint = pendingEndpoint(identifiedPayload)
-          const submissionPayload = withoutSyncMetadata(identifiedPayload)
+          const endpoint = pendingSubmissionEndpoint(identifiedPayload)
+          const submissionPayload = stripPendingMetadata(identifiedPayload)
 
           await api.post(endpoint, submissionPayload, { _suppressErrorToast: true })
           await db.pendingRecords.delete(record.id)
