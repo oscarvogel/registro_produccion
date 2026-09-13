@@ -8,7 +8,7 @@
       :has-cached-session="hasCachedSession"
     />
 
-    <template v-if="authStore.isAuthenticated">
+    <template v-if="authStore.isSessionActive">
       <div :class="['min-h-screen', connectivityStore.isOfflineOrBackendDown ? 'pt-[var(--app-offline-banner-height)]' : '']">
         <header class="app-mobile-header sticky z-30 border-b border-[var(--app-nav-border)] bg-[var(--app-nav-header)] text-[var(--app-nav-text)] md:hidden">
           <div class="flex h-[var(--app-mobile-header-height)] items-center justify-between px-4">
