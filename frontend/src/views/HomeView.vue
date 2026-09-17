@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-[calc(100vh-8.5rem)] bg-[var(--app-bg)] px-3 py-3 pb-20 md:min-h-screen md:px-4 md:py-4">
+  <div ref="homeRoot" class="min-h-[calc(100vh-8.5rem)] bg-[var(--app-bg)] px-3 py-3 pb-20 md:min-h-screen md:px-4 md:py-4">
     <div class="content-wide mx-auto w-full space-y-3">
-      <section v-motion-panel class="app-card-glass rounded-xl px-4 py-3 md:px-5">
+      <section v-motion-panel data-gsap="home-header" class="app-card-glass rounded-xl px-4 py-3 md:px-5">
         <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div class="min-w-0">
             <div class="mb-2 flex flex-wrap items-center gap-2">
@@ -59,6 +59,7 @@
                     ? 'border-primary/50 bg-primary-light/25'
                     : 'border-[var(--app-border)] bg-[var(--app-surface-muted)]',
                 ]"
+                data-gsap="home-action"
                 @click="router.push(action.to)"
               >
                 <span class="truncate">{{ action.label }}</span>
@@ -113,10 +114,11 @@
               <AppButton variant="secondary" size="sm" :loading="adminStore.loading" @click="loadAdminSummary">Reintentar</AppButton>
             </div>
 
-            <div v-else-if="pagedAdminUnits.length > 0" class="grid gap-3 px-4 py-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:px-5">
+            <div v-else-if="pagedAdminUnits.length > 0" ref="adminUnitsGrid" class="grid gap-3 px-4 py-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:px-5">
               <button
                 v-for="unidad in pagedAdminUnits"
                 :key="unidad.id"
+                :data-flip-id="`unit-${unidad.id}`"
                 type="button"
                 :class="[
                   'group grid min-h-[5.35rem] grid-cols-[auto_minmax(0,1fr)] items-start gap-3 overflow-hidden rounded-lg border p-3 text-left transition duration-150 ease-out hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 active:translate-y-0 active:scale-[0.99]',
@@ -256,7 +258,7 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, inject, onMounted, ref, watch } from 'vue'
+import { computed, defineComponent, h, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
@@ -268,6 +270,8 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import AnimatedList from '@/components/ui/AnimatedList.vue'
 import RevealStagger from '@/components/ui/RevealStagger.vue'
+import { createMotionContext, gsap, motionDurations, motionEase, prefersReducedMotion } from '@/config/gsap'
+import { useGsapFlipList } from '@/composables/useGsapFlipList'
 
 const authStore = useAuthStore()
 const produccionStore = useProduccionStore()
@@ -276,6 +280,32 @@ const adminStore = useAdminStore()
 const connectivityStore = useConnectivityStore()
 const router = useRouter()
 const pwaInstall = inject('pwaInstall', null)
+const homeRoot = ref(null)
+const adminUnitsGrid = ref(null)
+let homeMotionContext = null
+
+function setupHomeMotion() {
+  if (!homeRoot.value || prefersReducedMotion()) return
+
+  homeMotionContext?.revert()
+  homeMotionContext = createMotionContext(homeRoot.value, () => {
+    gsap.from('[data-gsap="home-header"]', {
+      autoAlpha: 0,
+      y: 10,
+      duration: motionDurations.enter,
+      ease: motionEase.settle,
+    })
+
+    gsap.from('[data-gsap="home-action"]', {
+      autoAlpha: 0,
+      y: 8,
+      duration: motionDurations.micro + 0.08,
+      stagger: 0.05,
+      delay: 0.08,
+      ease: motionEase.standard,
+    })
+  })
+}
 const {
   canInstall: canInstallPwa,
   isStandalone: isPwaStandalone,
@@ -293,6 +323,7 @@ const unitSearch = ref('')
 const adminUnitPage = ref(1)
 const adminUnitsPerPage = 12
 const MAX_ALERT_UNIT_LABELS = 12
+
 
 const datePresets = [
   { key: 'today', label: 'Hoy' },
@@ -400,6 +431,11 @@ const adminUnitPageStart = computed(() => filteredAdminUnits.value.length === 0 
 const adminUnitPageEnd = computed(() => Math.min(adminUnitPageStart.value + adminUnitsPerPage, filteredAdminUnits.value.length))
 const adminUnitDisplayStart = computed(() => filteredAdminUnits.value.length === 0 ? 0 : adminUnitPageStart.value + 1)
 const pagedAdminUnits = computed(() => filteredAdminUnits.value.slice(adminUnitPageStart.value, adminUnitPageEnd.value))
+
+useGsapFlipList({
+  container: adminUnitsGrid,
+  source: () => pagedAdminUnits.value,
+})
 
 const adminSelectedPeriodLabel = computed(() => isTodayRange.value ? 'hoy' : rangeLabel.value)
 
@@ -858,6 +894,13 @@ onMounted(async () => {
     produccionStore.refreshPendingCount(),
     reloadSummary(),
   ])
+  await nextTick()
+  setupHomeMotion()
+})
+
+onBeforeUnmount(() => {
+  homeMotionContext?.revert()
+  homeMotionContext = null
 })
 
 </script>

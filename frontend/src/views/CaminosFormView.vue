@@ -9,7 +9,7 @@
       </div>
     </div>
 
-    <form class="md:grid md:grid-cols-[13.5rem_minmax(0,1fr)] md:items-start md:gap-3 xl:grid-cols-[14.5rem_minmax(0,1fr)]" novalidate @submit.prevent="guardar">
+    <form ref="caminosForm" class="md:grid md:grid-cols-[13.5rem_minmax(0,1fr)] md:items-start md:gap-3 xl:grid-cols-[14.5rem_minmax(0,1fr)]" novalidate @submit.prevent="guardar">
       <aside class="app-card mb-4 rounded-xl p-3 md:sticky md:top-20 md:mb-0 md:p-2.5">
         <div class="md:hidden">
           <div class="flex items-center justify-between mb-2">
@@ -106,8 +106,8 @@
             <p class="text-sm text-neutral-500">Agregá todas las tareas realizadas en la jornada.</p>
             <button type="button" class="rounded-xl bg-primary px-3 py-2 text-sm font-bold text-on-primary" @click="agregarProceso">+ Agregar proceso</button>
           </div>
-          <div class="space-y-3">
-            <div v-for="(proceso, index) in procesos" :key="proceso.key" class="rounded-xl border border-neutral-200 p-3">
+          <div ref="processList" class="space-y-3">
+            <div v-for="(proceso, index) in procesos" :key="proceso.key" :data-flip-id="`process-${proceso.key}`" class="rounded-xl border border-neutral-200 p-3">
               <div class="mb-2 flex justify-between">
                 <b>Proceso {{ index + 1 }}</b>
                 <button v-if="procesos.length > 1" type="button" class="text-sm font-semibold text-error-dark" @click="quitarProceso(index)">Quitar</button>
@@ -261,7 +261,7 @@
           </div>
         </SectionCard>
 
-        <div v-if="errorLocal" class="rounded-xl border border-error/30 bg-error-light/40 px-4 py-3 text-sm font-semibold text-error-dark">{{ errorLocal }}</div>
+        <div v-if="errorLocal" ref="errorLocalTarget" class="rounded-xl border border-error/30 bg-error-light/40 px-4 py-3 text-sm font-semibold text-error-dark">{{ errorLocal }}</div>
         <div class="app-card hidden items-center justify-between gap-3 rounded-xl p-3.5 md:flex">
           <p v-if="mensajePasoIncompleto" id="caminos-step-hint" class="max-w-md text-sm font-semibold text-[var(--app-text-muted)]">
             {{ mensajePasoIncompleto }}
@@ -285,7 +285,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProduccionStore } from '@/stores/produccion'
@@ -295,6 +295,8 @@ import AutocompleteField from '@/components/AutocompleteField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import ActionBar from '@/components/ui/ActionBar.vue'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
+import { animateValidationTarget, gsap, motionDurations, motionEase, prefersReducedMotion } from '@/config/gsap'
+import { useGsapFlipList } from '@/composables/useGsapFlipList'
 
 const props = defineProps({ unidad: { type: Object, required: true } })
 defineEmits(['back'])
@@ -307,6 +309,10 @@ const today = new Date().toISOString().split('T')[0]
 const cargaCombustible = ref(false)
 const errorLocal = ref('')
 const pasoActual = ref(0)
+const caminosForm = ref(null)
+const processList = ref(null)
+const errorLocalTarget = ref(null)
+let stepMotion = null
 const rodalesPorProceso = reactive({})
 let processKey = 0
 const pasos = ['Contexto', 'Operador', 'Equipo', 'Proceso', 'Tiempo', 'Producción', 'Consumos', 'Observaciones', 'Revisión']
@@ -324,6 +330,11 @@ function nuevoProceso() {
   return reactive({ key: processKey, tipo_proceso_id: 0, predio_id: 0, acta: '', rodal_id: 0, km_perfilado: 0, hr_disposicion: 0, hr_remolque: 0 })
 }
 const procesos = reactive([nuevoProceso()])
+
+useGsapFlipList({
+  container: processList,
+  source: () => procesos,
+})
 function agregarProceso() { procesos.push(nuevoProceso()) }
 function quitarProceso(i) {
   if (procesos.length <= 1) return
@@ -411,6 +422,21 @@ const mensajePasoIncompleto = computed(() => {
 
   return mensajes[pasoActual.value] || 'Completá este paso para continuar.'
 })
+function animateCurrentStep() {
+  if (prefersReducedMotion() || !caminosForm.value) return
+
+  const activeStep = Array.from(caminosForm.value.querySelectorAll('.app-card'))
+    .find((element) => window.getComputedStyle(element).display !== 'none')
+  if (!activeStep) return
+
+  stepMotion?.kill?.()
+  stepMotion = gsap.fromTo(
+    activeStep,
+    { autoAlpha: 0, y: 8 },
+    { autoAlpha: 1, y: 0, duration: motionDurations.enter, ease: motionEase.settle },
+  )
+}
+
 function avanzar() { if (puedeAvanzar.value && pasoActual.value < totalPasos - 1) { pasoActual.value += 1; window.scrollTo({ top: 0, behavior: 'smooth' }) } }
 function retroceder() { if (pasoActual.value > 0) { pasoActual.value -= 1; window.scrollTo({ top: 0, behavior: 'smooth' }) } }
 function irAPaso(i) { if (i < pasoActual.value) { pasoActual.value = i; window.scrollTo({ top: 0, behavior: 'smooth' }) } }
@@ -429,7 +455,10 @@ function validar() {
 async function guardar() {
   if (pasoActual.value < totalPasos - 1) { avanzar(); return }
   errorLocal.value = validar()
-  if (errorLocal.value) return
+  if (errorLocal.value) {
+    animateValidationTarget(errorLocalTarget.value)
+    return
+  }
   const equipo = equipoSeleccionado()
   const payload = {
     UN: cleanText(props.unidad.nombre),
@@ -476,6 +505,10 @@ watch(cargaCombustible, (activo) => {
   form.remito2 = ''
   form.remito3 = ''
 })
+watch(pasoActual, async () => {
+  await nextTick()
+  animateCurrentStep()
+})
 watch(() => form.hrs_no_op, (horas) => {
   if (Number(horas || 0) <= 0) form.motivo_no_op = ''
 })
@@ -488,5 +521,12 @@ onMounted(async () => {
     store.fetchActas(),
     canSelectOperador.value ? store.fetchOperadores(props.unidad.idUnidadNegocio) : Promise.resolve(),
   ])
+  await nextTick()
+  animateCurrentStep()
+})
+
+onBeforeUnmount(() => {
+  stepMotion?.kill?.()
+  stepMotion = null
 })
 </script>

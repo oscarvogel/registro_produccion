@@ -1,11 +1,11 @@
 <template>
-  <div class="login-shell min-h-screen bg-neutral-950 px-4 py-6 text-neutral-900">
+  <div ref="loginRoot" class="login-shell min-h-screen bg-neutral-950 px-4 py-6 text-neutral-900">
     <!-- Desktop -->
     <div class="hidden min-h-[calc(100vh-3rem)] items-center justify-center lg:flex">
-      <section class="grid min-h-[34rem] w-full max-w-6xl grid-cols-[1.05fr_1fr] overflow-hidden rounded-[1.5rem] border-[10px] border-white bg-transparent shadow-2xl">
+      <section data-gsap="login-panel" class="grid min-h-[34rem] w-full max-w-6xl grid-cols-[1.05fr_1fr] overflow-hidden rounded-[1.5rem] border-[10px] border-white bg-transparent shadow-2xl">
         <aside class="relative min-h-[34rem] overflow-hidden rounded-[1rem] p-10 text-white">
           <div class="absolute inset-0 bg-[linear-gradient(rgba(0,24,20,0.12),rgba(0,12,10,0.76))]"></div>
-          <img src="/logo-forestal.png" alt="Logo Forestal" class="absolute left-7 top-7 h-12 w-auto max-w-36 object-contain login-logo-image" />
+          <img data-gsap="login-reveal" src="/logo-forestal.png" alt="Logo Forestal" class="absolute left-7 top-7 h-12 w-auto max-w-36 object-contain login-logo-image" />
 
           <div class="absolute bottom-10 left-10 right-10 max-w-md">
             <h1 class="text-5xl font-extrabold leading-none text-white">
@@ -26,7 +26,7 @@
             <h2 class="mt-2 text-3xl font-extrabold leading-tight text-neutral-950">Acceso operativo</h2>
             <p class="mt-2 text-sm text-neutral-500">Ingresa con tu DNI y contraseña para continuar con el registro de producción.</p>
 
-            <form @submit.prevent="handleLogin" class="mt-8 space-y-4">
+            <form data-gsap="login-reveal" @submit.prevent="handleLogin" class="mt-8 space-y-4">
               <div>
                 <label for="desktop-dni" class="mb-1.5 block text-sm font-bold text-neutral-700">DNI</label>
                 <input
@@ -146,10 +146,10 @@
 
     <!-- Mobile / Tablet -->
     <div class="flex min-h-[calc(100vh-3rem)] items-center justify-center lg:hidden">
-      <section class="w-full max-w-md overflow-hidden rounded-[1.4rem] border-[8px] border-white bg-white shadow-2xl">
+      <section data-gsap="login-panel" class="w-full max-w-md overflow-hidden rounded-[1.4rem] border-[8px] border-white bg-white shadow-2xl">
         <div class="relative min-h-72 overflow-hidden rounded-[0.9rem] p-7 text-white">
           <div class="absolute inset-0 bg-[linear-gradient(rgba(0,24,20,0.14),rgba(0,12,10,0.76))]"></div>
-          <img src="/logo-forestal.png" alt="Logo Forestal" class="absolute left-5 top-5 h-11 w-auto max-w-32 object-contain login-logo-image" />
+          <img data-gsap="login-reveal" src="/logo-forestal.png" alt="Logo Forestal" class="absolute left-5 top-5 h-11 w-auto max-w-32 object-contain login-logo-image" />
           <div class="absolute bottom-7 left-7 right-7">
             <h1 class="text-3xl font-extrabold leading-none">PRODUCCIÓN FORESTAL</h1>
             <p class="mt-3 text-sm font-semibold leading-relaxed text-white/85">
@@ -163,7 +163,7 @@
           <h2 class="mt-2 text-2xl font-extrabold text-neutral-950">Acceso operativo</h2>
           <p class="mt-1 text-sm text-neutral-500">Ingresa con tu DNI y contraseña para continuar.</p>
 
-          <form @submit.prevent="handleLogin" class="mt-6 space-y-4">
+          <form data-gsap="login-reveal" @submit.prevent="handleLogin" class="mt-6 space-y-4">
             <div>
               <label for="mobile-dni" class="mb-1.5 block text-sm font-bold text-neutral-700">DNI</label>
               <input
@@ -281,7 +281,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   useAuthStore,
@@ -291,6 +291,7 @@ import {
 } from '@/stores/auth'
 import { useConnectivityStore } from '@/stores/connectivity'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import { createMotionContext, gsap, motionDurations, motionEase, prefersReducedMotion } from '@/config/gsap'
 
 const router = useRouter()
 const route = useRoute()
@@ -302,6 +303,31 @@ const password = ref('')
 const showPassword = ref(false)
 const syncMessage = ref('')
 const offlineNotice = ref('')
+const loginRoot = ref(null)
+let loginMotionContext = null
+
+function setupLoginMotion() {
+  if (!loginRoot.value || prefersReducedMotion()) return
+
+  loginMotionContext?.revert()
+  loginMotionContext = createMotionContext(loginRoot.value, () => {
+    gsap.from('[data-gsap="login-panel"]', {
+      autoAlpha: 0,
+      y: 10,
+      duration: motionDurations.enter,
+      ease: motionEase.settle,
+    })
+
+    gsap.from('[data-gsap="login-reveal"]', {
+      autoAlpha: 0,
+      y: 8,
+      duration: motionDurations.micro + 0.08,
+      delay: 0.08,
+      stagger: 0.06,
+      ease: motionEase.standard,
+    })
+  })
+}
 
 function isOffline() {
   return connectivityStore.isOffline
@@ -317,6 +343,7 @@ const errorCategory = computed(() => {
 })
 
 onMounted(() => {
+  nextTick(setupLoginMotion)
   // If the operator landed on /login with a cached offline session still valid,
   // send them straight to home. They are already authenticated, just without
   // network — they should not have to retype credentials.
@@ -340,6 +367,11 @@ onMounted(() => {
         'Estás sin conexión. No se puede validar contra el servidor ahora.'
     }
   }
+})
+
+onBeforeUnmount(() => {
+  loginMotionContext?.revert()
+  loginMotionContext = null
 })
 
 async function handleSync() {

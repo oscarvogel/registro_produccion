@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-[var(--app-bg)] pb-20 md:pb-6">
-    <div class="app-card-glass border-b border-[var(--app-border)]">
+  <div ref="dashboardRoot" class="min-h-screen bg-[var(--app-bg)] pb-20 md:pb-6">
+    <div data-gsap="dashboard-header" class="app-card-glass border-b border-[var(--app-border)]">
       <div class="content-wide mx-auto flex flex-col gap-3 px-3 py-3 md:px-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div class="mb-2 flex flex-wrap items-center gap-2">
@@ -46,7 +46,7 @@
       </div>
     </div>
 
-    <div class="app-card-glass app-mobile-filter-bar sticky z-20 border-b border-[var(--app-border)] md:top-0 md:z-30">
+    <div data-gsap="dashboard-filters" class="app-card-glass app-mobile-filter-bar sticky z-20 border-b border-[var(--app-border)] md:top-0 md:z-30">
       <div class="content-wide mx-auto px-3 py-2.5 md:px-4">
         <button
           type="button"
@@ -270,7 +270,7 @@
       </section>
 
       <section v-if="!store.error" class="grid grid-cols-1 gap-3 lg:grid-cols-5">
-        <div class="app-card rounded-lg p-4 lg:col-span-3">
+        <div data-gsap-visual class="app-card rounded-lg p-4 lg:col-span-3">
           <div class="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <p class="text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]">Evolución diaria</p>
@@ -371,7 +371,7 @@
           </div>
         </div>
 
-        <div class="app-card rounded-lg p-4 lg:col-span-2">
+        <div data-gsap-visual class="app-card rounded-lg p-4 lg:col-span-2">
           <div class="mb-3 flex items-start justify-between gap-3">
             <div>
               <p class="text-xs font-bold uppercase tracking-wide text-[var(--app-text-soft)]">Ranking</p>
@@ -409,8 +409,9 @@
             </div>
           </div>
 
-          <AnimatedList v-else-if="store.rankingMaquinas.length > 0" tag="div" class="space-y-3" :stagger="45">
-            <div v-for="(item, idx) in store.rankingMaquinas" :key="idx" class="group">
+          <div v-else-if="store.rankingMaquinas.length > 0" ref="rankingList">
+            <AnimatedList tag="div" class="space-y-3" :stagger="45">
+              <div v-for="(item, idx) in store.rankingMaquinas" :key="rankingItemKey(item)" :data-flip-id="rankingItemKey(item)" class="group">
               <div class="mb-1 flex items-center justify-between">
                 <div class="flex min-w-0 items-center gap-2">
                   <span :class="[
@@ -436,8 +437,9 @@
                   :style="{ width: `${rankingMaxVal > 0 ? (item.valor / rankingMaxVal * 100) : 0}%` }"
                 ></div>
               </div>
-            </div>
-          </AnimatedList>
+              </div>
+            </AnimatedList>
+          </div>
 
           <div v-else class="h-56 flex items-center justify-center">
             <EmptyState
@@ -453,7 +455,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/dashboard'
@@ -465,6 +467,16 @@ import AppIcon from '@/components/ui/AppIcon.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import FeedbackMessage from '@/components/ui/FeedbackMessage.vue'
 import RevealStagger from '@/components/ui/RevealStagger.vue'
+import {
+  createMotionContext,
+  gsap,
+  motionDurations,
+  motionEase,
+  prefersReducedMotion,
+  registerGsapPlugins,
+  ScrollTrigger,
+} from '@/config/gsap'
+import { useGsapFlipList } from '@/composables/useGsapFlipList'
 
 const authStore = useAuthStore()
 const store = useDashboardStore()
@@ -474,6 +486,88 @@ const router = useRouter()
 const showFilters = ref(false)
 const tooltip = ref(null)
 const activeChartMetric = ref('produccion')
+const dashboardRoot = ref(null)
+const rankingList = ref(null)
+let dashboardMotionContext = null
+let dashboardMotionMedia = null
+let chartMotion = null
+
+function rankingItemKey(item) {
+  const identifier = item?.idMovil ?? item?.id ?? item?.patente ?? item?.detalle
+  if (identifier !== undefined && identifier !== null && String(identifier).trim() !== '') {
+    return `ranking-${identifier}`
+  }
+
+  return `ranking-${[
+    item?.patente,
+    item?.detalle,
+    item?.valor,
+    item?.registros,
+  ].map((value) => String(value ?? '').trim()).join('|')}`
+}
+
+useGsapFlipList({
+  container: rankingList,
+  source: () => store.rankingMaquinas,
+})
+
+function setupDashboardMotion() {
+  if (!dashboardRoot.value || prefersReducedMotion() || !registerGsapPlugins()) return
+
+  dashboardMotionMedia?.revert()
+  dashboardMotionContext?.revert()
+  dashboardMotionContext = createMotionContext(dashboardRoot.value, () => {
+    gsap.from('[data-gsap="dashboard-header"]', {
+      autoAlpha: 0,
+      y: 10,
+      duration: motionDurations.enter,
+      ease: motionEase.settle,
+    })
+
+    gsap.from('[data-gsap="dashboard-filters"]', {
+      autoAlpha: 0,
+      y: 8,
+      duration: motionDurations.enter,
+      delay: 0.05,
+      ease: motionEase.standard,
+    })
+
+    dashboardMotionMedia = gsap.matchMedia()
+
+    const addVisualTriggers = (start, offset) => {
+      gsap.utils.toArray('[data-gsap-visual]').forEach((element) => {
+        ScrollTrigger.create({
+          trigger: element,
+          start,
+          once: true,
+          onEnter: () => gsap.fromTo(
+            element,
+            { autoAlpha: 0, y: offset },
+            { autoAlpha: 1, y: 0, duration: motionDurations.enter, ease: motionEase.settle },
+          ),
+        })
+      })
+    }
+
+    dashboardMotionMedia.add('(min-width: 768px)', () => addVisualTriggers('top 88%', 10))
+    dashboardMotionMedia.add('(max-width: 767px)', () => addVisualTriggers('top 94%', 6))
+  })
+
+  animateDashboardChart()
+}
+
+function animateDashboardChart() {
+  if (prefersReducedMotion()) return
+  const chart = dashboardRoot.value?.querySelector('.app-dashboard-chart')
+  if (!chart) return
+
+  chartMotion?.kill?.()
+  chartMotion = gsap.fromTo(
+    chart,
+    { autoAlpha: 0, y: 6 },
+    { autoAlpha: 1, y: 0, duration: motionDurations.enter, ease: motionEase.standard },
+  )
+}
 
 const datePresets = [
   { key: 'today', label: 'Hoy' },
@@ -871,5 +965,21 @@ onMounted(async () => {
   await store.fetchAll()
 
   await nextTick()
+  setupDashboardMotion()
+  if (registerGsapPlugins()) ScrollTrigger.refresh()
+})
+
+watch(activeChartMetric, async () => {
+  await nextTick()
+  animateDashboardChart()
+})
+
+onBeforeUnmount(() => {
+  chartMotion?.kill?.()
+  dashboardMotionMedia?.revert()
+  dashboardMotionContext?.revert()
+  chartMotion = null
+  dashboardMotionMedia = null
+  dashboardMotionContext = null
 })
 </script>

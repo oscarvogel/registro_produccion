@@ -186,34 +186,7 @@
           </nav>
 
           <div :class="['shrink-0 border-t border-[var(--app-nav-border)] p-2', sidebarCollapsed ? 'md:px-2' : '']">
-            <button
-              type="button"
-              :class="navItemClass(false)"
-              :title="sidebarCollapsed ? themeStatusLabel : undefined"
-              :aria-label="themeToggleLabel"
-              @click="toggleTheme"
-            >
-              <span :class="['flex min-w-0 items-center', sidebarCollapsed ? 'md:justify-center md:gap-0 gap-3' : 'gap-3']">
-                <span class="relative flex h-5 w-5 shrink-0 items-center justify-center">
-                  <AppIcon :name="isDark ? 'moon' : 'sun'" size="sm" class="transition-transform duration-200 group-active:scale-90" />
-                </span>
-                <span :class="['truncate', sidebarCollapsed ? 'md:hidden' : '']">{{ themeStatusLabel }}</span>
-              </span>
-              <span
-                :class="[
-                  'ml-2 h-5 w-9 rounded-full border border-[var(--app-nav-control-border)] p-0.5 transition-colors',
-                  isDark ? 'bg-[var(--app-nav-toggle-off-bg)]' : 'bg-secondary-light/80',
-                  sidebarCollapsed ? 'md:hidden' : '',
-                ]"
-              >
-                <span
-                  :class="[
-                    'block h-4 w-4 rounded-full bg-[var(--app-nav-text)] shadow-sm transition-transform duration-200',
-                    isDark ? 'translate-x-0' : 'translate-x-4',
-                  ]"
-                ></span>
-              </span>
-            </button>
+            <ThemeToggle variant="sidebar" :collapsed="sidebarCollapsed" />
 
             <router-link
               :to="{ name: 'configuracion' }"
@@ -291,6 +264,7 @@ import ToastHost from '@/components/ToastHost.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import NavigationIcon from '@/components/ui/NavigationIcon.vue'
 import AppPreloader from '@/components/ui/AppPreloader.vue'
+import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import { createSidebarNavigation } from '@/config/navigation'
 
 const router = useRouter()
@@ -298,7 +272,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 const produccionStore = useProduccionStore()
 const connectivityStore = useConnectivityStore()
-const { isDark, toggleTheme } = useTheme()
+const { isDark } = useTheme()
 const mobileMenuOpen = ref(false)
 const mobileMenuButton = ref(null)
 const mobileNavigation = ref(null)
@@ -336,9 +310,6 @@ const userInitials = computed(() => {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   return (parts[0]?.[0] || 'U') + (parts[1]?.[0] || '')
 })
-
-const themeToggleLabel = computed(() => (isDark.value ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'))
-const themeStatusLabel = computed(() => (isDark.value ? 'Modo oscuro' : 'Modo claro'))
 
 const sidebarNavigation = computed(() => createSidebarNavigation({
   isAdmin: isAdmin.value,
