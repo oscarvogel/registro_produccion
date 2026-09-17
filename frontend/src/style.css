@@ -326,6 +326,19 @@
     transition: background-color 180ms ease, color 180ms ease;
   }
 
+  .app-shell,
+  .app-navigation,
+  .app-card,
+  .app-card-glass,
+  .app-surface,
+  .app-surface-muted,
+  .app-input,
+  .app-table-row {
+    transition-property: background-color, color, border-color, box-shadow;
+    transition-duration: 220ms;
+    transition-timing-function: ease;
+  }
+
   input,
   textarea,
   select {
@@ -465,6 +478,17 @@
 
   .app-animated-list-move {
     transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .theme-icon-enter-active,
+  .theme-icon-leave-active {
+    transition: opacity 120ms ease, transform 120ms ease;
+  }
+
+  .theme-icon-enter-from,
+  .theme-icon-leave-to {
+    opacity: 0;
+    transform: scale(0.7) rotate(-30deg);
   }
 
   .app-animated-list-enter-active:nth-child(2) { transition-delay: calc(var(--app-list-stagger) * 1); }
@@ -825,5 +849,18 @@
   .toast-list-enter-from,
   .toast-list-leave-to {
     transform: none !important;
+  }
+
+  .theme-icon-enter-active,
+  .theme-icon-leave-active {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 240ms;
+    animation-timing-function: ease;
   }
 }

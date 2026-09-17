@@ -14,31 +14,7 @@
           </div>
         </div>
 
-        <button
-          type="button"
-          class="app-surface-muted flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 text-left transition-all duration-150 ease-out hover:-translate-y-px hover:border-secondary/30 active:translate-y-0 active:scale-[0.99]"
-          @click="toggleTheme"
-        >
-          <span class="min-w-0">
-            <span class="block text-sm font-extrabold text-neutral-800">{{ isDark ? 'Modo oscuro activo' : 'Modo claro activo' }}</span>
-            <span class="block text-xs font-semibold text-neutral-500">{{ isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro' }}</span>
-          </span>
-          <span
-            :class="[
-              'h-7 w-12 shrink-0 rounded-full border p-0.5 transition-colors',
-              isDark ? 'border-primary/30 bg-primary-dark' : 'border-secondary/20 bg-secondary-light',
-            ]"
-          >
-            <span
-              :class="[
-                'app-card flex h-6 w-6 items-center justify-center rounded-full text-info-dark shadow-sm transition-transform duration-200',
-                isDark ? 'translate-x-0' : 'translate-x-5',
-              ]"
-            >
-              <AppIcon :name="isDark ? 'moon' : 'sun'" size="xs" />
-            </span>
-          </span>
-        </button>
+        <ThemeToggle variant="settings" />
       </section>
 
       <section class="app-card w-full rounded-xl p-3.5">
@@ -144,11 +120,12 @@ import {
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const pwaInstall = inject('pwaInstall', null)
-const { isDark, toggleTheme } = useTheme()
+const { isDark } = useTheme()
 const {
   canInstall: canInstallPwa,
   isStandalone: isPwaStandalone,
