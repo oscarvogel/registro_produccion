@@ -59,7 +59,6 @@
                     ? 'border-primary/50 bg-primary-light/25'
                     : 'border-[var(--app-border)] bg-[var(--app-surface-muted)]',
                 ]"
-                data-gsap="home-action"
                 @click="router.push(action.to)"
               >
                 <span class="truncate">{{ action.label }}</span>
@@ -296,14 +295,6 @@ function setupHomeMotion() {
       ease: motionEase.settle,
     })
 
-    gsap.from('[data-gsap="home-action"]', {
-      autoAlpha: 0,
-      y: 8,
-      duration: motionDurations.micro + 0.08,
-      stagger: 0.05,
-      delay: 0.08,
-      ease: motionEase.standard,
-    })
   })
 }
 const {
