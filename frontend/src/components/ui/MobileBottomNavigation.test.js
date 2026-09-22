@@ -54,6 +54,25 @@ describe('MobileBottomNavigation', () => {
     expect(moreButton.attributes('aria-label')).toBe('Cerrar más opciones')
   })
 
+  it('keeps More in a dedicated fifth slot after scrolling', async () => {
+    const directItems = Array.from({ length: 4 }, (_, index) => ({
+      ...items[0],
+      key: `destination-${index + 1}`,
+      mobileLabel: `Destino ${index + 1}`,
+    }))
+    const wrapper = mountNavigation({ items: directItems })
+    const surface = wrapper.get('.app-mobile-bottom-navigation__surface')
+
+    expect(surface.classes()).toContain('grid-cols-5')
+    expect(surface.element.children).toHaveLength(5)
+    expect(wrapper.get('button[aria-controls="app-mobile-more-panel"]').text()).toContain('Más')
+
+    window.dispatchEvent(new Event('scroll'))
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('button[aria-controls="app-mobile-more-panel"]').exists()).toBe(true)
+  })
+
   it('shows a pending badge without replacing the link name', () => {
     const wrapper = mountNavigation({
       items: [{
