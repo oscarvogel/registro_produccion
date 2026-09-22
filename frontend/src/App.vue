@@ -13,16 +13,18 @@
         <header class="app-mobile-header sticky z-30 border-b border-[var(--app-nav-border)] bg-[var(--app-nav-header)] text-[var(--app-nav-text)] md:hidden">
           <div class="flex h-[var(--app-mobile-header-height)] items-center justify-between px-4">
             <button
+              v-if="mobileHeaderMenuVisible"
               ref="mobileMenuButton"
               type="button"
               class="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--app-nav-control-border)] text-[var(--app-nav-text)]"
               aria-label="Abrir navegación"
               aria-controls="app-mobile-navigation"
               :aria-expanded="mobileMenuOpen"
-              @click="openMobileMenu"
+              @click="openMobileMenu($event.currentTarget)"
             >
               <AppIcon name="menu" />
             </button>
+            <span v-else class="h-10 w-10 shrink-0" aria-hidden="true"></span>
             <div class="min-w-0 px-3 text-center">
               <p class="truncate text-sm font-extrabold text-[var(--app-nav-text)]">Registro Producción</p>
               <p class="truncate text-xs font-semibold text-[var(--app-nav-status-text)]">{{ userRoleLabel }} - {{ backendConnectionLabel }}</p>
@@ -49,6 +51,8 @@
         <aside
           ref="mobileNavigation"
           id="app-mobile-navigation"
+          :aria-hidden="isMobileViewport && !mobileMenuOpen ? 'true' : undefined"
+          :inert="isMobileViewport && !mobileMenuOpen"
               aria-label="Navegación principal"
           :class="[
             'app-navigation fixed left-0 z-50 flex w-72 max-w-[86vw] flex-col border-r border-[var(--app-nav-border)] bg-[var(--app-nav-bg)] text-[var(--app-nav-text)] shadow-xl transition-[transform,width] duration-200 md:z-20 md:max-w-none md:translate-x-0 md:shadow-none',
@@ -215,7 +219,11 @@
           </div>
         </aside>
 
-        <main :class="['min-h-screen transition-[padding] duration-200', sidebarCollapsed ? 'md:pl-20' : 'md:pl-64']">
+        <main :class="[
+          'min-h-screen transition-[padding] duration-200',
+          sidebarCollapsed ? 'md:pl-20' : 'md:pl-64',
+          mobileBottomNavigationVisible ? 'app-mobile-navigation-content' : '',
+        ]">
           <router-view v-slot="{ Component, route: viewRoute }">
             <Transition name="route-fade" mode="out-in">
               <div :key="viewRoute.fullPath" class="min-h-screen">
@@ -231,6 +239,28 @@
             </Transition>
           </router-view>
         </main>
+
+        <MobileBottomNavigation
+          v-if="mobileBottomNavigationVisible"
+          ref="mobileBottomNavigation"
+          :items="mobileNavigationItems"
+          :active-key="activeMobileNavigationKey"
+          :more-active="mobileMoreActive"
+          :more-expanded="mobileMoreOpen"
+          :theme="isDark ? 'dark' : 'light'"
+          @open-more="toggleMobileMoreMenu"
+          @navigate="closeMobileMoreMenu"
+        />
+        <MobileMoreMenu
+          v-if="mobileBottomNavigationVisible"
+          :open="mobileMoreOpen"
+          :groups="mobileMoreGroups"
+          :active-key="activeMobileMoreKey"
+          :theme="isDark ? 'dark' : 'light'"
+          :trigger-element="mobileMoreTrigger"
+          @close="closeMobileMoreMenu"
+          @navigate="closeMobileMoreMenu"
+        />
       </div>
     </template>
 
@@ -264,8 +294,15 @@ import ToastHost from '@/components/ToastHost.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import NavigationIcon from '@/components/ui/NavigationIcon.vue'
 import AppPreloader from '@/components/ui/AppPreloader.vue'
-import ThemeToggle from '@/components/ui/ThemeToggle.vue'
-import { createSidebarNavigation } from '@/config/navigation'
+import MobileBottomNavigation from '@/components/ui/MobileBottomNavigation.vue'
+import MobileMoreMenu from '@/components/ui/MobileMoreMenu.vue'
+import {
+  createMobileMoreGroups,
+  createMobileNavigation,
+  createSidebarNavigation,
+  isNavigationItemActive,
+  shouldShowMobileBottomNavigation,
+} from '@/config/navigation'
 
 const router = useRouter()
 const route = useRoute()
@@ -274,9 +311,14 @@ const produccionStore = useProduccionStore()
 const connectivityStore = useConnectivityStore()
 const { isDark } = useTheme()
 const mobileMenuOpen = ref(false)
+const mobileMoreOpen = ref(false)
 const mobileMenuButton = ref(null)
+const mobileBottomNavigation = ref(null)
+const mobileMoreTrigger = ref(null)
 const mobileNavigation = ref(null)
 const previouslyFocusedElement = ref(null)
+const mobileViewportQuery = window.matchMedia('(max-width: 47.999rem)')
+const isMobileViewport = ref(mobileViewportQuery.matches)
 let previousBodyOverflow = ''
 const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === '1')
 const openSections = reactive({
@@ -319,6 +361,26 @@ const sidebarNavigation = computed(() => createSidebarNavigation({
 const primaryItems = computed(() => sidebarNavigation.value.primaryItems)
 const navSections = computed(() => sidebarNavigation.value.sections)
 const trailingItems = computed(() => sidebarNavigation.value.trailingItems)
+const mobileNavigationItems = computed(() => createMobileNavigation({
+  isAdmin: isAdmin.value,
+  isEncargado: isEncargado.value,
+  pendingCount: produccionStore.pendingCount,
+}))
+const mobileMoreGroups = computed(() => createMobileMoreGroups({
+  isAdmin: isAdmin.value,
+  isEncargado: isEncargado.value,
+  pendingCount: produccionStore.pendingCount,
+}))
+const activeMobileNavigationItem = computed(() => mobileNavigationItems.value.find((item) => isItemActive(item)))
+const activeMobileNavigationKey = computed(() => activeMobileNavigationItem.value?.key || '')
+const activeMobileMoreKey = computed(() => {
+  if (route.name === 'configuracion') return 'configuracion'
+  const moreItems = mobileMoreGroups.value.flatMap((group) => group.items)
+  return moreItems.find((item) => isItemActive(item))?.key || ''
+})
+const mobileMoreActive = computed(() => !activeMobileNavigationItem.value)
+const mobileBottomNavigationVisible = computed(() => shouldShowMobileBottomNavigation(route.name))
+const mobileHeaderMenuVisible = computed(() => !mobileBottomNavigationVisible.value)
 
 function toggleSection(key) {
   openSections[key] = !openSections[key]
@@ -348,16 +410,31 @@ async function focusMobileMenu() {
   getMobileFocusableElements()[0]?.focus()
 }
 
-function openMobileMenu() {
+function openMobileMenu(trigger = mobileMenuButton.value) {
   if (mobileMenuOpen.value) return
-  previouslyFocusedElement.value = document.activeElement
+  previouslyFocusedElement.value = trigger?.isConnected ? trigger : document.activeElement
   mobileMenuOpen.value = true
+}
+
+function toggleMobileMoreMenu(trigger) {
+  mobileMoreTrigger.value = trigger || mobileBottomNavigation.value?.moreButton || null
+  mobileMoreOpen.value = !mobileMoreOpen.value
+}
+
+function closeMobileMoreMenu() {
+  mobileMoreOpen.value = false
 }
 
 function closeMobileMenu({ restoreFocus = true } = {}) {
   if (!mobileMenuOpen.value) return
   if (!restoreFocus) previouslyFocusedElement.value = null
   mobileMenuOpen.value = false
+}
+
+function handleMobileViewportChange(event) {
+  isMobileViewport.value = event.matches
+  if (!event.matches) closeMobileMenu({ restoreFocus: false })
+  if (!event.matches) closeMobileMoreMenu()
 }
 
 function handleMobileMenuKeydown(event) {
@@ -414,17 +491,14 @@ function isSectionActive(section) {
 }
 
 function isItemActive(item) {
-  if (item.activeRoutes?.includes(route.name)) return true
-  if (item.to.name === 'admin-crud') {
-    return route.name === 'admin-crud' && route.params.entity === item.to.params.entity
-  }
-  return route.name === item.to.name
+  return isNavigationItemActive(item, route)
 }
 
 watch(
   () => route.fullPath,
   () => {
     closeMobileMenu()
+    closeMobileMoreMenu()
   },
 )
 
@@ -441,9 +515,12 @@ watch(mobileMenuOpen, async (open, wasOpen) => {
   previousBodyOverflow = ''
   if (wasOpen) {
     await nextTick()
+    const mobileFallbackTarget = isMobileViewport.value
+      ? mobileBottomNavigation.value?.moreButton || mobileMenuButton.value
+      : null
     const target = previouslyFocusedElement.value?.isConnected
       ? previouslyFocusedElement.value
-      : mobileMenuButton.value
+      : mobileFallbackTarget
     target?.focus?.()
   }
   previouslyFocusedElement.value = null
@@ -503,6 +580,7 @@ async function handleOnline() {
 }
 
 onMounted(() => {
+  mobileViewportQuery.addEventListener('change', handleMobileViewportChange)
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.addEventListener('appinstalled', handleAppInstalled)
   window.addEventListener('online', handleOnline)
@@ -517,6 +595,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  mobileViewportQuery.removeEventListener('change', handleMobileViewportChange)
   window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.removeEventListener('appinstalled', handleAppInstalled)
   window.removeEventListener('online', handleOnline)
@@ -528,6 +607,7 @@ onUnmounted(() => {
 function handleLogout() {
   authStore.logout()
   closeMobileMenu({ restoreFocus: false })
+  closeMobileMoreMenu()
   router.push({ name: 'login' })
 }
 </script>

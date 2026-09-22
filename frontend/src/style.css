@@ -6,6 +6,7 @@
   --app-content-wide: 112rem;
   --app-offline-banner-height: 2rem;
   --app-mobile-header-height: 3.5rem;
+  --app-mobile-bottom-navigation-height: 4rem;
 }
 
 @theme {
@@ -384,6 +385,64 @@
 
   .app-mobile-action-bar {
     padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  .app-mobile-bottom-navigation {
+    padding: 0.75rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
+  }
+
+  .app-mobile-bottom-navigation__surface {
+    min-height: var(--app-mobile-bottom-navigation-height);
+    padding: 0.25rem 0.25rem 0;
+    border: 1px solid var(--app-nav-border);
+    border-radius: 1.25rem;
+    background: var(--app-nav-bg);
+    box-shadow: var(--app-shadow-lg);
+  }
+
+  .app-mobile-more-panel {
+    position: fixed;
+    z-index: 40;
+    right: 0.75rem;
+    bottom: calc(var(--app-mobile-bottom-navigation-height) + 1.75rem + env(safe-area-inset-bottom));
+    left: 0.75rem;
+    width: min(calc(100% - 1.5rem), 42rem);
+    max-height: min(68dvh, calc(100dvh - var(--app-mobile-header-top, 0px) - var(--app-mobile-header-height) - var(--app-mobile-bottom-navigation-height) - 3rem));
+    margin-inline: auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1rem;
+    border: 1px solid var(--app-nav-border);
+    border-radius: 1.25rem;
+    background: var(--app-nav-bg);
+    color: var(--app-nav-text);
+    box-shadow: var(--app-shadow-lg);
+  }
+
+  .mobile-more-enter-active,
+  .mobile-more-leave-active {
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+
+  .mobile-more-enter-from,
+  .mobile-more-leave-to {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+
+  .app-mobile-bottom-navigation__item.is-active .app-mobile-bottom-navigation__icon-shell {
+    transform: translateY(-0.85rem);
+    border: 4px solid var(--app-nav-bg);
+    background: var(--app-nav-active-bg);
+    box-shadow: inset 0 0 0 1px var(--app-nav-active-border), 0 8px 16px var(--app-nav-active-glow);
+  }
+
+  .app-mobile-bottom-navigation__item.is-active > span:last-child {
+    margin-top: -0.55rem;
+  }
+
+  .app-mobile-navigation-content {
+    padding-bottom: calc(var(--app-mobile-bottom-navigation-height) + 1.25rem + env(safe-area-inset-bottom));
   }
 
   .app-shell {
@@ -854,6 +913,20 @@
   .theme-icon-enter-active,
   .theme-icon-leave-active {
     transition-duration: 0.01ms !important;
+  }
+
+  .app-mobile-bottom-navigation__item.is-active .app-mobile-bottom-navigation__icon-shell {
+    transform: none;
+  }
+
+  .app-mobile-bottom-navigation__item.is-active > span:last-child {
+    margin-top: 0;
+  }
+}
+
+@media (min-width: 48rem) {
+  .app-mobile-navigation-content {
+    padding-bottom: 0;
   }
 }
 
