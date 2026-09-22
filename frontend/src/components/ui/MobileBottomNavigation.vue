@@ -3,7 +3,7 @@
     class="app-mobile-bottom-navigation fixed inset-x-0 bottom-0 z-30 md:hidden"
     aria-label="Navegación móvil"
   >
-    <div class="app-mobile-bottom-navigation__surface mx-auto flex max-w-2xl items-stretch">
+    <div class="app-mobile-bottom-navigation__surface mx-auto grid w-full max-w-2xl grid-cols-5 items-stretch">
       <RouterLink
         v-for="item in items"
         :key="item.key"
@@ -12,7 +12,7 @@
         :aria-current="item.key === activeKey ? 'page' : undefined"
         :title="item.accessibleLabel || item.label"
         :class="[
-          'app-mobile-bottom-navigation__item group flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-[var(--app-nav-text-muted)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-nav-accent)] focus-visible:ring-inset',
+          'app-mobile-bottom-navigation__item group flex w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-[var(--app-nav-text-muted)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-nav-accent)] focus-visible:ring-inset',
           item.key === activeKey ? 'is-active text-[var(--app-nav-text)]' : 'hover:text-[var(--app-nav-text)]',
         ]"
       >
@@ -32,7 +32,7 @@
       <button
         ref="moreButton"
         type="button"
-        class="app-mobile-bottom-navigation__item group flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-[var(--app-nav-text-muted)] transition-colors duration-150 hover:text-[var(--app-nav-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-nav-accent)] focus-visible:ring-inset"
+        class="app-mobile-bottom-navigation__item group flex w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-[var(--app-nav-text-muted)] transition-colors duration-150 hover:text-[var(--app-nav-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-nav-accent)] focus-visible:ring-inset"
         :aria-label="moreExpanded ? 'Cerrar más opciones' : 'Abrir más opciones'"
         aria-controls="app-mobile-more-panel"
         :aria-expanded="moreExpanded"
