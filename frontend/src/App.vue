@@ -260,30 +260,7 @@
           :trigger-element="mobileMoreTrigger"
           @close="closeMobileMoreMenu"
           @navigate="closeMobileMoreMenu"
-        >
-          <template #utilities>
-            <div class="mt-4 border-t border-[var(--app-nav-border)] pt-3">
-              <h3 class="mb-2 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[var(--app-nav-text-soft)]">
-                Preferencias
-              </h3>
-              <ThemeToggle variant="sidebar" :collapsed="false" />
-              <RouterLink
-                :to="{ name: 'configuracion' }"
-                :aria-current="route.name === 'configuracion' ? 'page' : undefined"
-                :class="[
-                  'mt-1 flex min-h-11 items-center gap-3 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-nav-accent)]',
-                  route.name === 'configuracion'
-                    ? 'border-[var(--app-nav-active-border)] bg-[var(--app-nav-active-bg)] text-[var(--app-nav-text)]'
-                    : 'border-transparent text-[var(--app-nav-text-muted)] hover:bg-[var(--app-nav-surface)] hover:text-[var(--app-nav-text)]',
-                ]"
-                @click="closeMobileMoreMenu"
-              >
-                <NavigationIcon name="settings" :theme="isDark ? 'dark' : 'light'" size="sm" />
-                Configuración
-              </RouterLink>
-            </div>
-          </template>
-        </MobileMoreMenu>
+        />
       </div>
     </template>
 
@@ -317,7 +294,6 @@ import ToastHost from '@/components/ToastHost.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import NavigationIcon from '@/components/ui/NavigationIcon.vue'
 import AppPreloader from '@/components/ui/AppPreloader.vue'
-import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import MobileBottomNavigation from '@/components/ui/MobileBottomNavigation.vue'
 import MobileMoreMenu from '@/components/ui/MobileMoreMenu.vue'
 import {
