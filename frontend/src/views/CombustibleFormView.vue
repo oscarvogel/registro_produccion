@@ -16,7 +16,7 @@
 
     <div class="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <SectionCard title="Nueva carga">
-        <form class="space-y-3" novalidate :aria-busy="store.saving || undefined" @submit.prevent="submit">
+        <form ref="fuelForm" class="space-y-3" novalidate :aria-busy="store.saving || undefined" @submit.prevent="submit">
           <FeedbackMessage v-if="store.error" tone="error" :message="store.error" />
 
           <div class="rounded-lg border border-info/30 bg-info-light/40 p-3 text-sm text-info-dark">
@@ -183,12 +183,14 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import FeedbackMessage from '@/components/ui/FeedbackMessage.vue'
 import { normalizeRemito } from '@/utils/remito'
+import { animateValidationTarget } from '@/config/gsap'
 
 const authStore = useAuthStore()
 const store = useCombustibleStore()
 const formError = ref('')
 const successMessage = ref('')
 const fieldErrors = ref({})
+const fuelForm = ref(null)
 
 const today = new Date().toISOString().slice(0, 10)
 const createFormUuid = () => (
@@ -269,6 +271,7 @@ async function submit() {
   formError.value = validateForm()
   successMessage.value = ''
   if (formError.value) {
+    animateValidationTarget(fuelForm.value?.querySelector('[aria-invalid="true"]'))
     await focusFirstInvalidField()
     return
   }

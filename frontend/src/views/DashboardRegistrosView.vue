@@ -96,12 +96,14 @@
         </div>
 
         <section
+          ref="recordsCards"
           class="space-y-2 md:hidden"
           data-testid="registros-cards"
         >
           <article
             v-for="record in store.registros"
             :key="`card-${record.id}`"
+            :data-flip-id="`record-${record.id}`"
             v-motion-panel
             class="app-card cursor-pointer rounded-xl p-3 transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/30"
             :data-testid="`abrir-detalle-card-${record.id}`"
@@ -232,6 +234,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import FilterBar from '@/components/ui/FilterBar.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import RecordDetailModal from '@/components/registros/RecordDetailModal.vue'
+import { useGsapFlipList } from '@/composables/useGsapFlipList'
 
 const authStore = useAuthStore()
 const store = useDashboardRegistrosStore()
@@ -241,6 +244,12 @@ const router = useRouter()
 
 const detalleOpen = ref(false)
 const detalleId = ref(null)
+const recordsCards = ref(null)
+
+useGsapFlipList({
+  container: recordsCards,
+  source: () => store.registros,
+})
 
 const columns = [
   { key: 'fecha', label: 'Fecha', sortable: true },

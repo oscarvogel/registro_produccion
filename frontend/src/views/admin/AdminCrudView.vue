@@ -76,7 +76,7 @@
           @submit="submitQuickAssignment"
         />
 
-        <div class="space-y-3 md:hidden">
+        <div ref="mobileRows" class="space-y-3 md:hidden">
           <div v-if="loading" class="app-card rounded-xl px-4 py-4 text-center text-sm text-neutral-500">
             Cargando...
           </div>
@@ -89,6 +89,7 @@
           <article
             v-for="row in filteredRows"
             :key="`mobile-${row[meta.idKey]}`"
+            :data-flip-id="`admin-${row[meta.idKey]}`"
             class="app-card rounded-xl p-3.5 transition-all hover:border-secondary/25 hover:shadow-md"
           >
             <div class="mb-3 flex items-start justify-between gap-3">
@@ -617,6 +618,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import AdminQuickAssignment from '@/components/admin/AdminQuickAssignment.vue'
 import { useAdminStore } from '@/stores/admin'
 import { validateAdminPassword } from '@/services/passwordValidation'
+import { useGsapFlipList } from '@/composables/useGsapFlipList'
 
 const SAFE_LOAD_ERROR_MESSAGE = 'No se pudieron cargar los datos necesarios. Actualiza e intenta nuevamente.'
 const SAFE_SAVE_ERROR_MESSAGE = 'No se pudo guardar el registro. Actualiza e intenta nuevamente.'
@@ -906,6 +908,7 @@ const limit = ref(5)
 const pageSizeOptions = [5, 10, 25, 50]
 const referenceCache = new Map()
 let searchTimer = null
+const mobileRows = ref(null)
 
 const entity = computed(() => String(route.params.entity || ''))
 const meta = computed(() => ENTITY_DEFINITIONS[entity.value] || null)
@@ -931,6 +934,11 @@ const showUnidadFilter = computed(() => {
 
 const filteredRows = computed(() => {
   return rows.value
+})
+
+useGsapFlipList({
+  container: mobileRows,
+  source: () => filteredRows.value,
 })
 
 const mobileColumns = computed(() => {

@@ -87,12 +87,13 @@
           />
         </div>
 
-        <section v-if="store.registros.length > 0" class="space-y-2">
+        <section v-if="store.registros.length > 0" ref="recordsList" class="space-y-2">
           <h2 class="px-1 text-xs font-extrabold uppercase tracking-wide text-neutral-500">Detalle de registros</h2>
 
           <article
             v-for="record in store.registros"
             :key="record.id"
+            :data-flip-id="`record-${record.id}`"
             v-motion-panel
             class="app-card cursor-pointer rounded-xl p-3.5 transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/30"
             :data-testid="`operador-registro-${record.id}`"
@@ -154,12 +155,19 @@ import FilterBar from '@/components/ui/FilterBar.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import RecordDetailModal from '@/components/registros/RecordDetailModal.vue'
+import { useGsapFlipList } from '@/composables/useGsapFlipList'
 
 const authStore = useAuthStore()
 const store = useMisRegistrosStore()
 const activePreset = ref('month')
 const detalleOpen = ref(false)
 const detalleId = ref(null)
+const recordsList = ref(null)
+
+useGsapFlipList({
+  container: recordsList,
+  source: () => store.registros,
+})
 
 function abrirDetalle(id) {
   detalleId.value = id

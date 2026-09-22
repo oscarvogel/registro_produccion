@@ -126,10 +126,11 @@
           </EmptyState>
         </div>
 
-        <div v-else class="mt-3 space-y-2.5">
+        <div v-else ref="pendingList" class="mt-3 space-y-2.5">
           <article
             v-for="record in visibleRecords"
             :key="record.id"
+            :data-flip-id="`pending-${record.id}`"
             :class="[
               'rounded-xl border p-3.5 shadow-sm',
               isFailedRecord(record) ? 'border-error/30 bg-error-light/20' : 'border-warning/30 bg-warning-light/20',
@@ -294,6 +295,7 @@ import AppModal from '@/components/ui/AppModal.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import { useGsapFlipList } from '@/composables/useGsapFlipList'
 
 const authStore = useAuthStore()
 const produccionStore = useProduccionStore()
@@ -314,6 +316,7 @@ const navigatorOnline = ref(navigator.onLine)
 const backendReachable = computed(() => navigatorOnline.value && connectivityStore.isBackendUp)
 const lastCheckAt = ref(null)
 const activeFilter = ref('all')
+const pendingList = ref(null)
 
 const isAdmin = computed(() => authStore.isAdmin)
 const isEncargado = computed(() => authStore.user?.encargado === 1)
@@ -434,6 +437,11 @@ const visibleRecords = computed(() => {
   if (activeFilter.value === 'pending') return scopedPendingRecords.value
   if (activeFilter.value === 'failed') return scopedFailedRecords.value
   return scopedRecords.value
+})
+
+useGsapFlipList({
+  container: pendingList,
+  source: () => visibleRecords.value,
 })
 
 const syncDisabledReason = computed(() => {
