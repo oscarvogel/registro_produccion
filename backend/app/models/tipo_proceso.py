@@ -11,6 +11,7 @@ class TipoDeProceso(Base):
     requiere_acta = Column(Boolean, nullable=False, default=False)
     requiere_predio = Column(Boolean, nullable=False, default=False)
     requiere_rodal = Column(Boolean, nullable=False, default=False)
+    requiere_horometro = Column(Boolean, nullable=False, default=True)
     activo = Column(SmallInteger, nullable=False, default=1)
 
 

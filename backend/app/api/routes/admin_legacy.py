@@ -451,6 +451,7 @@ def _to_tipo_proceso_response(db: Session, row: TipoDeProceso) -> TipoProcesoRes
         requiere_acta=bool(getattr(row, "requiere_acta", False)),
         requiere_predio=bool(getattr(row, "requiere_predio", False)),
         requiere_rodal=bool(getattr(row, "requiere_rodal", False)),
+        requiere_horometro=bool(getattr(row, "requiere_horometro", True)),
         activo=int(row.activo or 0),
     )
 
@@ -1396,6 +1397,7 @@ async def create_tipo_proceso(
         requiere_acta=payload.requiere_acta,
         requiere_predio=payload.requiere_predio,
         requiere_rodal=payload.requiere_rodal,
+        requiere_horometro=payload.requiere_horometro,
         activo=_normalize_binary(payload.activo),
     )
     db.add(row)
@@ -1433,6 +1435,8 @@ async def update_tipo_proceso(
         row.requiere_predio = bool(data.pop("requiere_predio"))
     if "requiere_rodal" in data:
         row.requiere_rodal = bool(data.pop("requiere_rodal"))
+    if "requiere_horometro" in data:
+        row.requiere_horometro = bool(data.pop("requiere_horometro"))
     if "activo" in data:
         row.activo = _normalize_binary(data.pop("activo"))
     if unidad_ids is not None:
