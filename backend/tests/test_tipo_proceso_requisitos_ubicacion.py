@@ -1,6 +1,8 @@
 import asyncio
 
 from app.api.routes import admin_legacy
+from app.schemas import admin as admin_schemas
+from app.schemas import produccion as produccion_schemas
 from app.schemas.admin import TipoProcesoCreate, TipoProcesoUpdate
 
 
@@ -54,6 +56,15 @@ def test_tipo_proceso_create_defaults_horometro_to_true():
     payload = TipoProcesoCreate(nombre="Fresa")
 
     assert payload.requiere_horometro is True
+
+
+def test_both_tipo_proceso_responses_expose_horometro_flag():
+    # El endpoint de produccion (/api/produccion/tipo-proceso) y el de admin
+    # (/api/admin/tipos-proceso) usan modelos distintos. Ambos deben exponer el
+    # flag o el wizard no puede omitir el paso "Tiempo".
+    for schema in (admin_schemas.TipoProcesoResponse, produccion_schemas.TipoProcesoResponse):
+        assert "requiere_horometro" in schema.model_fields, schema.__module__
+        assert schema.model_fields["requiere_horometro"].default is True
 
 
 def test_tipo_proceso_response_defaults_horometro_to_true_when_missing(monkeypatch):
