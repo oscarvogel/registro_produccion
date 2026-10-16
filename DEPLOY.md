@@ -285,18 +285,37 @@ y el estado del contenedor.
 
 ## Migraciones
 
-**No aplica migraciones.** El deploy normal aborta si detecta cambios bajo
-`db_migrations/` entre la revisión publicada y `origin/main`.
+El deploy aplica las migraciones de `db_migrations/*.sql` con el runner
+`python -m app.migrate` (ver `backend/app/migrate.py`). Las migraciones del
+proyecto son **idempotentes**, así que se pueden correr en cada deploy.
 
-Una migración requiere una tarea separada con:
+En Coolify, configurar el **Pre-deployment Command** del servicio:
 
-- revisión del SQL;
-- identificación explícita de la base de `produccion_fg`;
-- backup verificado;
-- aprobación específica antes de modificar datos;
-- validación y rollback propios.
+```bash
+python -m app.migrate
+```
 
-No agregar migraciones manuales al procedimiento de esta guía.
+El comando corre dentro de la imagen nueva antes de activarla; si una migración
+falla, sale con código distinto de cero y el deploy se corta. La imagen incluye
+`db_migrations/` (`COPY db_migrations /app/db_migrations` en el `Dockerfile`).
+
+Para correrlo a mano contra la base que apunta `produccion_fg.env`:
+
+```bash
+cd backend && python -m app.migrate
+```
+
+Notas:
+
+- No requiere escribir SQL ni entrar a la base: el runner recorre los archivos
+  en orden y falla ruidosamente si alguno no aplica.
+- `DB_MIGRATIONS_DIR` permite apuntar a otra carpeta si hiciera falta.
+- El deploy controlado de `main`
+  (`scripts/deploy_produccion_fg_main_fasa195.sh`) sigue **abortando** si el
+  rango trae cambios bajo `db_migrations/`: es una ruta distinta, pensada para
+  una revisión explícita. La ruta de Coolify es la que corre el runner.
+
+No agregar migraciones manuales a pasos ad-hoc fuera de `db_migrations/`.
 
 ## Diagnóstico rápido
 
