@@ -175,6 +175,60 @@ def test_coolify_deploy_ships_and_runs_db_migrations():
     assert missing == []
 
 
+def test_container_entrypoint_applies_migrations_at_start():
+    """El Pre-deployment Command de Coolify no funciona con el build pack
+    `dockercompose` (corre en un contenedor que no existe), asi que las
+    migraciones se aplican desde el entrypoint del container."""
+    entrypoint = read("docker-entrypoint.py")
+
+    required = [
+        "RUN_MIGRATIONS",
+        "MIGRATIONS_STRICT",
+        "app.migrate",
+        "subprocess.run",
+        "run_migrations()",
+    ]
+    missing = [fragment for fragment in required if fragment not in entrypoint]
+    assert missing == []
+
+
+def test_compose_enables_migrations_for_the_backend_services():
+    compose = read("docker-compose.yml")
+
+    assert compose.count('RUN_MIGRATIONS: "1"') == 2
+    # El commit real sirve para verificar un deploy desde /health.
+    assert "BUILD_COMMIT: ${SOURCE_COMMIT:-unknown}" in compose
+
+
+def test_migrate_runner_serializes_concurrent_containers_with_mysql_lock():
+    """produccion_fg e indufor apuntan a la misma base y arrancan juntos en
+    un deploy: sin lock los dos podrian aplicar el mismo ALTER."""
+    migrate_py = read("backend/app/migrate.py")
+
+    required = [
+        "MIGRATION_LOCK_NAME",
+        "GET_LOCK",
+        "RELEASE_LOCK",
+        "def _acquire_lock",
+    ]
+    missing = [fragment for fragment in required if fragment not in migrate_py]
+    assert missing == []
+
+
+def test_deploy_md_documents_the_coolify_pre_deployment_command_limitation():
+    runbook = read("DEPLOY.md")
+
+    required = [
+        "Pre-deployment Command",
+        "Could not find a valid container",
+        "dockercompose",
+        "RUN_MIGRATIONS",
+        "GET_LOCK",
+    ]
+    missing = [fragment for fragment in required if fragment not in runbook]
+    assert missing == []
+
+
 
 def test_multiinstance_runbook_warns_against_normal_produccion_fg_deploy():
     runbook = read("docs/DEPLOY_GITHUB_MAIN_RUNBOOK.md")

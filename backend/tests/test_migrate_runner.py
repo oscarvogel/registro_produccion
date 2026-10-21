@@ -13,9 +13,15 @@ class FakeCursor:
         self.nextset_calls = 0
         self._extra_sets = extra_sets
         self._seen = 0
+        self._rows = [(1,)]
 
-    def execute(self, sql):
+    def execute(self, sql, params=None):
         self.executed.append(sql)
+        if "GET_LOCK" in sql:
+            self._rows = [(self._lock_result,)]
+
+    def fetchone(self):
+        return self._rows[0]
 
     def nextset(self):
         self.nextset_calls += 1
@@ -30,8 +36,9 @@ class FakeCursor:
 
 
 class FakeConnection:
-    def __init__(self, extra_sets=0):
+    def __init__(self, extra_sets=0, lock_result=1):
         self.cursor_obj = FakeCursor(extra_sets=extra_sets)
+        self.cursor_obj._lock_result = lock_result
         self.closed = False
 
     def cursor(self):
@@ -87,7 +94,49 @@ def test_run_applies_all_files_in_order_and_closes(tmp_path: Path, monkeypatch):
 
     assert applied == 2
     assert connection.closed is True
-    assert connection.cursor_obj.executed == ["SELECT 1;", "SELECT 2;"]
+    executed = [s for s in connection.cursor_obj.executed if "LOCK" not in s]
+    assert executed == ["SELECT 1;", "SELECT 2;"]
+
+
+def test_run_serializes_with_a_mysql_lock(tmp_path: Path, monkeypatch):
+    """produccion_fg e indufor share the same DB: without the lock both
+    could apply the same ALTER in the same deploy."""
+    (tmp_path / "01_first.sql").write_text("SELECT 1;", encoding="utf-8")
+    connection = FakeConnection()
+    monkeypatch.setattr(migrate, "_connect", lambda: connection)
+
+    migrate.run(tmp_path)
+
+    executed = connection.cursor_obj.executed
+    assert any("GET_LOCK" in statement for statement in executed)
+    assert any("RELEASE_LOCK" in statement for statement in executed)
+
+
+def test_run_fails_when_the_lock_cannot_be_acquired(tmp_path: Path, monkeypatch):
+    (tmp_path / "01_first.sql").write_text("SELECT 1;", encoding="utf-8")
+    connection = FakeConnection(lock_result=0)
+    monkeypatch.setattr(migrate, "_connect", lambda: connection)
+
+    with pytest.raises(migrate.MigrationError, match="lock"):
+        migrate.run(tmp_path)
+    assert connection.closed is True
+
+
+def test_run_releases_the_lock_even_when_a_migration_fails(tmp_path: Path, monkeypatch):
+    (tmp_path / "01_bad.sql").write_text("BROKEN;", encoding="utf-8")
+    connection = FakeConnection()
+    monkeypatch.setattr(migrate, "_connect", lambda: connection)
+
+    def boom(_connection, _path):
+        raise RuntimeError("syntax error")
+
+    monkeypatch.setattr(migrate, "apply_file", boom)
+
+    with pytest.raises(migrate.MigrationError):
+        migrate.run(tmp_path)
+
+    assert any("RELEASE_LOCK" in statement for statement in connection.cursor_obj.executed)
+    assert connection.closed is True
 
 
 def test_run_wraps_failures_in_migration_error(tmp_path: Path, monkeypatch):
