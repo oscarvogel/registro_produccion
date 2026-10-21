@@ -512,3 +512,42 @@ describe('AdminCrudView tipos de proceso', () => {
     expect(labels).toContain('Carga')
   })
 })
+
+describe('AdminCrudView rodales', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    routeState.params.entity = 'rodales'
+    vi.clearAllMocks()
+    api.get.mockResolvedValue({ data: [] })
+    api.post.mockResolvedValue({ data: {} })
+    api.put.mockResolvedValue({ data: {} })
+    api.delete.mockResolvedValue({ data: {} })
+  })
+
+  it('limits the rodal name to the legacy column width', async () => {
+    const wrapper = mount(AdminCrudView, {
+      global: {
+        directives: {
+          motionPanel: {},
+          motionPop: {},
+        },
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    })
+    await flushPromises()
+
+    const nuevo = wrapper.findAll('button').find((button) => button.text().includes('Nuevo'))
+    expect(nuevo).toBeTruthy()
+    await nuevo.trigger('click')
+    await flushPromises()
+
+    const label = wrapper.findAll('label').find((item) => item.text() === 'Rodal')
+    expect(label).toBeTruthy()
+
+    const input = wrapper.find(`#${label.attributes('for')}`)
+    expect(input.exists()).toBe(true)
+    expect(input.attributes('maxlength')).toBe('10')
+  })
+})

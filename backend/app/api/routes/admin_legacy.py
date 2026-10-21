@@ -6,6 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_admin, get_db
+from app.core.legacy_columns import RODAL_MAX_LENGTH
 from app.core.security import get_password_hash
 from app.models.asignacion_operativa import AsignacionOperativa
 from app.models.lugar_carga import LugarCarga
@@ -1701,6 +1702,14 @@ async def create_rodal(
     rodal = payload.rodal.strip()
     if not rodal:
         raise HTTPException(status_code=400, detail="Rodal es obligatorio")
+    if len(rodal) > RODAL_MAX_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"El nombre del rodal no puede superar los {RODAL_MAX_LENGTH} caracteres. "
+                f"Ingresa solo el codigo del rodal (por ejemplo, 90)."
+            ),
+        )
 
     row = Rodal(
         Rodal=rodal,
@@ -1732,6 +1741,14 @@ async def update_rodal(
         rodal = (data.pop("rodal") or "").strip()
         if not rodal:
             raise HTTPException(status_code=400, detail="Rodal es obligatorio")
+        if len(rodal) > RODAL_MAX_LENGTH:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"El nombre del rodal no puede superar los {RODAL_MAX_LENGTH} caracteres. "
+                    f"Ingresa solo el codigo del rodal (por ejemplo, 90)."
+                ),
+            )
         row.Rodal = rodal
     if "idPredio" in data:
         row.idPredio = data.pop("idPredio")

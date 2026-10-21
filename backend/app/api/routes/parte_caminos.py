@@ -6,6 +6,14 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.api.routes.produccion import _form_submission_lock, _validate_restricted_payload
+from app.core.legacy_columns import (
+    EQUIPO_MAX_LENGTH,
+    OPERADOR_MAX_LENGTH,
+    PREDIO_MAX_LENGTH,
+    fit_legacy_text,
+    normalize_acta,
+    normalize_rodal,
+)
 from app.models.carga_comb import CargaComb
 from app.models.personal import Personal
 from app.models.produccion import TableroProduccion
@@ -140,8 +148,8 @@ async def create_parte_caminos(
 
     form_uuid = _clean_text(data.form_uuid)
     unidad_nombre = _clean_text(unidad.Nombre) or _clean_text(data.UN)
-    equipo = _clean_text(data.equipo)
-    operador = _clean_text(data.operador)
+    equipo = fit_legacy_text(data.equipo, EQUIPO_MAX_LENGTH)
+    operador = fit_legacy_text(data.operador, OPERADOR_MAX_LENGTH)
     motivo_no_op = _clean_text(data.motivo_no_op)
     observaciones = _clean_text(data.observaciones)
 
@@ -164,13 +172,22 @@ async def create_parte_caminos(
     # Reuse the same permission + UN/process restriction used by the legacy
     # one-process endpoint. This prevents the multi-process route from becoming
     # a bypass for Full Tree restrictions or unidadnegocio_tipo_proceso.
+    ubicaciones: list[dict[str, str]] = []
     for proceso in data.procesos:
         tipo = tipos_by_id[int(proceso.tipo_proceso_id)]
-        predio = _clean_text(proceso.predio)
-        acta = _clean_text(proceso.acta)
-        rodal = _clean_text(proceso.rodal)
+        # Los catalogos son mas anchos que las columnas legacy de
+        # `tablero_produccion` (ver app/core/legacy_columns.py): sin esta
+        # normalizacion un rodal como "PIRAY MEDIO - RODAL 90" corta el INSERT
+        # con MySQL 1406 y el operador ve un 503 sin saber que corregir.
+        try:
+            acta = normalize_acta(proceso.acta)
+            rodal = normalize_rodal(proceso.rodal)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        predio = fit_legacy_text(proceso.predio, PREDIO_MAX_LENGTH)
         tipo_nombre = _clean_text(tipo.nombre)
         _validate_location(tipo, predio, acta, rodal)
+        ubicaciones.append({"acta": acta, "rodal": rodal, "predio": predio})
         validation_payload = TableroProduccionCreate(
             form_uuid=form_uuid,
             UN=unidad_nombre,
@@ -252,6 +269,7 @@ async def create_parte_caminos(
             for offset, proceso in enumerate(data.procesos, start=1):
                 tipo = tipos_by_id[int(proceso.tipo_proceso_id)]
                 tipo_nombre = _clean_text(tipo.nombre)
+                ubicacion = ubicaciones[offset - 1]
                 registro = TableroProduccion(
                     id=int(max_id) + offset,
                     form_uuid=form_uuid,
@@ -271,9 +289,9 @@ async def create_parte_caminos(
                     aceite_motor=data.aceite_motor,
                     aceite_transmision=data.aceite_transmision,
                     aceite_embrague=data.aceite_embrague,
-                    acta=_clean_text(proceso.acta),
-                    rodal=_clean_text(proceso.rodal),
-                    predio=_clean_text(proceso.predio),
+                    acta=ubicacion["acta"],
+                    rodal=ubicacion["rodal"],
+                    predio=ubicacion["predio"],
                     km_perfilado=proceso.km_perfilado,
                     hr_disposicion=proceso.hr_disposicion,
                     hr_remolque=proceso.hr_remolque,
