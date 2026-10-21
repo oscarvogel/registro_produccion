@@ -7,6 +7,14 @@ from datetime import date, datetime
 from contextlib import contextmanager
 
 from app.api.deps import get_db, get_current_user
+from app.core.legacy_columns import (
+    EQUIPO_MAX_LENGTH,
+    OPERADOR_MAX_LENGTH,
+    PREDIO_MAX_LENGTH,
+    fit_legacy_text,
+    normalize_acta,
+    normalize_rodal,
+)
 from app.models.personal import Personal
 from app.models.personal_unidad_negocio import PersonalUnidadNegocio
 from app.models.unidad_negocio import UnidadNegocio
@@ -674,6 +682,20 @@ async def create_produccion(
 ):
     _validate_restricted_payload(data, user, db)
 
+    # Los catalogos son mas anchos que las columnas legacy de
+    # `tablero_produccion` (ver app/core/legacy_columns.py). Sin esta
+    # normalizacion un rodal como "PIRAY MEDIO - RODAL 90" corta el INSERT
+    # con MySQL 1406 y el operador ve un 503 sin saber que corregir.
+    try:
+        rodal_value = normalize_rodal(data.rodal)
+        acta_value = normalize_acta(data.acta)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    predio_value = fit_legacy_text(data.predio, PREDIO_MAX_LENGTH)
+    equipo_value = fit_legacy_text(data.equipo, EQUIPO_MAX_LENGTH)
+    operador_value = fit_legacy_text(data.operador, OPERADOR_MAX_LENGTH)
+
     # This table assigns IDs with MAX(id)+1, so serialize all creations. The
     # same lock also makes the idempotency lookup + insert atomic.
     with _form_submission_lock(db, "registro_produccion:create"):
@@ -700,8 +722,8 @@ async def create_produccion(
             UN=data.UN,
             operacion=data.operacion,
             fecha=data.fecha,
-            equipo=data.equipo,
-            operador=data.operador,
+            equipo=equipo_value,
+            operador=operador_value,
             cod_operador=data.cod_operador,
             cod_equipo=data.cod_equipo,
             cod_un=data.cod_un,
@@ -713,9 +735,9 @@ async def create_produccion(
             aceite_motor=data.aceite_motor,
             aceite_transmision=data.aceite_transmision,
             aceite_embrague=data.aceite_embrague,
-            acta=data.acta,
-            rodal=data.rodal,
-            predio=data.predio,
+            acta=acta_value,
+            rodal=rodal_value,
+            predio=predio_value,
             m3=data.m3,
             carros=data.carros,
             tn_despachadas=data.tn_despachadas,

@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import DataError, OperationalError
 
 from app import main as main_module
 from app.main import app
@@ -123,3 +123,26 @@ def test_database_errors_return_safe_message_without_sql():
     assert "SELECT" not in detail
     assert "personal" not in detail
     assert "Lost connection" not in detail
+
+
+def test_data_too_long_errors_return_422_instead_of_503():
+    """MySQL 1406 ("Data too long for column") is a problem with the data
+    that was sent, not with the server. Answering 503 told the operator that
+    the service was down while they were saving a part."""
+    async def too_long_route():
+        raise DataError(
+            "INSERT INTO tablero_produccion (rodal) VALUES (%(rodal)s)",
+            {"rodal": "PIRAY MEDIO - RODAL 90"},
+            Exception(1406, "Data too long for column 'rodal' at row 1"),
+        )
+
+    app.add_api_route("/__test__/data-too-long", too_long_route, methods=["GET"])
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/__test__/data-too-long")
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert "demasiado largo" in detail
+    assert "SELECT" not in detail
+    assert "rodal" not in detail

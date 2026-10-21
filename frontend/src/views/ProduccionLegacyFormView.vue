@@ -839,7 +839,8 @@
               <input
                 type="text"
                 v-model="form.rodal_manual"
-                placeholder="Ingresá el rodal manualmente"
+                maxlength="10"
+                placeholder="Solo el código del rodal (ej. 90)"
                 :class="fieldClass"
               />
             </div>
