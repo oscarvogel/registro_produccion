@@ -11,6 +11,7 @@ RUN pip install --upgrade pip \
     && pip install -r /app/requirements.txt
 
 COPY backend /app
+COPY db_migrations /app/db_migrations
 COPY docker-entrypoint.py /usr/local/bin/registro-entrypoint
 RUN chmod 755 /usr/local/bin/registro-entrypoint
 

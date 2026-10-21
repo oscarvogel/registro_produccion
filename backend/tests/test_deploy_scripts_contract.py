@@ -145,7 +145,8 @@ def test_deploy_md_is_the_canonical_produccion_fg_runbook():
         "deploy_produccion_fg_main_fasa195.sh --check",
         "deploy_produccion_fg_main_fasa195.sh --deploy",
         "--no-deps",
-        "No aplica migraciones",
+        "python -m app.migrate",
+        "Pre-deployment Command",
         "Service Worker",
         "rollback_failed",
     ]
@@ -153,6 +154,26 @@ def test_deploy_md_is_the_canonical_produccion_fg_runbook():
     missing = [fragment for fragment in required if fragment not in runbook]
     assert missing == []
     assert "sin modificar la etiqueta `registro_produccion:latest`" in runbook
+
+
+def test_coolify_deploy_ships_and_runs_db_migrations():
+    dockerfile = read("Dockerfile")
+    dockerignore = read(".dockerignore")
+    migrate_py = read("backend/app/migrate.py")
+
+    assert "COPY db_migrations /app/db_migrations" in dockerfile
+    assert "!db_migrations/*.sql" in dockerignore
+
+    required = [
+        "CLIENT.MULTI_STATEMENTS",
+        "def discover_migrations",
+        "def apply_file",
+        "pymysql.connect",
+        "python -m app.migrate",
+    ]
+    missing = [fragment for fragment in required if fragment not in migrate_py]
+    assert missing == []
+
 
 
 def test_multiinstance_runbook_warns_against_normal_produccion_fg_deploy():

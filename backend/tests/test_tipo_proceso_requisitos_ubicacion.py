@@ -1,6 +1,8 @@
 import asyncio
 
 from app.api.routes import admin_legacy
+from app.schemas import admin as admin_schemas
+from app.schemas import produccion as produccion_schemas
 from app.schemas.admin import TipoProcesoCreate, TipoProcesoUpdate
 
 
@@ -39,6 +41,7 @@ class TipoProcesoRow:
     requiere_acta = False
     requiere_predio = False
     requiere_rodal = False
+    requiere_horometro = True
 
 
 def test_tipo_proceso_create_defaults_location_requirements_to_false():
@@ -47,6 +50,38 @@ def test_tipo_proceso_create_defaults_location_requirements_to_false():
     assert payload.requiere_acta is False
     assert payload.requiere_predio is False
     assert payload.requiere_rodal is False
+
+
+def test_tipo_proceso_create_defaults_horometro_to_true():
+    payload = TipoProcesoCreate(nombre="Fresa")
+
+    assert payload.requiere_horometro is True
+
+
+def test_both_tipo_proceso_responses_expose_horometro_flag():
+    # El endpoint de produccion (/api/produccion/tipo-proceso) y el de admin
+    # (/api/admin/tipos-proceso) usan modelos distintos. Ambos deben exponer el
+    # flag o el wizard no puede omitir el paso "Tiempo".
+    for schema in (admin_schemas.TipoProcesoResponse, produccion_schemas.TipoProcesoResponse):
+        assert "requiere_horometro" in schema.model_fields, schema.__module__
+        assert schema.model_fields["requiere_horometro"].default is True
+
+
+def test_tipo_proceso_response_defaults_horometro_to_true_when_missing(monkeypatch):
+    class RowSinFlag:
+        id = 9
+        nombre = "Legacy"
+        campos = ""
+        activo = 1
+        requiere_acta = False
+        requiere_predio = False
+        requiere_rodal = False
+
+    monkeypatch.setattr(admin_legacy, "_tipo_proceso_unidad_ids", lambda _db, _row: [])
+
+    response = admin_legacy._to_tipo_proceso_response(object(), RowSinFlag())
+
+    assert response.requiere_horometro is True
 
 
 def test_tipo_proceso_response_serializes_location_requirement_flags(monkeypatch):
@@ -61,6 +96,16 @@ def test_tipo_proceso_response_serializes_location_requirement_flags(monkeypatch
     assert response.requiere_acta is True
     assert response.requiere_predio is False
     assert response.requiere_rodal is True
+
+
+def test_tipo_proceso_response_serializes_horometro_flag(monkeypatch):
+    monkeypatch.setattr(admin_legacy, "_tipo_proceso_unidad_ids", lambda _db, _row: [3])
+    row = TipoProcesoRow()
+    row.requiere_horometro = False
+
+    response = admin_legacy._to_tipo_proceso_response(object(), row)
+
+    assert response.requiere_horometro is False
 
 
 def test_update_tipo_proceso_persists_location_requirement_flags(monkeypatch):
@@ -82,4 +127,18 @@ def test_update_tipo_proceso_persists_location_requirement_flags(monkeypatch):
     assert response.requiere_acta is True
     assert response.requiere_predio is True
     assert response.requiere_rodal is False
+    assert db.commits == 1
+
+
+def test_update_tipo_proceso_persists_horometro_flag(monkeypatch):
+    monkeypatch.setattr(admin_legacy, "_sync_tipo_proceso_unidades", lambda *_args: None)
+    monkeypatch.setattr(admin_legacy, "_tipo_proceso_unidad_ids", lambda _db, _row: [])
+    row = TipoProcesoRow()
+    db = FakeDb(row)
+    payload = TipoProcesoUpdate(requiere_horometro=False)
+
+    response = asyncio.run(admin_legacy.update_tipo_proceso(7, payload, db=db, _=object()))
+
+    assert row.requiere_horometro is False
+    assert response.requiere_horometro is False
     assert db.commits == 1

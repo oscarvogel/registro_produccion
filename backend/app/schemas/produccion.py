@@ -94,6 +94,7 @@ class TipoProcesoResponse(BaseModel):
     requiere_acta: bool = False
     requiere_predio: bool = False
     requiere_rodal: bool = False
+    requiere_horometro: bool = True
 
     class Config:
         from_attributes = True

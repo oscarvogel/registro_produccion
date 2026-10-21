@@ -34,6 +34,8 @@ backup/
 **/backups/
 **/backup/
 *.sql
+!db_migrations/
+!db_migrations/*.sql
 *.sqlite3
 *.tar
 *.tar.gz

@@ -250,6 +250,7 @@ class TipoProcesoCreate(BaseModel):
     requiere_acta: bool = False
     requiere_predio: bool = False
     requiere_rodal: bool = False
+    requiere_horometro: bool = True
     activo: int = 1
 
 
@@ -260,6 +261,7 @@ class TipoProcesoUpdate(BaseModel):
     requiere_acta: bool | None = None
     requiere_predio: bool | None = None
     requiere_rodal: bool | None = None
+    requiere_horometro: bool | None = None
     activo: int | None = None
 
 
@@ -271,6 +273,7 @@ class TipoProcesoResponse(BaseModel):
     requiere_acta: bool = False
     requiere_predio: bool = False
     requiere_rodal: bool = False
+    requiere_horometro: bool = True
     activo: int
 
 

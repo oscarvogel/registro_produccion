@@ -27,7 +27,7 @@
         <div class="md:hidden">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-medium text-[var(--app-text-soft)]">Paso {{ pasoActual + 1 }} de {{ totalPasos }}</span>
-            <span class="text-xs font-semibold text-[var(--app-text-muted)]">{{ pasos[pasoActual] }}</span>
+            <span class="text-xs font-semibold text-[var(--app-text-muted)]">{{ pasos[pasoActual]?.label }}</span>
           </div>
           <div
             class="app-surface-muted h-2 rounded-full overflow-hidden"
@@ -35,7 +35,7 @@
             :aria-valuemin="1"
             :aria-valuemax="totalPasos"
             :aria-valuenow="pasoActual + 1"
-            :aria-valuetext="`Paso ${pasoActual + 1} de ${totalPasos}: ${pasos[pasoActual]}`"
+            :aria-valuetext="`Paso ${pasoActual + 1} de ${totalPasos}: ${pasos[pasoActual]?.label || ''}`"
           >
             <div class="h-full bg-primary rounded-full transition-all duration-500 ease-out" :style="{ width: `${((pasoActual + 1) / totalPasos) * 100}%` }"></div>
           </div>
@@ -47,7 +47,7 @@
           <div class="mt-3 space-y-1.5">
             <button
               v-for="(paso, i) in pasos"
-              :key="paso"
+              :key="paso.key"
               type="button"
               :disabled="i > pasoActual"
               :aria-current="i === pasoActual ? 'step' : undefined"
@@ -69,7 +69,7 @@
               >
                 {{ i < pasoActual ? 'OK' : i + 1 }}
               </span>
-              <span class="min-w-0 flex-1 truncate font-semibold">{{ paso }}</span>
+              <span class="min-w-0 flex-1 truncate font-semibold">{{ paso.label }}</span>
               <span class="text-[11px] font-bold uppercase tracking-wide opacity-70">{{ stepStatus(i) }}</span>
             </button>
           </div>
@@ -96,7 +96,7 @@
       </div>
 
       <!-- ═══ 1. FECHA ═══ -->
-      <SectionCard v-show="pasoActual === 0" title="Contexto de Carga">
+      <SectionCard v-show="pasoId === 'contexto'" title="Contexto de Carga">
         <p class="mb-3 text-sm text-[var(--app-text-muted)]">
           Seleccioná el día correspondiente y la unidad de negocio para la que se cargará la producción.
         </p>
@@ -135,7 +135,7 @@
       </SectionCard>
 
       <!-- ═══ 2. UNIDAD DE NEGOCIO ═══ -->
-      <SectionCard v-show="pasoActual === 3" title="Proceso / Actividad">
+      <SectionCard v-show="pasoId === 'proceso'" title="Proceso / Actividad">
         <p class="mb-3 text-sm text-[var(--app-text-muted)]">
           Seleccioná el tipo de proceso que corresponde a esta carga. Los campos de producción se ajustan según esta selección.
         </p>
@@ -177,7 +177,7 @@
       </SectionCard>
 
       <!-- ═══ 3. OPERADOR ═══ -->
-      <SectionCard v-show="pasoActual === 1" title="Identificacion del Operador">
+      <SectionCard v-show="pasoId === 'operador'" title="Identificacion del Operador">
         <!-- Si es operador: bloqueado -->
         <div v-if="!canSelectOperador">
           <label class="block text-sm font-medium text-[var(--app-text-muted)] mb-1">Operador</label>
@@ -214,7 +214,7 @@
       </SectionCard>
 
       <!-- ═══ 4. MAQUINARIA ═══ -->
-      <SectionCard v-show="pasoActual === 2" title="Equipo / Maquinaria">
+      <SectionCard v-show="pasoId === 'equipo'" title="Equipo / Maquinaria">
         <!-- ── Estado: Máquina ya seleccionada ── -->
         <div v-if="form.cod_equipo && !mostrandoBuscador" class="space-y-3">
           <div class="flex items-center gap-3 p-3 bg-success-light/40 border border-success/30 rounded-xl">
@@ -350,7 +350,7 @@
       </SectionCard>
 
       <!-- ═══ 5. CONTROL DE TIEMPO ═══ -->
-      <SectionCard v-show="pasoActual === 4" title="Control de Tiempo">
+      <SectionCard v-show="pasoId === 'tiempo'" title="Control de Tiempo">
         <div class="grid grid-cols-2 gap-4">
           <InputField
             label="Horómetro inicial"
@@ -412,7 +412,7 @@
       </SectionCard>
 
       <!-- ═══ 6. DATOS DE PRODUCCIÓN (dinámico según tipo de proceso) ═══ -->
-      <SectionCard v-show="pasoActual === 5" v-if="camposActivos.length > 0" title="Datos de Producción">
+      <SectionCard v-show="pasoId === 'produccion'" v-if="camposActivos.length > 0" title="Datos de Producción">
         <div class="space-y-3">
           <!-- TN Despachadas -->
           <InputField
@@ -577,12 +577,12 @@
         </div>
       </SectionCard>
 
-      <div v-show="pasoActual === 5" v-if="form.tipo_de_proceso_id && camposActivos.length === 0" class="app-surface-muted rounded-lg border p-3 text-sm text-[var(--app-text-muted)]">
+      <div v-show="pasoId === 'produccion'" v-if="form.tipo_de_proceso_id && camposActivos.length === 0" class="app-surface-muted rounded-lg border p-3 text-sm text-[var(--app-text-muted)]">
         No hay campos de producción definidos para este tipo de proceso.
       </div>
 
       <!-- ═══ 7. COMBUSTIBLE ═══ -->
-      <SectionCard v-show="pasoActual === 6" title="Combustible">
+      <SectionCard v-show="pasoId === 'consumos'" title="Combustible">
         <div class="mb-3 rounded-lg border border-info/30 bg-info-light/40 p-3 text-sm text-info-dark">
           Si registrás combustible en este parte, también se descuenta del stock. No repitas la carga en la sección Carga de Combustible.
         </div>
@@ -651,7 +651,7 @@
       </SectionCard>
 
       <!-- ═══ 8. ACEITES ═══ -->
-      <SectionCard v-show="pasoActual === 6" title="Consumos">
+      <SectionCard v-show="pasoId === 'consumos'" title="Consumos">
         <div class="space-y-3">
           <InputField
             label="Hidráulico (litros)"
@@ -692,7 +692,7 @@
       </SectionCard>
 
       <!-- ═══ 9. SISTEMA DE CORTE (solo para PROCESO) ═══ -->
-      <SectionCard v-show="pasoActual === 6" v-if="esProceso" title="Sistema de Corte">
+      <SectionCard v-show="pasoId === 'consumos'" v-if="esProceso" title="Sistema de Corte">
         <div class="space-y-3">
           <InputField
             label="Espada"
@@ -733,7 +733,7 @@
       </SectionCard>
 
       <!-- ═══ 10. UBICACIÓN Y REFERENCIA ═══ -->
-      <SectionCard v-show="pasoActual === 7" title="Ubicación y Referencia">
+      <SectionCard v-show="pasoId === 'ubicacion'" title="Ubicación y Referencia">
         <div>
           <AutocompleteField
             label="Lugar de Carga"
@@ -859,7 +859,7 @@
       </SectionCard>
 
       <!-- ═══ OBSERVACIONES ═══ -->
-      <SectionCard v-show="pasoActual === 7" title="Observaciones">
+      <SectionCard v-show="pasoId === 'ubicacion'" title="Observaciones">
         <textarea
           v-model="form.observaciones"
           rows="3"
@@ -868,7 +868,7 @@
         />
       </SectionCard>
 
-      <SectionCard v-show="pasoActual === 8" title="Revisión y Confirmación">
+      <SectionCard v-show="pasoId === 'revision'" title="Revisión y Confirmación">
         <p class="mb-3 text-sm text-[var(--app-text-muted)]">
           Revisá los datos principales antes de guardar el registro de producción.
         </p>
@@ -988,6 +988,7 @@ import AppIcon from '@/components/ui/AppIcon.vue'
 import ActionBar from '@/components/ui/ActionBar.vue'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
 import { cleanLocationValues, getLocationRequirements, shouldShowActaPredioFields } from '@/services/actaPredioRules'
+import { processRequiresHorometro, productionSteps } from '@/services/tipoProcesoRules'
 import { focusInside } from '@/utils/focusInside'
 import { normalizeRemito } from '@/utils/remito'
 
@@ -1009,9 +1010,14 @@ const fieldClass = 'app-input w-full rounded-xl border px-4 py-2.5 placeholder:t
 const preferenciasKey = computed(() => `produccion_preferencias_${authStore.user?.idPersonal || 'anon'}`)
 
 // ─── Wizard steps ───
+// El paso "Tiempo" (horometro inicial/final) solo existe para los tipos de
+// proceso que requieren horometro. Una camioneta, por ejemplo, no lo usa:
+// registra KM y combustible en el paso Consumos.
 const pasoActual = ref(0)
-const pasos = ['Contexto', 'Operador', 'Equipo', 'Proceso', 'Tiempo', 'Producción', 'Consumos', 'Ubicación', 'Revisión']
-const totalPasos = pasos.length
+const requiereHorometro = computed(() => processRequiresHorometro(tipoProcesoSeleccionado.value))
+const pasos = computed(() => productionSteps(tipoProcesoSeleccionado.value))
+const totalPasos = computed(() => pasos.value.length)
+const pasoId = computed(() => pasos.value[pasoActual.value]?.key || null)
 
 // Determina si el tipo de proceso elegido es "PROCESO"
 const esProceso = computed(() => tipoProcesoNombre.value.trim().toUpperCase() === 'PROCESO')
@@ -1041,22 +1047,22 @@ function catalogStale(name) {
 }
 
 const puedeAvanzar = computed(() => {
-  switch (pasoActual.value) {
-    case 0: return !!form.fecha && !!form.un_id
-    case 1: return !!form.operador_id
-    case 2: return form.cod_equipo > 0
-    case 3: return !!form.tipo_de_proceso_id
-    case 4: return horasValidas.value
-    case 5: return produccionValida.value
-    case 6: return combustibleValido.value
-    case 7: return ubicacionValida.value
-    case 8: return true
+  switch (pasoId.value) {
+    case 'contexto': return !!form.fecha && !!form.un_id
+    case 'operador': return !!form.operador_id
+    case 'equipo': return form.cod_equipo > 0
+    case 'proceso': return !!form.tipo_de_proceso_id
+    case 'tiempo': return horasValidas.value
+    case 'produccion': return produccionValida.value
+    case 'consumos': return combustibleValido.value
+    case 'ubicacion': return ubicacionValida.value
+    case 'revision': return true
     default: return true
   }
 })
 
 function avanzar() {
-  if (puedeAvanzar.value && pasoActual.value < totalPasos - 1) {
+  if (puedeAvanzar.value && pasoActual.value < totalPasos.value - 1) {
     pasoActual.value += 1
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -1321,49 +1327,59 @@ const mensajeUbicacionIncompleta = computed(() => {
 })
 
 const mostrarErrorHoras = computed(() => {
-  return pasoActual.value >= 4 && !horasValidas.value
+  return pasoId.value === 'tiempo' && !horasValidas.value
 })
 
 const mostrarErrorProduccion = computed(() => {
-  return pasoActual.value >= 5 && !produccionValida.value
+  return pasoId.value === 'produccion' && !produccionValida.value
 })
 
 const mostrarErrorUbicacion = computed(() => {
-  return pasoActual.value >= 7 && !ubicacionValida.value
+  return pasoId.value === 'ubicacion' && !ubicacionValida.value
 })
 
-const stepComplete = computed(() => [
-  !!form.fecha && !!form.un_id,
-  !!form.operador_id,
-  form.cod_equipo > 0,
-  !!form.tipo_de_proceso_id,
-  horasValidas.value,
-  produccionValida.value,
-  combustibleValido.value,
-  ubicacionValida.value,
-  puedeAvanzar.value,
-])
+const stepComplete = computed(() => pasos.value.map((step) => {
+  switch (step.key) {
+    case 'contexto': return !!form.fecha && !!form.un_id
+    case 'operador': return !!form.operador_id
+    case 'equipo': return form.cod_equipo > 0
+    case 'proceso': return !!form.tipo_de_proceso_id
+    case 'tiempo': return horasValidas.value
+    case 'produccion': return produccionValida.value
+    case 'consumos': return combustibleValido.value
+    case 'ubicacion': return ubicacionValida.value
+    case 'revision': return puedeAvanzar.value
+    default: return false
+  }
+}))
 
-const revisionItems = computed(() => [
-  { label: 'Fecha', value: formatFechaResumen(form.fecha) },
-  { label: 'Unidad de negocio', value: getUnidadNombre(form.un_id) || 'Pendiente' },
-  { label: 'Operador', value: getOperadorNombre(form.operador_id) || 'Pendiente' },
-  { label: 'Equipo', value: movilSeleccionadoDetalle.value || 'Pendiente' },
-  { label: 'Proceso', value: tipoProcesoNombre.value || 'Pendiente' },
-  { label: 'Horómetros', value: `${form.hr_inicio || '-'} a ${form.hr_fin || '-'}` },
-  { label: 'Producción', value: `${resolveProduccion() || 0} ${resolveUnidadProduccion() || ''}`.trim() },
-  {
-    label: 'Hs No Operativas',
-    value: form.hrs_no_op > 0 ? form.hrs_no_op : '-',
-    highlight: form.hrs_no_op > 0 && !form.motivo_no_op,
-  },
-  {
-    label: 'Motivo (no op)',
-    value: form.motivo_no_op || (form.hrs_no_op > 0 ? '⚠️ Pendiente' : '-'),
-    highlight: form.hrs_no_op > 0 && !form.motivo_no_op,
-  },
-  { label: 'Ubicación', value: [form.acta ? `Acta ${form.acta}` : '', getPredioNombre(form.predio_id), getRodalNombre()].filter(Boolean).join(' / ') || 'Pendiente' },
-])
+const revisionItems = computed(() => {
+  const items = [
+    { label: 'Fecha', value: formatFechaResumen(form.fecha) },
+    { label: 'Unidad de negocio', value: getUnidadNombre(form.un_id) || 'Pendiente' },
+    { label: 'Operador', value: getOperadorNombre(form.operador_id) || 'Pendiente' },
+    { label: 'Equipo', value: movilSeleccionadoDetalle.value || 'Pendiente' },
+    { label: 'Proceso', value: tipoProcesoNombre.value || 'Pendiente' },
+  ]
+  if (requiereHorometro.value) {
+    items.push({ label: 'Horómetros', value: `${form.hr_inicio || '-'} a ${form.hr_fin || '-'}` })
+  }
+  items.push(
+    { label: 'Producción', value: `${resolveProduccion() || 0} ${resolveUnidadProduccion() || ''}`.trim() },
+    {
+      label: 'Hs No Operativas',
+      value: form.hrs_no_op > 0 ? form.hrs_no_op : '-',
+      highlight: form.hrs_no_op > 0 && !form.motivo_no_op,
+    },
+    {
+      label: 'Motivo (no op)',
+      value: form.motivo_no_op || (form.hrs_no_op > 0 ? '⚠️ Pendiente' : '-'),
+      highlight: form.hrs_no_op > 0 && !form.motivo_no_op,
+    },
+    { label: 'Ubicación', value: [form.acta ? `Acta ${form.acta}` : '', getPredioNombre(form.predio_id), getRodalNombre()].filter(Boolean).join(' / ') || 'Pendiente' },
+  )
+  return items
+})
 
 function stepStatus(index) {
   if (index === pasoActual.value) return 'Actual'
@@ -1372,30 +1388,30 @@ function stepStatus(index) {
 }
 
 const mensajePasoIncompleto = computed(() => {
-  if (pasoActual.value === 0) {
+  if (pasoId.value === 'contexto') {
     if (!form.fecha) return 'Indicá la fecha para continuar.'
     if (!form.un_id) return 'Seleccioná una unidad de negocio para continuar.'
   }
-  if (pasoActual.value === 1 && !form.operador_id) {
+  if (pasoId.value === 'operador' && !form.operador_id) {
     return 'Seleccioná un operador para continuar.'
   }
-  if (pasoActual.value === 2 && !form.cod_equipo) {
+  if (pasoId.value === 'equipo' && !form.cod_equipo) {
     return 'Seleccioná un equipo para continuar.'
   }
-  if (pasoActual.value === 3 && !form.tipo_de_proceso_id) {
+  if (pasoId.value === 'proceso' && !form.tipo_de_proceso_id) {
     return 'Seleccioná un proceso para continuar.'
   }
-  if (pasoActual.value === 4 && !horasValidas.value) {
+  if (pasoId.value === 'tiempo' && !horasValidas.value) {
     const inicio = Number(form.hr_inicio)
     if (ultimaHoraFinRef.value > 0 && inicio > 0 && inicio < ultimaHoraFinRef.value) {
       return `El horómetro inicial (${form.hr_inicio}) no puede ser menor al horómetro final del registro anterior (${ultimaHoraFinRef.value}).`
     }
     return 'Revisá las lecturas de horómetro: inicio y fin deben ser mayores a 0, y la lectura final no puede ser menor a la inicial.'
   }
-  if (pasoActual.value === 5 && !produccionValida.value) {
+  if (pasoId.value === 'produccion' && !produccionValida.value) {
     return 'Completá los campos de producción con valores mayores a 0 para continuar.'
   }
-  if (pasoActual.value === 6 && !combustibleValido.value) {
+  if (pasoId.value === 'consumos' && !combustibleValido.value) {
     if (Number(form.combustible) <= 0) {
       return 'Marcaste que se cargó combustible, pero los litros están en 0. Ingresá una cantidad mayor a 0 o desactivá el toggle.'
     }
@@ -1404,7 +1420,7 @@ const mensajePasoIncompleto = computed(() => {
     }
     return 'Marcaste que se cargó combustible: ingresá al menos el Remito 1 para poder continuar.'
   }
-  if (pasoActual.value === 7 && !ubicacionValida.value) {
+  if (pasoId.value === 'ubicacion' && !ubicacionValida.value) {
     return mensajeUbicacionIncompleta.value
   }
   return ''
@@ -1657,6 +1673,22 @@ watch(cargoCombustible, (val) => {
 
 watch(() => [form.tipo_de_proceso_id, tipoProcesoNombre.value], () => {
   limpiarUbicacionSiNoAplica()
+  if (!requiereHorometro.value) {
+    form.hr_inicio = 0
+    form.hr_fin = 0
+    form.hrs_no_op = 0
+    form.motivo_no_op = ''
+    ultimaHoraFinRef.value = 0
+  }
+})
+
+// Al ocultar el paso "Tiempo" (procesos sin horometro) la cantidad de pasos
+// visibles cambia: si el usuario venia parado en un paso que ya no existe,
+// se lo reubica en el ultimo paso valido.
+watch(totalPasos, (total) => {
+  if (pasoActual.value > total - 1) {
+    pasoActual.value = Math.max(total - 1, 0)
+  }
 })
 
 // Removed old busquedaMovil watcher — selection/buscador now handled via mostrandoBuscador state
@@ -1754,6 +1786,9 @@ function resolveProduccion() {
 }
 
 async function autocompletarHoraInicio({ force = false } = {}) {
+  // Los procesos sin horometro no consultan ni completan la ultima lectura.
+  if (!requiereHorometro.value) return
+
   // Need at least a machine or an operator to query
   if (!form.cod_equipo && !form.operador_id) return
 
@@ -1779,7 +1814,7 @@ async function autocompletarHoraInicio({ force = false } = {}) {
 // ─── Submit ───
 async function handleSubmit() {
   // Guard: if Enter pressed on non-final step, advance instead
-  if (pasoActual.value < totalPasos - 1) {
+  if (pasoActual.value < totalPasos.value - 1) {
     avanzar()
     return
   }
@@ -1799,7 +1834,7 @@ async function handleSubmit() {
       return
     }
 
-    if (!horasValidas.value) {
+    if (requiereHorometro.value && !horasValidas.value) {
       const inicio = Number(form.hr_inicio)
       const msg = (ultimaHoraFinRef.value > 0 && inicio > 0 && inicio < ultimaHoraFinRef.value)
         ? `El horómetro inicial (${form.hr_inicio}) no puede ser menor al horómetro final del registro anterior (${ultimaHoraFinRef.value}).`
@@ -1852,8 +1887,8 @@ async function handleSubmit() {
       cod_operador: form.operador_id || 0,
       cod_equipo: form.cod_equipo || 0,
       cod_un: form.un_id || 0,
-      hr_inicio: form.hr_inicio,
-      hr_fin: form.hr_fin,
+      hr_inicio: requiereHorometro.value ? form.hr_inicio : 0,
+      hr_fin: requiereHorometro.value ? form.hr_fin : 0,
       combustible: form.combustible,
       km_combustible: cargoCombustible.value ? Number(form.km_combustible) : 0,
       remito: cargoCombustible.value
@@ -1883,8 +1918,8 @@ async function handleSubmit() {
       km_carreteo: kmCarreteo,
       km_perfilado: kmPerfilado,
       hr_disposicion: form.hr_disposicion,
-      hrs_no_op: form.hrs_no_op,
-      motivo_no_op: form.motivo_no_op,
+      hrs_no_op: requiereHorometro.value ? form.hrs_no_op : 0,
+      motivo_no_op: requiereHorometro.value ? form.motivo_no_op : '',
       observaciones: form.observaciones,
       espada: form.espada,
       puntera: form.puntera,
