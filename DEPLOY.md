@@ -289,15 +289,37 @@ El deploy aplica las migraciones de `db_migrations/*.sql` con el runner
 `python -m app.migrate` (ver `backend/app/migrate.py`). Las migraciones del
 proyecto son **idempotentes**, así que se pueden correr en cada deploy.
 
-En Coolify, configurar el **Pre-deployment Command** del servicio:
+### Cómo se aplican en el deploy de Coolify
 
-```bash
-python -m app.migrate
-```
+**Al arrancar el container**, desde el entrypoint (`docker-entrypoint.py`), que
+corre `python -m app.migrate` antes de levantar gunicorn. Se habilita con
+`RUN_MIGRATIONS=1` en el `docker-compose.yml` (servicios `produccion_fg` e
+`indufor`).
 
-El comando corre dentro de la imagen nueva antes de activarla; si una migración
-falla, sale con código distinto de cero y el deploy se corta. La imagen incluye
-`db_migrations/` (`COPY db_migrations /app/db_migrations` en el `Dockerfile`).
+> **El Pre-deployment Command de Coolify NO sirve para esta app.** Con el build
+> pack `dockercompose`, Coolify intenta ejecutar el comando en un contenedor
+> con nombre = uuid del deploy, que para compose nunca se crea, y el deploy
+> falla con:
+>
+> ```
+> Deployment failed: Pre-deployment command: Could not find a valid container.
+> ```
+>
+> Ese contenedor "builder" solo existe en el build pack `dockerfile`. Por eso
+> las migraciones corren en el entrypoint del container.
+
+El runner toma un lock de MySQL (`GET_LOCK('registro_produccion:db_migrations')`):
+`produccion_fg` e `indufor` apuntan a la misma base y en un deploy arrancan a
+la vez, así que sin el lock los dos podrían aplicar el mismo `ALTER` y el
+segundo fallaría con "Duplicate column name".
+
+Si una migración falla, el entrypoint lo loguea y **la app sigue levantando**
+(con compose el container anterior ya fue reemplazado, así que abortar dejaría
+el servicio caído). Para cortar el deploy en vez de seguir, activar
+`MIGRATIONS_STRICT=1`.
+
+La imagen incluye `db_migrations/` (`COPY db_migrations /app/db_migrations` en
+el `Dockerfile`).
 
 Para correrlo a mano contra la base que apunta `produccion_fg.env`:
 

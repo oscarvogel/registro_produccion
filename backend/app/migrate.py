@@ -31,6 +31,11 @@ class MigrationError(RuntimeError):
     """Falla al aplicar una migracion puntual."""
 
 
+# Lock de MySQL para serializar las migraciones entre containers que
+# comparten la misma base (produccion_fg e indufor).
+MIGRATION_LOCK_NAME = "registro_produccion:db_migrations"
+
+
 def _load_secret_env() -> None:
     """Carga `REGISTRO_ENV_FILE` en os.environ.
 
@@ -146,6 +151,29 @@ def apply_file(connection, path: Path) -> None:
             pass
 
 
+def _acquire_lock(connection, timeout: int = 120) -> bool:
+    """Toma un lock de MySQL para que dos containers no migren a la vez.
+
+    `produccion_fg` e `indufor` point to the same DB, and in a deploy they
+    start at the same time. Without the lock both could check
+    `information_schema` before the other applies the change, and the second
+    one would fail with "Duplicate column name".
+    """
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT GET_LOCK(%s, %s)", (MIGRATION_LOCK_NAME, timeout))
+        row = cursor.fetchone()
+    return bool(row and row[0] == 1)
+
+
+def _release_lock(connection) -> None:
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT RELEASE_LOCK(%s)", (MIGRATION_LOCK_NAME,))
+            cursor.fetchone()
+    except Exception:  # noqa: BLE001 - liberar el lock nunca debe romper el deploy
+        pass
+
+
 def run(directory: Path | None = None) -> int:
     """Aplica todas las migraciones. Devuelve cuantas aplico."""
     target = directory or migrations_dir()
@@ -157,12 +185,20 @@ def run(directory: Path | None = None) -> int:
     print(f"DB_MIGRATIONS: {len(files)} archivo(s) en {target}")
     connection = _connect()
     try:
-        for path in files:
-            print(f"DB_MIGRATIONS: aplicando {path.name}")
-            try:
-                apply_file(connection, path)
-            except Exception as exc:  # noqa: BLE001 - se re-lanza con contexto
-                raise MigrationError(f"Fallo la migracion {path.name}: {exc}") from exc
+        if not _acquire_lock(connection):
+            raise MigrationError(
+                "DB_MIGRATIONS: no se pudo obtener el lock "
+                f"'{MIGRATION_LOCK_NAME}'; otra migracion esta corriendo."
+            )
+        try:
+            for path in files:
+                print(f"DB_MIGRATIONS: aplicando {path.name}")
+                try:
+                    apply_file(connection, path)
+                except Exception as exc:  # noqa: BLE001 - se re-lanza con contexto
+                    raise MigrationError(f"Fallo la migracion {path.name}: {exc}") from exc
+        finally:
+            _release_lock(connection)
     finally:
         connection.close()
     print(f"DB_MIGRATIONS: {len(files)} migracion(es) aplicadas.")

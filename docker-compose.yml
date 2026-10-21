@@ -19,6 +19,9 @@ services:
     container_name: registro_produccion_indufor
     environment:
       REGISTRO_ENV_FILE: /run/secrets/registro.env
+      # Aplica db_migrations/*.sql al arrancar (el Pre-deployment Command de
+      # Coolify no funciona con el build pack dockercompose).
+      RUN_MIGRATIONS: "1"
       BUILD_COMMIT: ${SOURCE_COMMIT:-unknown}
       BUILD_BRANCH: ${COOLIFY_BRANCH:-unknown}
     volumes:
@@ -33,6 +36,11 @@ services:
     container_name: registro_produccion_produccion_fg
     environment:
       REGISTRO_ENV_FILE: /run/secrets/registro.env
+      # Aplica db_migrations/*.sql al arrancar (el Pre-deployment Command de
+      # Coolify no funciona con el build pack dockercompose).
+      RUN_MIGRATIONS: "1"
+      BUILD_COMMIT: ${SOURCE_COMMIT:-unknown}
+      BUILD_BRANCH: ${COOLIFY_BRANCH:-unknown}
     volumes:
       - /srv/env/registro_produccion/produccion_fg.env:/run/secrets/registro.env:ro
       - /srv/env/registro_produccion/mysql-central-ca.pem:/run/secrets/mysql-central-ca.pem:ro
