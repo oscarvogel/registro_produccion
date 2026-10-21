@@ -19,6 +19,12 @@ logger = logging.getLogger(__name__)
 SAFE_DATABASE_ERROR_DETAIL = "No se pudieron cargar los datos necesarios. Actualiza e intenta nuevamente."
 SAFE_SERVER_ERROR_DETAIL = "No se pudo completar la operacion. Intenta nuevamente en unos minutos."
 SAFE_VALIDATION_ERROR_DETAIL = "Los datos enviados no son validos. Revisa los campos del formulario e intenta nuevamente."
+SAFE_VALUE_TOO_LONG_DETAIL = "Alguno de los valores enviados es demasiado largo para el registro. Revisa los datos del formulario e intenta nuevamente."
+
+# Codigo de error de MySQL para "Data too long for column" (1406).
+# No es una falla del servidor: el dato enviado no entra en la columna, asi
+# que se responde 422 (dato invalido) en lugar de 503 (servicio caido).
+MYSQL_ERROR_DATA_TOO_LONG = 1406
 
 _VALUE_ERROR_PREFIX = "Value error, "
 _VALIDATION_FIELD_LABELS = {
@@ -100,9 +106,25 @@ def _cors_headers_for_request(request: Request) -> dict[str, str]:
     return headers
 
 
+def _is_data_too_long(exc: SQLAlchemyError) -> bool:
+    """True si el error de base es un valor que no entra en la columna.
+
+    MySQL devuelve 1406 ("Data too long for column") cuando el dato es mas
+    largo que la columna de destino. Es un problema del dato enviado, no del
+    servidor, asi que se responde 422 con un mensaje accionable.
+    """
+    orig = getattr(exc, "orig", None)
+    args = getattr(orig, "args", None) or ()
+    if args and args[0] == MYSQL_ERROR_DATA_TOO_LONG:
+        return True
+    return "Data too long for column" in str(orig or "")
+
+
 @app.exception_handler(SQLAlchemyError)
 async def database_exception_handler(request: Request, exc: SQLAlchemyError):
     logger.exception("Unhandled database error while processing %s %s", request.method, request.url.path)
+    if _is_data_too_long(exc):
+        return JSONResponse(status_code=422, content={"detail": SAFE_VALUE_TOO_LONG_DETAIL}, headers=_cors_headers_for_request(request))
     return JSONResponse(status_code=503, content={"detail": SAFE_DATABASE_ERROR_DETAIL}, headers=_cors_headers_for_request(request))
 
 

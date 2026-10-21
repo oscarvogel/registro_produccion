@@ -561,6 +561,7 @@
                 :label="field.label"
                 :type="field.type"
                 :required="Boolean(field.required)"
+                :maxlength="field.maxLength"
               />
             </template>
           </div>
@@ -802,7 +803,7 @@ const ENTITY_DEFINITIONS = {
     title: 'Rodales',
     singular: 'rodal',
     description: 'Catálogo de rodales con valores operativos.',
-    formHint: 'El predio se busca por autocompletado.',
+    formHint: 'El predio se busca por autocompletado. En Rodal se carga solo el código (por ejemplo, 90): máximo 10 caracteres.',
     idKey: 'idRodal',
     deleteVerb: 'Eliminar',
     extraReferences: ['predios'],
@@ -813,7 +814,7 @@ const ENTITY_DEFINITIONS = {
       { key: 'vam', label: 'VAM' },
     ],
     fields: [
-      { key: 'rodal', label: 'Rodal', type: 'text', required: true, section: 'principal' },
+      { key: 'rodal', label: 'Rodal', type: 'text', required: true, maxLength: 10, section: 'principal' },
       { key: 'idPredio', label: 'Predio', type: 'autocomplete', optionsEntity: 'predios', optionValue: 'idPredio', optionLabel: 'nombre', section: 'principal' },
       { key: 'vam', label: 'VAM', type: 'number', default: 0, section: 'tecnico' },
       { key: 'tarifa', label: 'Tarifa', type: 'number', default: 0, section: 'tecnico' },
