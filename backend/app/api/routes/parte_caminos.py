@@ -63,6 +63,15 @@ def _validate_hours_warning(data: ParteCaminosCreate) -> None:
     be compared with the jornada. The current product decision is to warn in
     the UI rather than reject the request. Backend business invariants that can
     be evaluated unambiguously remain blocking.
+
+    Issue #181 (regla de negocio confirmada por Oscar el 23/10/2026): la regla
+    cruzada de horas no aplica a ``hr_disposicion``. Las horas a disposicion son
+    el complemento del turno (las horas en que el equipo queda disponible), no
+    horas de trabajo dentro de la jornada, asi que no se suman ni se comparan
+    contra ``hr_fin - hr_inicio``. Sumarlas contaria dos veces las horas del turno.
+    Por eso el envio no se bloquea cuando ``hr_disposicion`` supera la jornada, y
+    el unico control horario que queda vigente es el de las horas de remolque
+    (van dentro de la jornada), implementado en ``ParteCaminosCreate``.
     """
     return None
 

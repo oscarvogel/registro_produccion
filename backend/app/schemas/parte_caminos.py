@@ -115,6 +115,15 @@ class ParteCaminosCreate(BaseModel):
         if self.hrs_no_op > horas_jornada:
             raise ValueError("Las horas no operativas no pueden superar la duracion de la jornada")
 
+        # Issue #181: la unica metrica horaria que se controla contra la jornada son las
+        # horas de remolque, porque van dentro de ella (horometro inicial -> horometro final).
+        #
+        # `hr_disposicion` NO son horas de trabajo: son el complemento del turno, o sea las
+        # horas en que el equipo queda disponible. Por eso no se suman ni se comparan contra
+        # la jornada: sumarlas contaria dos veces las horas del turno (6 h de disposicion +
+        # 6 h de remolque = 12 h de un turno de 12 h, no 18 h).
+        # El total del turno que muestra el formulario es:
+        # jornada + hrs_no_op + hr_disposicion.
         horas_remolque = sum(
             float(proceso.hr_remolque or 0)
             for proceso in self.procesos
@@ -123,7 +132,9 @@ class ParteCaminosCreate(BaseModel):
             raise ValueError(
                 "Las horas de remolque "
                 f"({horas_remolque:g} h) no pueden superar la diferencia entre "
-                f"el horometro final y el inicial ({horas_jornada:g} h)"
+                f"el horómetro final y el inicial ({horas_jornada:g} h). "
+                "Las horas de remolque van dentro de la jornada; las horas a disposición "
+                "son el complemento del turno y no se suman a la jornada."
             )
 
         if self.combustible > 0:

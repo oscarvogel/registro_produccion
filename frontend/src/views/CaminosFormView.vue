@@ -182,8 +182,18 @@
                   emptyMessage="Sin rodales configurados para esta acta"
                 />
                 <InputField v-if="esProceso(proceso, 'PERFILADO')" label="KM perfilado" type="number" step="0.01" min="0" v-model.number="proceso.km_perfilado" />
-                <InputField v-if="esProceso(proceso, 'DISPOSICION')" label="Horas a disposición" type="number" step="0.01" min="0" v-model.number="proceso.hr_disposicion" />
-                <InputField v-if="esProceso(proceso, 'REMOLQUE')" label="Horas de remolque" type="number" step="0.01" min="0" v-model.number="proceso.hr_remolque" />
+                <InputField
+                  v-if="esProceso(proceso, 'DISPOSICION')"
+                  label="Horas a disposición"
+                  hint="Es el complemento del turno: las horas en que el equipo queda disponible. No son horas de trabajo."
+                  type="number" step="0.01" min="0" v-model.number="proceso.hr_disposicion"
+                />
+                <InputField
+                  v-if="esProceso(proceso, 'REMOLQUE')"
+                  label="Horas de remolque"
+                  hint="Van dentro de la jornada: se cuentan entre el horómetro inicial y el final."
+                  type="number" step="0.01" min="0" v-model.number="proceso.hr_remolque"
+                />
               </div>
             </div>
             <div
@@ -197,6 +207,13 @@
             >
               Horas de remolque: {{ formatHoras(totalHorasRemolque) }} h de {{ formatHoras(horasJornada) }} h de diferencia de horómetro.
               <span v-if="!horasRemolqueValidas"> Reducí las horas de remolque para continuar.</span>
+            </div>
+            <div class="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-sm text-neutral-700">
+              <b class="text-primary-dark">Total del turno: {{ formatHoras(totalTurno) }} h</b>
+              <span class="mt-0.5 block text-xs text-neutral-500">
+                Jornada {{ formatHoras(horasJornada) }} h + horas no operativas {{ formatHoras(horasNoOperativas) }} h + horas a disposición {{ formatHoras(totalHorasDisposicion) }} h.
+                Es un cálculo, no un dato a cargar: sirve para ver si el turno cuadra.
+              </span>
             </div>
           </div>
         </SectionCard>
@@ -258,6 +275,7 @@
             <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Procesos</small><p class="font-bold">{{ procesos.map(p => nombreProceso(p.tipo_proceso_id)).filter(Boolean).join(' + ') || 'Pendiente' }}</p></div>
             <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Equipo</small><p class="font-bold">{{ equipoSeleccionado()?.detalle || 'Pendiente' }}</p></div>
             <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Horómetros</small><p class="font-bold">{{ form.hr_inicio }} a {{ form.hr_fin }}</p></div>
+            <div class="app-surface-muted rounded-lg border px-3 py-2.5"><small>Total del turno</small><p class="font-bold">{{ formatHoras(totalTurno) }} h</p></div>
           </div>
         </SectionCard>
 
@@ -394,9 +412,20 @@ async function onPredioProcesoChange(proceso, item) {
 const procesosTiposValidos = computed(() => procesos.length > 0 && procesos.every(p => p.tipo_proceso_id > 0))
 const horasValidas = computed(() => Number(form.hr_inicio) > 0 && Number(form.hr_fin) > Number(form.hr_inicio))
 const horasJornada = computed(() => Math.max(0, Number(form.hr_fin || 0) - Number(form.hr_inicio || 0)))
+const horasNoOperativas = computed(() => Number(form.hrs_no_op || 0))
 const totalHorasRemolque = computed(() => procesos.reduce(
   (total, proceso) => total + Number(proceso.hr_remolque || 0),
   0,
+))
+const totalHorasDisposicion = computed(() => procesos.reduce(
+  (total, proceso) => total + Number(proceso.hr_disposicion || 0),
+  0,
+))
+// Issue #181: total del turno = jornada + horas no operativas + horas a disposición.
+// Las horas a disposición son el complemento del turno (no son horas de trabajo) y las
+// horas de remolque ya viven dentro de la jornada, así que el remolque no se suma acá.
+const totalTurno = computed(() => (
+  horasJornada.value + horasNoOperativas.value + totalHorasDisposicion.value
 ))
 const horasRemolqueValidas = computed(() => totalHorasRemolque.value <= horasJornada.value + 0.000001)
 const produccionValida = computed(() => horasRemolqueValidas.value && procesos.every(p => {
