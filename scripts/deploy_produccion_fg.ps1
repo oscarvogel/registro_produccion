@@ -144,6 +144,28 @@ function Wait-CoolifyDeploy {
     throw "El deploy $DeploymentUuid no termino en $TimeoutMinutes minutos."
 }
 
+function Get-BundleHash {
+    param([string]$Url)
+
+    # El contenedor del frontend puede reiniciar despues que el backend: el
+    # index.html puede no estar disponible en el primer intento.
+    for ($Try = 1; $Try -le 5; $Try++) {
+        try {
+            $Index = Invoke-WebRequest -Uri "$Url/" -UseBasicParsing -TimeoutSec 60
+            if ($Index.Content -match "assets/index-([A-Za-z0-9_-]+)\.js") {
+                return @{
+                    Bundle       = "index-$($Matches[1]).js"
+                    LastModified = $Index.Headers["Last-Modified"]
+                }
+            }
+        } catch {
+            Write-Host ("    (intento {0}: el frontend todavia no responde)" -f $Try)
+        }
+        Start-Sleep -Seconds 5
+    }
+    return @{ Bundle = "(no se pudo leer el index.html)"; LastModified = "" }
+}
+
 function Test-Instance {
     param(
         [string]$Url,
@@ -162,13 +184,9 @@ function Test-Instance {
         throw "$Url reporta branch=$($Health.branch) y se esperaba $ExpectedBranch."
     }
 
-    $Index = Invoke-WebRequest -Uri "$Url/" -UseBasicParsing -TimeoutSec 60
-    $Bundle = ""
-    if ($Index.Content -match "assets/index-([A-Za-z0-9_-]+)\.js") {
-        $Bundle = "index-$($Matches[1]).js"
-    }
+    $Frontend = Get-BundleHash -Url $Url
     Write-Host ("    {0} -> commit={1} branch={2} database={3} bundle={4} last-modified={5}" -f `
-        $Url, $Health.commit, $Health.branch, $Health.database, $Bundle, $Index.Headers["Last-Modified"])
+        $Url, $Health.commit, $Health.branch, $Health.database, $Frontend.Bundle, $Frontend.LastModified)
 }
 
 $script:Token = Get-CoolifyToken
