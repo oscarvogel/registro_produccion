@@ -498,6 +498,13 @@ curl -X POST https://coolify.vogelconsultoria.com.ar/api/v1/deploy \
 * **Mergear a `main` NO despliega.** El CI sólo corre tests y el repo **no tiene
   webhooks**: publicar es un paso aparte y manual (panel o API de Coolify).
   Al cerrar una tarea hay que decir explícitamente si el cambio está desplegado.
+* **El deploy de producción es `scripts/deploy_produccion_fg.ps1`**, no un `curl` a
+  mano: Coolify materializa `${SOURCE_COMMIT:-unknown}` (del compose) como variable de
+  la app con el valor por defecto, y mientras esa fila exista **no** inyecta el SHA
+  real. El script setea `SOURCE_COMMIT`/`COOLIFY_BRANCH` (en los dos juegos de
+  variables: producción y preview) antes de desplegar y verifica `/api/health`.
+  Sin ese paso, producción queda desplegada pero `/api/health` dice `commit: unknown`.
+  La causa raíz completa está en `DEPLOY.md` §4.
 * **La base real es `fg` en `186.5.245.12:23306`** (`central_admin`, CA central en
   `C:\Programacion\forestal\certs\mysql-central-ca.pem`). El certificado no valida
   para la IP: hay que conectar con `check_hostname=False` y `verify_mode=CERT_REQUIRED`.
