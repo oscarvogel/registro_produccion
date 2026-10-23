@@ -102,6 +102,14 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true
+      },
+      // El probe de conectividad usa /health (mismo origen que en produccion,
+      // donde lo expone el nginx del contenedor frontend). Sin este proxy, en
+      // desarrollo el Vite devolveria index.html y el banner marcaria siempre
+      // "servidor no disponible".
+      '/health': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true
       }
     }
   },
