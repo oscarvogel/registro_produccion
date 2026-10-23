@@ -1,5 +1,10 @@
 # Entorno demo/staging
 
+> ⚠️ **LEGACY (2026-10-23).** La sección "Levantar contenedor demo en fasa_195" usa
+> el host y el checkout que ya no existen: el host real es `fasa_189` y la app se
+> despliega por Coolify (ver [`DEPLOY.md`](../DEPLOY.md)). La guía de configuración
+> del entorno (identidad, env vars, seed) sigue siendo válida.
+
 Esta guía describe una instancia demo separada para probar `registro_produccion` sin usar datos reales.
 
 Advertencia: nunca ejecutar el seed demo contra una base real. El seed aborta con `APP_ENV=production`, aborta si `ALLOW_DEMO_SEED` no es `true`, y exige que `APP_INSTANCE` contenga `demo`, `test` o `staging` salvo uso explícito de `--force-instance`.

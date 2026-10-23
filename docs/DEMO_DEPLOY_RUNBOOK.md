@@ -1,5 +1,11 @@
 # Runbook de despliegue demo/staging Indufor
 
+> ⚠️ **LEGACY (2026-10-23).** Este runbook apunta a `fasa_195` (`fg-ubuntu`) y al
+> checkout `/srv/apps/registro_produccion`, que ya no existen: el host real es
+> `fasa_189` y la app se despliega por Coolify (ver [`DEPLOY.md`](../DEPLOY.md)).
+> Se conserva como antecedente; las rutas y el host hay que rehacerlos antes de
+> volver a usarlo.
+
 Este runbook prepara la instancia `indufor_demo` de `registro_produccion` en `fasa_195` sin tocar las instancias productivas.
 
 ## Estado objetivo
