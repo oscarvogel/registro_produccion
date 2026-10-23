@@ -394,82 +394,195 @@ Se debe aplicar este flujo completo:
 
 ## 11. Sección específica del proyecto
 
-Cada repositorio debe completar esta sección.
-
 ### Nombre del proyecto
 
-`<completar>`
+`registro_produccion` — Registro de producción forestal (Caminos).
+
+App fullstack para que el operador y el encargado carguen partes de producción de
+caminos, y para consultar el tablero de producción y el dashboard. Corre contra la
+base MySQL `fg` y se publica en dos instancias que comparten esa base:
+
+| Instancia        | URL                                      | Servicio en el compose       |
+|------------------|------------------------------------------|------------------------------|
+| `produccion_fg`  | `https://produccion.servinlgsm.com.ar/`  | `produccion_fg`              |
+| `indufor`        | `https://produccion.indufor.com.ar/`     | `indufor`                    |
+
+Las dos frontends (`frontend_servinlgsm`, `frontend_indufor`) y los dos backends
+salen del mismo `docker-compose.yml`: **un deploy actualiza las dos instancias**.
 
 ### Stack
 
-`<completar>`
-
-Ejemplos:
-
-* Python / PyQt / MySQL / Peewee
-* Django / Vue / MySQL
-* FastAPI / Docker / n8n
-* VFP / Python bridge
+* **Backend**: Python 3.12, FastAPI 0.109, SQLAlchemy 2.x, Pydantic 2
+  (`pydantic-settings`), PyMySQL, JWT con `python-jose`, hash con `passlib`/`bcrypt`,
+  `gunicorn` en producción. Layout: `backend/app/{api,core,models,schemas,seed}`.
+* **Frontend**: Vue 3 + Vite 5, Vue Router 4, Pinia 2, Tailwind CSS 4, GSAP 3,
+  `lucide-vue-next`, `sweetalert2`, `axios`, `vite-plugin-pwa` + `dexie` (offline).
+* **Base de datos**: MySQL/MariaDB, base `fg` (esquema legacy de producción:
+  `unidadnegocio`, `tipo_de_proceso`, `tablero_produccion`).
+* **Infraestructura**: Docker + Docker Compose, desplegado por **Coolify 4.4.7**
+  (traefik v3.6 como proxy) en el host `fasa_189` (192.168.0.189,
+  `fasa-PowerEdge-T40`, público 186.5.245.12).
+* **Migraciones**: no hay Alembic. Son archivos SQL en `db_migrations/` que aplica
+  `backend/app/migrate.py` al arrancar el contenedor (`RUN_MIGRATIONS=1` en el
+  compose). El `Pre-deployment Command` de Coolify **no** sirve con build pack
+  `dockercompose`.
+* **CI**: GitHub Actions (`.github/workflows/ci.yml`).
+* **Tests**: `pytest` (backend), `vitest` + `@vue/test-utils` (frontend),
+  Playwright para la evidencia visual.
 
 ### Comandos reales del proyecto
 
 Tests:
 
 ```bash
-<completar>
+# Backend (desde backend/, ver pytest.ini: testpaths=tests, pythonpath=.)
+cd backend
+python -m pytest
+
+# Frontend (vitest run)
+cd frontend
+npm test
 ```
 
 Compile/check:
 
 ```bash
-<completar>
+cd backend
+python -m compileall app
+
+cd frontend
+npm run check     # == vite build
 ```
 
 Smoke:
 
 ```bash
-<completar>
+# No hay un comando `--smoke` en el repo: el smoke válido es contra la instancia.
+# 1) la API responde y la base está conectada
+curl -sS https://produccion.servinlgsm.com.ar/api/health
+# esperado: HTTP 200, "status":"ok", "database":"ok", "database_name":{"matches":true}
+
+# 2) la SPA carga (Playwright): login renderizado y 0 errores de consola
 ```
 
 UI/demo:
 
 ```bash
-<completar>
+# Dev server (Vite) en http://127.0.0.1:5173
+cd frontend
+npm run dev
+
+# Capturas de los manuales en modo mock (390x844, datos DEMO_*)
+npm run docs:capture
+
+# Evidencia visual de una tarea: Vite + Playwright con mocks de /api/**
+# (ver "Flujo visual" más abajo)
 ```
 
 Build/deploy, si aplica:
 
 ```bash
-<completar>
+# Build local de las imágenes
+docker compose build
+
+# Deploy real: Coolify, desde la PC de desarrollo (sin SSH).
+# Ver DEPLOY.md para la topología, el rollback y el diagnóstico.
+curl -X POST https://coolify.vogelconsultoria.com.ar/api/v1/deploy \
+  -H "Authorization: Bearer $COOLIFY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"uuid":"4hcjxromkdmdylfjbw0fgvs4","force":true}'
 ```
 
 ### Reglas específicas del proyecto
 
-* `<completar>`
-* `<completar>`
-* `<completar>`
+* **Mergear a `main` NO despliega.** El CI sólo corre tests y el repo **no tiene
+  webhooks**: publicar es un paso aparte y manual (panel o API de Coolify).
+  Al cerrar una tarea hay que decir explícitamente si el cambio está desplegado.
+* **La base real es `fg` en `186.5.245.12:23306`** (`central_admin`, CA central en
+  `C:\Programacion\forestal\certs\mysql-central-ca.pem`). El certificado no valida
+  para la IP: hay que conectar con `check_hostname=False` y `verify_mode=CERT_REQUIRED`.
+  El `.env` del repo apunta a `192.168.0.189` y **da Access denied** desde la PC de
+  desarrollo. Contra `fg` sólo `SELECT`: nunca escribir datos productivos.
+* **Los catálogos se eligen con combo de búsqueda (autocomplete).** El texto escrito
+  tiene que coincidir con una opción de la lista; si no coincide, no se guarda y se
+  frena el envío.
+* **Viewport objetivo: 1638x969 y 1366x768.** Toda vista nueva tiene que verse bien
+  en los dos. Si el contenido es más alto que la ventana, va en un contenedor con
+  scroll: sin eso los layouts se comprimen y los widgets se superponen.
+* **Regla de negocio del turno (Caminos):** `turno = horas no operativas + horas
+  trabajadas + horas a disposición`, y `horas trabajadas = horas de remolque + horas
+  de perfilado`. Las horas de perfilado **se trabajan pero no se anotan como horas**
+  (van en km) y **no se pueden medir en horas**. Disposición y remolque **no se suman
+  entre sí**: 6 h + 6 h es un turno de 12 h, no de 18 h.
+* **`backend/tests/test_deploy_scripts_contract.py` fija contenido** de `DEPLOY.md`,
+  `scripts/deploy_produccion_fg_main_fasa195.sh`, `scripts/deploy_main_fasa195.sh` y
+  `scripts/build_deploy_package.ps1`. Si se toca `DEPLOY.md`, hay que actualizar ese
+  test en el mismo PR.
+* **En Windows la suite termina con `PermissionError` al limpiar `pytest-current`**
+  (pytest hace `stat` de un symlink que no puede leer). Los tests pasan igual, pero el
+  exit code queda en 1 y parece un fallo. Para una corrida limpia:
+  `python -m pytest --basetemp <dir>`.
+* **En dev el service worker de la PWA está activo** (`frontend/vite.config.js`,
+  `devOptions.enabled: true`) y el `runtimeCaching` `NetworkFirst` intercepta
+  `/api/produccion/...`. Esos requests **no pasan** por `page.route` de Playwright:
+  llegan al proxy de Vite y devuelven 500. Para verificar la UI con catálogos falsos
+  hay que crear el contexto con `serviceWorkers: 'block'`.
+* **El login tiene dos formularios** con breakpoint `lg` (1024px): `#desktop-dni` y
+  `#mobile-dni`. Elegir por ancho de viewport, no por `:visible` (durante la
+  animación de GSAP el campo todavía no es visible).
 
 ### Archivos/carpetas fuera de alcance local
 
-* `<completar>`
-* `<completar>`
+* `backend/venv/`, `backend/.env`, `backend/.pytest_cache/`, `backend/**/__pycache__/`
+  — entorno local y credenciales; nunca se commitean.
+* `frontend/node_modules/`, `frontend/dist/` — dependencias y build.
+* `output/`, `.playwright-cli/` — artefactos de corridas locales, sin versionar.
+* `docs/audits/`, `design-qa.md` — evidencia local de auditorías visuales (ya
+  ignorados por git a propósito).
+* `C:\Programacion\forestal\` — proyecto desktop Forestal, **otro repo**: no mezclar
+  cambios ni versiones entre los dos.
+* Las ramas con WIP propio del usuario: no tocar, no rebasar, no descartar.
 
 ### Flujo visual, si aplica
 
 * Comando para abrir UI:
 
   ```bash
-  <completar>
+  cd frontend
+  npm run dev
   ```
+
+  Para evidencia de una tarea, levantarlo y navegar con Playwright interceptando
+  `**/api/**` (con `serviceWorkers: 'block'`), y capturar en **1638x969**,
+  **1366x768** y **390x844**.
 
 * Carpeta de screenshots:
 
   ```text
-docs/screenshots/
+  docs/screenshots/<nombre_tarea>/
   ```
+
+  Cada carpeta lleva un `README.md` que explica las capturas.
+
+* Reporte de revisión visual:
+
+  ```text
+  docs/<NOMBRE_TAREA>_VISUAL_REVIEW.md
+  ```
+
+  Con fecha, rama/commit validado, comandos ejecutados, resultado de tests, flujo
+  probado, screenshots, hallazgos y veredicto (aprobado / aprobado con observaciones
+  / no aprobado).
 
 ### Orden actual de issues
 
-1. `<completar>`
-2. `<completar>`
-3. `<completar>`
+1. **#188** — completar esta sección 11 de `AGENTS.md` (este trabajo).
+2. **#183** — derivar las horas a disposición desde las horas del turno (dato de
+   Configuración). **Bloqueado por decisión del negocio**: falta definir de dónde
+   sale el total del turno por UN y tipo de proceso, y cómo se define un turno que
+   incluye perfilado, que no se puede medir en horas.
+3. **#164** — PWA offline: smoke E2E obligatorio del circuito completo. Depende de
+   #158, #159, #160, #161, #162, #163 y del PR #165 (circuitos offline abiertos).
+4. **PR #172** — reconciliar el circuito offline PWA sobre `main`: está
+   `CONFLICTING` y con el CI de frontend en rojo, así que **no se mergea sin
+   revisión**: decidir si se rebasa sobre `main` o se descarta.
