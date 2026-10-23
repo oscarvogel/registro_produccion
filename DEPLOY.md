@@ -78,6 +78,35 @@ despliega. Mergear a `main` no publica nada.
 
 ## 2. Desplegar
 
+> **Todas las opciones tienen que pasar por `scripts/deploy_produccion_fg.ps1`** (o
+> hacer a mano el paso 2.1). Si se dispara el deploy sin actualizar las variables de
+> versión, producción queda desplegada pero `/api/health` vuelve a reportar
+> `commit: unknown`. Ver [§4](#4-sobre-las-etiquetas-de-versión).
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\deploy_produccion_fg.ps1
+```
+
+El script resuelve el SHA de `origin/main`, actualiza `SOURCE_COMMIT` y
+`COOLIFY_BRANCH` en la app de Coolify, dispara el deploy, lo espera y verifica
+`/api/health` en las dos instancias. El token sale de `$env:COOLIFY_TOKEN` o de
+`%USERPROFILE%\.coolify-token`.
+
+### 2.1 Paso previo (obligatorio): las variables de versión
+
+```powershell
+$token = (Get-Content "$env:USERPROFILE\.coolify-token" -Raw).Trim()
+$sha = (git ls-remote origin refs/heads/main).Split()[0]
+$body = @{ key = 'SOURCE_COMMIT'; value = $sha; is_preview = $false } | ConvertTo-Json
+Invoke-RestMethod -Uri 'https://coolify.vogelconsultoria.com.ar/api/v1/applications/4hcjxromkdmdylfjbw0fgvs4/envs' `
+  -Method PATCH -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType 'application/json' -Body $body
+```
+
+Hay que hacerlo **dos veces**: una con `is_preview = $false` y otra con
+`is_preview = $true`. Coolify guarda dos juegos de variables (producción y preview)
+y el de preview es el que resucita al otro.
+
 ### Opción A — Panel (la habitual)
 
 1. Panel: <https://coolify.vogelconsultoria.com.ar>
@@ -85,6 +114,8 @@ despliega. Mergear a `main` no publica nada.
 3. Esperar a que el deployment termine en `finished`.
 
 ### Opción B — API (desde la PC de desarrollo, sin SSH)
+
+Sólo después del paso 2.1:
 
 ```powershell
 $token = (Get-Content "$env:USERPROFILE\.coolify-token" -Raw).Trim()
@@ -188,14 +219,48 @@ falta una persona operadora con credenciales.
 
 - `BUILD_COMMIT` y `BUILD_BRANCH` los inyecta Coolify en cada deploy, con el commit y
   la rama reales.
-- **No hay que definir `SOURCE_COMMIT` ni `COOLIFY_BRANCH` a mano en la app de
-  Coolify.** Si esas variables están definidas por el usuario, Coolify no inyecta los
-  valores reales: las pisa con el literal `unknown` y el health vuelve a mentir. Es
-  la causa histórica de que producción reportara `commit: unknown`.
 - `APP_VERSION` viene del env file del servicio
   (`/srv/env/registro_produccion/<servicio>.env`), que es de `root`: no se puede
   cambiar sin `sudo`. Por eso el campo `version` puede quedar desactualizado; la
   referencia es `commit`.
+
+### La trampa de Coolify (por qué el commit decía `unknown`)
+
+El compose declara:
+
+```yaml
+BUILD_COMMIT: ${SOURCE_COMMIT:-unknown}
+BUILD_BRANCH: ${COOLIFY_BRANCH:-unknown}
+```
+
+Coolify **materializa en la tabla de variables de la app toda variable que el compose
+referencia con la forma `${VAR:-default}`**, creando la fila con el valor por defecto.
+Por eso la app tenía `SOURCE_COMMIT=unknown` y `COOLIFY_BRANCH=unknown` como variables
+de usuario, y Coolify las volvía a crear en cada deploy (con ids nuevos).
+
+Mientras esas filas existen, Coolify **no inyecta el SHA real**: su código sólo lo
+hace si la fila está vacía (`environment_variables->where('key','SOURCE_COMMIT')->isEmpty()`).
+El `.env` de runtime quedaba entonces con `SOURCE_COMMIT=unknown` y el compose
+resolvía `BUILD_COMMIT` a `unknown`.
+
+Las demás apps compose de esta misma instancia no tienen el problema porque usan
+literales (`COOLIFY_BRANCH: "main"`) en lugar de referencias con default.
+
+Dos detalles que costaron tiempo:
+
+- Coolify guarda **dos juegos de variables**: producción (`is_preview = false`) y
+  preview (`is_preview = true`). Si se borran sólo las de producción, el juego de
+  preview las resucita.
+- `PATCH /applications/{uuid}/envs/{env_uuid}` **no existe** (404). El endpoint que
+  funciona es `PATCH /applications/{uuid}/envs` con `{key, value, is_preview}` en el
+  cuerpo: actualiza por clave y devuelve la fila.
+
+### Cómo queda arreglado
+
+`scripts/deploy_produccion_fg.ps1` setea `SOURCE_COMMIT` y `COOLIFY_BRANCH` (en los
+dos juegos de variables) con el SHA real **antes** de cada deploy. Con la fila
+presente y con el valor correcto, Coolify no la pisa con `unknown` y el health
+reporta la verdad.
 
 Comprobación:
 
@@ -204,11 +269,11 @@ $token = (Get-Content "$env:USERPROFILE\.coolify-token" -Raw).Trim()
 Invoke-RestMethod -Uri 'https://coolify.vogelconsultoria.com.ar/api/v1/applications/4hcjxromkdmdylfjbw0fgvs4/envs' `
   -Headers @{ Authorization = "Bearer $token" } |
   Where-Object { $_.key -in 'SOURCE_COMMIT','COOLIFY_BRANCH' } |
-  Select-Object key, value
+  Select-Object key, value, is_preview
 ```
 
-Si ese listado devuelve algo, esas variables están tapando los valores reales de
-Coolify y hay que borrarlas.
+Los valores tienen que ser el SHA de `origin/main` y `main`. Si aparecen como
+`unknown`, hay que volver a correr el paso 2.1 antes de desplegar.
 
 ## Rollback
 
@@ -252,7 +317,11 @@ Causas frecuentes: migración que falla, `.env` del servicio ilegible o build ro
 
 ### `/api/health` dice `commit: unknown`
 
-No es un síntoma de que falte el deploy: es una etiqueta. Ver §4.
+No es un síntoma de que falte el deploy: es una etiqueta. La causa está en §4: Coolify
+materializa `${SOURCE_COMMIT:-unknown}` del compose como variable de la app con el
+valor por defecto, y mientras esa fila exista no inyecta el SHA real.
+
+Arreglo: correr el paso 2.1 (o el script completo) y volver a desplegar.
 
 ### El deploy quedó `failed`
 

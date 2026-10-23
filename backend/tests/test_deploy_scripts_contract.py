@@ -316,3 +316,52 @@ def test_admin_actas_crud_contract_is_registered():
     combined = "\n".join([schemas, admin_routes, catalog_routes])
     missing = [fragment for fragment in required_fragments if fragment not in combined]
     assert missing == []
+
+
+def test_coolify_deploy_script_sets_version_variables_before_deploying():
+    """El deploy de produccion tiene que setear `SOURCE_COMMIT`/`COOLIFY_BRANCH` antes
+    de desplegar.
+
+    Coolify materializa en la tabla de variables de la app toda variable que el compose
+    referencia con la forma `${VAR:-default}`, creando la fila con el valor por
+    defecto (`unknown`). Mientras esa fila exista, Coolify no inyecta el SHA real y
+    `/api/health` sigue reportando `commit: unknown`.
+    """
+    script = read("scripts/deploy_produccion_fg.ps1")
+
+    required = [
+        "SOURCE_COMMIT",
+        "COOLIFY_BRANCH",
+        "is_preview",
+        "/applications/$App/envs",
+        '"PATCH"',
+        "/deploy",
+        "/deployments/",
+        "/api/health",
+        "git ls-remote origin",
+    ]
+    missing = [fragment for fragment in required if fragment not in script]
+    assert missing == []
+
+    # El orden importa: las variables de version van ANTES de disparar el deploy.
+    assert script.rindex("Set-VersionVariables -Sha") < script.rindex("Start-CoolifyDeploy")
+
+    # El token sale del entorno o del archivo del usuario: nunca del repo.
+    assert "$env:COOLIFY_TOKEN" in script
+    assert ".coolify-token" in script
+
+
+def test_deploy_md_documents_the_coolify_version_label_trap():
+    """La causa raiz de `commit: unknown` tiene que quedar escrita, porque el que
+    despliegue sin el paso previo va a volver a romperlo sin querer."""
+    runbook = read("DEPLOY.md")
+
+    required = [
+        "SOURCE_COMMIT",
+        "COOLIFY_BRANCH",
+        "materializa",
+        "is_preview",
+        "deploy_produccion_fg.ps1",
+    ]
+    missing = [fragment for fragment in required if fragment not in runbook]
+    assert missing == []
