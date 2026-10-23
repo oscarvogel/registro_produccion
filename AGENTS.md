@@ -518,6 +518,10 @@ curl -X POST https://coolify.vogelconsultoria.com.ar/api/v1/deploy \
   `scripts/deploy_produccion_fg_main_fasa195.sh`, `scripts/deploy_main_fasa195.sh` y
   `scripts/build_deploy_package.ps1`. Si se toca `DEPLOY.md`, hay que actualizar ese
   test en el mismo PR.
+* **En Windows la suite termina con `PermissionError` al limpiar `pytest-current`**
+  (pytest hace `stat` de un symlink que no puede leer). Los tests pasan igual, pero el
+  exit code queda en 1 y parece un fallo. Para una corrida limpia:
+  `python -m pytest --basetemp <dir>`.
 * **En dev el service worker de la PWA está activo** (`frontend/vite.config.js`,
   `devOptions.enabled: true`) y el `runtimeCaching` `NetworkFirst` intercepta
   `/api/produccion/...`. Esos requests **no pasan** por `page.route` de Playwright:
