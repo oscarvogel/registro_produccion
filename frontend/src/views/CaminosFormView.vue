@@ -211,7 +211,8 @@
             <div class="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-sm text-neutral-700">
               <b class="text-primary-dark">Total del turno: {{ formatHoras(totalTurno) }} h</b>
               <span class="mt-0.5 block text-xs text-neutral-500">
-                Jornada {{ formatHoras(horasJornada) }} h + horas no operativas {{ formatHoras(horasNoOperativas) }} h + horas a disposición {{ formatHoras(totalHorasDisposicion) }} h.
+                No operativas {{ formatHoras(horasNoOperativas) }} h + trabajadas (horómetro) {{ formatHoras(horasJornada) }} h + a disposición {{ formatHoras(totalHorasDisposicion) }} h.
+                Las horas de perfilado se trabajan pero no se anotan como horas: ya van dentro de las trabajadas.
                 Es un cálculo, no un dato a cargar: sirve para ver si el turno cuadra.
               </span>
             </div>
@@ -421,9 +422,12 @@ const totalHorasDisposicion = computed(() => procesos.reduce(
   (total, proceso) => total + Number(proceso.hr_disposicion || 0),
   0,
 ))
-// Issue #181: total del turno = jornada + horas no operativas + horas a disposición.
-// Las horas a disposición son el complemento del turno (no son horas de trabajo) y las
-// horas de remolque ya viven dentro de la jornada, así que el remolque no se suma acá.
+// Issue #181/#184: total del turno = no operativas + horas trabajadas + horas a disposición.
+//
+// La jornada (horómetro) ES las horas trabajadas: `horas trabajadas = horas de remolque +
+// horas de perfilado`. El perfilado se trabaja pero se carga en km, así que sus horas no se
+// pueden leer de ningún campo: ya van dentro de la jornada. Por eso el total se calcula con
+// la jornada y no con el remolque, y las dos métricas NO se suman entre sí.
 const totalTurno = computed(() => (
   horasJornada.value + horasNoOperativas.value + totalHorasDisposicion.value
 ))
