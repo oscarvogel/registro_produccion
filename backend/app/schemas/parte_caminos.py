@@ -113,7 +113,7 @@ class ParteCaminosCreate(BaseModel):
 
         horas_jornada = self.hr_fin - self.hr_inicio
         if self.hrs_no_op > horas_jornada:
-            raise ValueError("Las horas no operativas no pueden superar la duracion de la jornada")
+            raise ValueError("Las horas no operativas no pueden superar la duración de la jornada")
 
         # Issue #181: la unica metrica horaria que se controla contra la jornada son las
         # horas de remolque, porque van dentro de ella (horometro inicial -> horometro final).
