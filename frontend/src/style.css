@@ -711,6 +711,12 @@
     background-color: var(--color-idle-bg) !important;
   }
 
+  /* Sin este override el aviso de la pantalla de login (offline / reautenticacion)
+     queda con fondo ambar claro y texto ambar claro en tema oscuro: ilegible. */
+  :root[data-theme="dark"] .bg-amber-100 {
+    background-color: var(--color-idle-bg) !important;
+  }
+
   :root[data-theme="dark"] .text-neutral-950,
   :root[data-theme="dark"] .text-neutral-900,
   :root[data-theme="dark"] .text-neutral-800,

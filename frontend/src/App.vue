@@ -8,7 +8,7 @@
       :has-cached-session="hasCachedSession"
     />
 
-    <template v-if="authStore.isAuthenticated">
+    <template v-if="authStore.isSessionActive">
       <div :class="['min-h-screen', connectivityStore.isOfflineOrBackendDown ? 'pt-[var(--app-offline-banner-height)]' : '']">
         <header class="app-mobile-header sticky z-30 border-b border-[var(--app-nav-border)] bg-[var(--app-nav-header)] text-[var(--app-nav-text)] md:hidden">
           <div class="flex h-[var(--app-mobile-header-height)] items-center justify-between px-4">
@@ -530,6 +530,18 @@ watch(sidebarCollapsed, (value) => {
   localStorage.setItem('sidebarCollapsed', value ? '1' : '0')
 })
 
+// Al volver de la pantalla de login (o al reautenticar) hay que intentar
+// vaciar la cola de pendientes: hasta ahora solo se intentaba al montar la
+// app y cada 30 s, con lo que un login online dejaba la cola sin enviar.
+watch(
+  () => authStore.isAuthenticated,
+  (authenticated, wasAuthenticated) => {
+    if (authenticated && !wasAuthenticated) {
+      produccionStore.refreshPendingCount().then(() => attemptPendingSync({ forceHealthCheck: true }))
+    }
+  },
+)
+
 // PWA install prompt
 const deferredInstallPrompt = ref(null)
 
@@ -568,11 +580,27 @@ const SYNC_INTERVAL_MS = 30 * 1000
 let syncIntervalId = null
 
 async function attemptPendingSync({ forceHealthCheck = false } = {}) {
-  if (!authStore.isAuthenticated || !navigator.onLine) return
+  // La sesion puede estar activa sin token (modo offline), asi que el guard
+  // tiene que mirar isSessionActive y no isAuthenticated: si solo miramos
+  // isAuthenticated, en una sesion offline la cola de pendientes nunca se
+  // intenta sincronizar al volver la conexion.
+  if (!authStore.isSessionActive || !navigator.onLine) return
   const backendUp = await connectivityStore.refreshBackendHealth({ force: forceHealthCheck })
-  if (backendUp) {
-    await produccionStore.syncPending()
+  if (!backendUp) return
+
+  // Sesion abierta sin token (el operador entro con la cache offline): al
+  // volver la conexion hay que reautenticar online antes de enviar nada,
+  // porque el token cacheado puede no ser del operador que esta usando el
+  // dispositivo. requireOnlineReauth() invalida la sesion online conservando
+  // la cache, y el login vuelve a dejar al operador en su destino.
+  if (authStore.isAuthenticatedOffline) {
+    const redirect = route.fullPath && route.name !== 'login' ? route.fullPath : '/'
+    authStore.requireOnlineReauth()
+    await router.push({ name: 'login', query: { redirect, reauth: '1' } })
+    return
   }
+
+  await produccionStore.syncPending()
 }
 
 async function handleOnline() {
@@ -585,7 +613,7 @@ onMounted(() => {
   window.addEventListener('appinstalled', handleAppInstalled)
   window.addEventListener('online', handleOnline)
   document.addEventListener('keydown', handleMobileMenuKeydown)
-  if (authStore.isAuthenticated) {
+  if (authStore.isSessionActive) {
     produccionStore.refreshPendingCount().then(() => attemptPendingSync({ forceHealthCheck: true }))
   }
 

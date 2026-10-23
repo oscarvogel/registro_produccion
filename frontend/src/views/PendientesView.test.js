@@ -12,12 +12,21 @@ const state = vi.hoisted(() => ({
   syncPending: vi.fn(),
   toast: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
   deleteRecord: vi.fn().mockResolvedValue(undefined),
+  updateRecord: vi.fn().mockResolvedValue(undefined),
+  apiPost: vi.fn().mockResolvedValue({ data: {} }),
 }))
 
-vi.mock('@/services/api', () => ({ default: { post: vi.fn() } }))
-vi.mock('@/services/pendingRecords', () => ({
-  ensurePendingIdentity: vi.fn((record) => record.payload),
-}))
+vi.mock('@/services/api', () => ({ default: { post: state.apiPost } }))
+// Se conserva la implementacion real del enrutado por tipo (pendingSubmissionEndpoint
+// / stripPendingMetadata) y solo se reemplaza la identidad del registro, que
+// escribiria en la base local.
+vi.mock('@/services/pendingRecords', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    ensurePendingIdentity: vi.fn((record) => record.payload),
+  }
+})
 vi.mock('@/services/pendingRecordDetail', () => ({
   buildCaminosProcessGroups: vi.fn(() => []),
 }))
@@ -26,6 +35,7 @@ vi.mock('@/services/db', () => ({
     pendingRecords: {
       orderBy: () => ({ reverse: () => ({ toArray: vi.fn().mockResolvedValue(state.records) }) }),
       delete: state.deleteRecord,
+      update: state.updateRecord,
     },
   },
 }))
@@ -68,6 +78,9 @@ describe('PendientesView', () => {
     state.auth.isAdmin = true
     state.refreshPendingCount.mockClear()
     state.deleteRecord.mockClear()
+    state.updateRecord.mockClear()
+    state.apiPost.mockClear()
+    state.apiPost.mockResolvedValue({ data: {} })
   })
 
   it('avoids duplicate local metrics for administrators', async () => {
@@ -97,5 +110,55 @@ describe('PendientesView', () => {
     expect(filters).toHaveLength(3)
     expect(filters[0].attributes('aria-pressed')).toBe('true')
     expect(filters[1].attributes('aria-pressed')).toBe('false')
+  })
+
+  it('envia el pendiente de caminos al endpoint de caminos', async () => {
+    state.records = [{
+      id: 11,
+      timestamp: Date.now(),
+      payload: {
+        UN: 'CAMINOS',
+        fecha: '2026-09-12',
+        __submission_kind: 'caminos',
+      },
+      synced: 0,
+      syncStatus: 'pending',
+    }]
+
+    const wrapper = mount(PendientesView, { global })
+    await flushPromises()
+
+    const retryButton = wrapper.findAll('button').find((button) => button.text().includes('Reintentar'))
+    expect(retryButton).toBeTruthy()
+    expect(retryButton.attributes('disabled')).toBeUndefined()
+
+    await retryButton.trigger('click')
+    await flushPromises()
+
+    expect(state.apiPost).toHaveBeenCalledTimes(1)
+    expect(state.apiPost.mock.calls[0][0]).toBe('/api/produccion/caminos')
+    expect(state.apiPost.mock.calls[0][1]).not.toHaveProperty('__submission_kind')
+  })
+
+  it('envia el pendiente de produccion al endpoint de produccion', async () => {
+    state.records = [{
+      id: 12,
+      timestamp: Date.now(),
+      payload: { UN: 'CAMINOS', fecha: '2026-09-12' },
+      synced: 0,
+      syncStatus: 'pending',
+    }]
+
+    const wrapper = mount(PendientesView, { global })
+    await flushPromises()
+
+    const retryButton = wrapper.findAll('button').find((button) => button.text().includes('Reintentar'))
+    expect(retryButton).toBeTruthy()
+
+    await retryButton.trigger('click')
+    await flushPromises()
+
+    expect(state.apiPost).toHaveBeenCalledTimes(1)
+    expect(state.apiPost.mock.calls[0][0]).toBe('/api/produccion/')
   })
 })

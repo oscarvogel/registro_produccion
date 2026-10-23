@@ -10,7 +10,15 @@ vi.mock('@/services/db', () => ({
 }))
 
 import db from '@/services/db'
-import { ensurePendingIdentity, queuePendingProductionRecord } from './pendingRecords'
+import {
+  ensurePendingIdentity,
+  pendingSubmissionEndpoint,
+  queuePendingProductionRecord,
+  stripPendingMetadata,
+  SUBMISSION_KIND_FIELD,
+  SUBMISSION_KIND_CAMINOS,
+  SUBMISSION_KIND_COMBUSTIBLE,
+} from './pendingRecords'
 
 describe('pending production records', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -35,5 +43,12 @@ describe('pending production records', () => {
       clientId: payload.form_uuid,
       payload,
     }))
+  })
+
+  it('routes each queued kind to its correct endpoint and strips local metadata', () => {
+    expect(pendingSubmissionEndpoint({})).toBe('/api/produccion/')
+    expect(pendingSubmissionEndpoint({ [SUBMISSION_KIND_FIELD]: SUBMISSION_KIND_CAMINOS })).toBe('/api/produccion/caminos')
+    expect(pendingSubmissionEndpoint({ [SUBMISSION_KIND_FIELD]: SUBMISSION_KIND_COMBUSTIBLE })).toBe('/api/combustible/cargas')
+    expect(stripPendingMetadata({ form_uuid: 'x', [SUBMISSION_KIND_FIELD]: SUBMISSION_KIND_COMBUSTIBLE })).toEqual({ form_uuid: 'x' })
   })
 })

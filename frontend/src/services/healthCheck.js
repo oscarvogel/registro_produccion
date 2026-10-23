@@ -13,13 +13,14 @@
  * without firing toasts.
  *
  * Configuration via env (Vite):
- *   VITE_HEALTHCHECK_PATH  Default: "/api/produccion/lugares-carga?un_id=1"
+ *   VITE_HEALTHCHECK_PATH  Default: "/health"
  *
  * @param {object} [opts]
  * @param {string} [opts.baseURL]  Override the API base URL. Defaults to VITE_API_URL.
  * @param {string} [opts.path]     Override the probe path. Defaults to VITE_HEALTHCHECK_PATH.
  * @param {(raw: any) => boolean} [opts.validate] Optional validator on the parsed JSON
- *                                 body. Default: any non-empty array or object is ok.
+ *                                 body. Default: the backend answers status=ok and
+ *                                 database=ok.
  * @param {number} [opts.timeoutMs=3000]
  * @param {(state: string, latencyMs: number) => void} [opts.onResult] Optional callback
  */
@@ -31,8 +32,7 @@ export async function checkBackend({
   onResult,
 } = {}) {
   const rawBase = baseURL ?? import.meta.env?.VITE_API_URL ?? ''
-  const rawPath =
-    path ?? import.meta.env?.VITE_HEALTHCHECK_PATH ?? '/api/produccion/lugares-carga?un_id=1'
+  const rawPath = path ?? import.meta.env?.VITE_HEALTHCHECK_PATH ?? '/health'
 
   // Normalize baseURL so a trailing /api collapses to empty (same convention
   // as the axios client). The path is taken as-is — it may already include
@@ -50,11 +50,11 @@ export async function checkBackend({
   const started = Date.now()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
 
-  const defaultValidate = (data) => {
-    if (Array.isArray(data)) return true
-    if (data && typeof data === 'object') return Object.keys(data).length > 0
-    return false
-  }
+  // El backend responde {status, database, ...}: solo damos por sano al
+  // frontend cuando la API y la base MySQL estan las dos en verde. Un 401/403
+  // o un 5xx nunca son "backend sano".
+  const defaultValidate = (data) =>
+    !!data && typeof data === 'object' && data.status === 'ok' && data.database === 'ok'
   const isHealthyPayload = validate || defaultValidate
 
   try {
@@ -67,16 +67,11 @@ export async function checkBackend({
     })
     clearTimeout(timer)
 
-    if (res.status >= 500) {
-      onResult?.('degraded', Date.now() - started)
-      return 'degraded'
-    }
-    if (res.status === 404) {
-      // The probe path was removed from Nginx — treat as unreachable so the
-      // banner shows the right colour, and avoid marking the backend down for
-      // a missing route.
-      onResult?.('unreachable', Date.now() - started)
-      return 'unreachable'
+    if (!res.ok) {
+      // 404 = el probe no esta expuesto (ruta faltante): unreachable, no degraded.
+      const state = res.status === 404 ? 'unreachable' : 'degraded'
+      onResult?.(state, Date.now() - started)
+      return state
     }
 
     let data

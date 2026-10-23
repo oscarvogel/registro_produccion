@@ -120,6 +120,19 @@ async function mockApi(route) {
   const path = url.pathname
   const method = request.method()
 
+  // El probe de conectividad del frontend usa /health (no un endpoint de
+  // catalogo) y exige status=ok y database=ok para dar el backend por sano.
+  // Sin esta respuesta el banner "sin conexion" aparece en todas las capturas.
+  if (path === '/health') {
+    return jsonResponse(route, {
+      status: 'ok',
+      service: 'registro-produccion',
+      instance: 'docs-demo',
+      database: 'ok',
+      version: 'docs-demo',
+    })
+  }
+
   if (path === '/api/auth/login' && method === 'POST') {
     const body = JSON.parse(request.postData() || '{}')
     const role = roleForDni(body.dni)
@@ -381,6 +394,8 @@ async function main() {
       const page = await context.newPage()
       page.on('pageerror', (error) => console.error(`[docs:capture] error de página (${role}): ${error.message}`))
       await page.route('**/api/**', (route) => mockApi(route))
+      // /health vive fuera de /api: se intercepta por path para no pisar /api/health.
+      await page.route((url) => url.pathname === '/health', (route) => mockApi(route))
       await login(page, role)
       console.log(`[docs:capture] login listo: ${role}`)
       await captureProduction(page, role)
