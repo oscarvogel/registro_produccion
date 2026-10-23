@@ -1,378 +1,270 @@
-# Deploy de producción — `produccion_fg`
+# Deploy de producción — `registro_produccion`
 
-> **Guía canónica.** Este es el procedimiento oficial para desplegar
-> únicamente `produccion_fg` en `fasa_195` desde `origin/main`.
+> **Guía canónica.** El deploy de producción se hace con **Coolify** sobre el host
+> `fasa_189`. No hay paquete que subir ni archivos que copiar: el build ocurre en el
+> host y el reverse proxy es **traefik**.
 
-El objetivo es que una persona autorizada pueda ejecutar el despliegue sin
-conocer previamente la arquitectura y obtener evidencia suficiente para
-confirmar o revertir el cambio.
+> **Histórico:** hasta 2026-10-23 este documento describía un flujo manual (paquete
+> `.tar.gz` + script `deploy_produccion_fg_main_fasa195.sh` + `build_deploy_package.ps1`
+> + copia de archivos a un Nginx del host). Ese flujo **no sirve más producción**: las
+> rutas que usaba (`/srv/apps/registro_produccion`, `/var/www/html/django/produccion_fg/`)
+> no existen en el host. Los scripts siguen en el repo, pero **no tienen dónde correr**:
+> no hay checkout en el host ni Nginx que publique ese directorio. Se conserva la
+> referencia al final, sólo como antecedente.
+
+## Topología vigente (verificada el 2026-10-23)
+
+| Componente | Dónde | Publicación |
+|---|---|---|
+| Host | `fasa_189` = 192.168.0.189 = `fasa-PowerEdge-T40` — público 186.5.245.12, Tailscale `fg-ubuntu` (100.112.112.65) | Coolify 4.4.7 + `coolify-proxy` (traefik v3.6) |
+| App en Coolify | `registro-produccion-production` — uuid `4hcjxromkdmdylfjbw0fgvs4` | repo `oscarvogel/registro_produccion`, rama `main`, build pack `dockercompose` |
+| Backend producción | servicio `produccion_fg` — imagen `registro_produccion-produccion-fg:latest` | `127.0.0.1:18005` |
+| Backend Indufor | servicio `indufor` — imagen `registro_produccion-indufor:latest` | `127.0.0.1:18004` |
+| Frontend producción | servicio `frontend_servinlgsm` — nginx dentro del contenedor | traefik → `https://produccion.servinlgsm.com.ar` |
+| Frontend Indufor | servicio `frontend_indufor` — nginx dentro del contenedor | traefik → `https://produccion.indufor.com.ar` |
+| Secretos por servicio | `/srv/env/registro_produccion/*.env` (root, `700`) | montados como `/run/secrets/registro.env` |
+| Base de datos | `fg` en el mismo host | MySQL/MariaDB, por `mysql-central-ca.pem` |
+
+Dos consecuencias que hay que tener presentes:
+
+- **Un deploy actualiza las dos instancias** (producción e Indufor): el compose es uno solo.
+- **El frontend lo sirve el contenedor**, no un Nginx del host. Ese nginx interno hace
+  proxy de `/api/` al backend de su servicio.
 
 ## Alcance obligatorio
 
 El procedimiento:
 
-- acepta exclusivamente un paquete construido desde el commit actual de
-  `origin/main`;
-- actualiza juntos el backend Docker y el frontend estático de
-  `produccion_fg`;
-- construye una imagen inmutable etiquetada con el SHA completo;
-- asigna esa imagen únicamente a `produccion_fg` mediante un override temporal,
-  sin modificar la etiqueta `registro_produccion:latest` compartida;
-- crea backup, manifiesto y rollback automático;
-- valida el contenedor, el endpoint interno y el asset del frontend;
-- usa `docker compose ... --no-deps` para no recrear servicios vecinos.
+- despliega **exclusivamente `origin/main`** (ya mergeado y con CI verde);
+- reconstruye las cuatro imágenes del compose en el host;
+- recrea los cuatro contenedores;
+- aplica las migraciones de `db_migrations/` **al arrancar el backend**;
+- se verifica con evidencia pública, no con suposiciones.
 
 El procedimiento **no**:
 
 - despliega ramas, tags ni commits que todavía no estén en `main`;
-- modifica `indufor` ni `indufor_demo`;
-- modifica Nginx, archivos `.env` o credenciales;
-- consulta ni modifica bases de datos;
-- aplica migraciones;
-- requiere `sudo`.
-
-Si el rango entre la revisión publicada y `origin/main` contiene archivos bajo
-`db_migrations/`, el preflight aborta. Ver [Migraciones](#migraciones).
-
-## Arquitectura vigente
-
-| Componente | Ruta o puerto | Publicación |
-|---|---|---|
-| Repo remoto | `/srv/apps/registro_produccion` | Checkout Git usado para construir la imagen |
-| Backend | `registro_produccion_produccion_fg` | Docker, host `127.0.0.1:18005` |
-| Frontend | `/var/www/html/django/produccion_fg/frontend/` | Archivos estáticos servidos por Nginx |
-| Manifiesto | `/var/www/html/django/produccion_fg/RELEASE_MANIFEST.txt` | Commit publicado |
-| Backups | `~/deploy-backups/registro_produccion/` | Imagen, frontend y manifiesto recuperables |
-
-Nginx publica `https://produccion.servinlgsm.com.ar/` y deriva `/api/*` al
-puerto interno `18005`. Este flujo no modifica esa configuración.
+- modifica a mano los `.env` de `/srv/env/registro_produccion/` (son de `root` y el
+  usuario `fasa` no tiene `sudo` sin contraseña);
+- modifica la base de datos a mano;
+- requiere un build local ni subir artefactos.
 
 ## Requisitos
 
 ### En la computadora local
 
-- Checkout limpio del repositorio.
-- Git y GitHub accesible como remoto `origin`.
-- PowerShell 7.
-- Python 3.12 con las dependencias de test del backend.
-- Node.js/npm con las dependencias del frontend.
-- Espacio temporal suficiente para materializar el commit e instalar sus
-  dependencias con `npm ci`.
-- SSH/SCP con el alias `fasa_195` configurado.
+- Checkout limpio del repositorio y `origin/main` al día.
+- Git y GitHub accesibles como remoto `origin`.
+- Node.js/npm (para correr la suite del frontend si se quiere verificar local).
+- Python 3.12 (para correr la suite del backend).
+- Token de la API de Coolify en `%USERPROFILE%\.coolify-token` (sólo para la opción B).
 
-### En `fasa_195`
+### En `fasa_189`
 
-- Hostname `fg-ubuntu`.
-- Usuario autorizado `ferreteria`.
-- Acceso a Git, Docker, Compose, `curl`, `tar`, `flock` y `sha256sum`.
-- Permiso del usuario sobre Docker, el repo remoto y el directorio del
-  frontend.
+- Acceso SSH con el alias `fasa_189` (usuario `fasa`), para diagnóstico.
+- Docker, Coolify y traefik ya instalados y gestionados por Coolify.
 
-No hace falta `sudo`. No imprimir el contenido de ningún `.env`.
-
-## 1. Preparar `main` local
-
-Desde PowerShell:
+## 1. Preparar `main` y revisar el CI
 
 ```powershell
-Set-Location D:\notebook\active\registro_produccion
-git status -sb
 git fetch --prune origin
-git switch main
-git pull --ff-only origin main
-
-$head = (git rev-parse HEAD).Trim()
-$originMain = (git rev-parse origin/main).Trim()
-if ($head -ne $originMain) {
-    throw "HEAD no coincide con origin/main"
-}
-
-$trackedChanges = git status --porcelain --untracked-files=no
-if ($trackedChanges) {
-    throw "Hay cambios trackeados sin commitear"
-}
+git log --oneline origin/main -3
+gh pr checks <pr>
 ```
 
-No continuar desde una rama de trabajo. El PR debe estar mergeado y visible en
-`origin/main`.
+El PR tiene que estar **mergeado** y con **CI verde** antes de desplegar: el CI
+(`.github/workflows/ci.yml`) corre los tests del backend y del frontend, pero **no**
+despliega. Mergear a `main` no publica nada.
 
-## 2. Validar y generar el paquete
+## 2. Desplegar
 
-El generador materializa `HEAD` en un directorio temporal mediante
-`git archive`, instala el frontend con `npm ci` y ejecuta tests del backend,
-tests del frontend y build Vite sobre esa copia. El paquete se copia
-exclusivamente desde el commit materializado: archivos locales no trackeados o
-ignorados no pueden incorporarse. También verifica que el paquete no contenga
-`.env` y escribe `RELEASE_MANIFEST.txt`.
+### Opción A — Panel (la habitual)
+
+1. Panel: <https://coolify.vogelconsultoria.com.ar>
+2. App `registro-produccion-production` → **Deploy**.
+3. Esperar a que el deployment termine en `finished`.
+
+### Opción B — API (desde la PC de desarrollo, sin SSH)
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\build_deploy_package.ps1
-
-$shortSha = (git rev-parse --short HEAD).Trim()
-$fullSha = (git rev-parse HEAD).Trim()
-$package = Resolve-Path "dist_deploy\registro_produccion_deploy_$shortSha.tar.gz"
-Get-FileHash $package -Algorithm SHA256
+$token = (Get-Content "$env:USERPROFILE\.coolify-token" -Raw).Trim()
+$body = @{ uuid = '4hcjxromkdmdylfjbw0fgvs4'; force = $true } | ConvertTo-Json
+Invoke-RestMethod -Uri 'https://coolify.vogelconsultoria.com.ar/api/v1/deploy' `
+  -Method POST -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType 'application/json' -Body $body
 ```
 
-No usar `-AllowAnyBranch` ni `-SkipTests` para producción.
+`force = $true` reconstruye las imágenes sin caché (`docker compose build --no-cache`).
+Devuelve el `deployment_uuid` del intento.
 
-La carpeta temporal se elimina siempre, tanto al terminar correctamente como
-ante un error.
-
-## 3. Subir el paquete
+Monitorear el intento:
 
 ```powershell
-scp $package "fasa_195:/home/ferreteria/$($package.Path | Split-Path -Leaf)"
+$dep = '<deployment_uuid>'
+Invoke-RestMethod -Uri "https://coolify.vogelconsultoria.com.ar/api/v1/deployments/$dep" `
+  -Headers @{ Authorization = "Bearer $token" }
 ```
 
-Guardar el SHA256 local para compararlo con la salida del preflight.
+- `status`: `queued` → `in_progress` → `finished` (o `failed`).
+- `commit`: **el SHA realmente desplegado**. Es la evidencia de qué versión quedó.
+- `logs`: JSON por línea; `output` es la salida del comando y `command` el comando.
 
-## 4. Actualizar el checkout remoto
+En el log se ven, en este orden: el build de las cuatro imágenes, la creación del
+`.env` de runtime, el `stop`/`rm` de los contenedores anteriores y el arranque de los
+nuevos.
 
-Esto actualiza únicamente el checkout Git; todavía no cambia contenedores ni
-frontend publicado.
+### Opción C — desde el host
+
+El panel de Coolify también está servido en el propio host (`http://127.0.0.1:8000`,
+detrás de `coolify-proxy`). Para diagnosticar por SSH:
+
+```bash
+ssh fasa_189
+docker ps --format '{{.Names}} | {{.Image}} | {{.Status}}' | grep registro_produccion
+docker logs --tail 200 <nombre-del-contenedor>
+```
+
+Los contenedores se llaman `<servicio>-<uuid-app>-<timestamp>`; el timestamp del
+contenedor anterior **es la fecha del deploy anterior**.
+
+## 3. Verificar (obligatorio)
+
+### 3.1 El bundle cambió
 
 ```powershell
-ssh -o BatchMode=yes fasa_195
+$html = (Invoke-WebRequest https://produccion.servinlgsm.com.ar/ -UseBasicParsing).Content
+[regex]::Match($html, 'assets/index-[A-Za-z0-9_-]+\.js').Value
 ```
 
-En el servidor:
+El `Last-Modified` del `index.html` es la fecha del deploy. Si el bundle no cambió,
+el deploy no llegó.
 
-```bash
-cd /srv/apps/registro_produccion
-git status -sb
-git fetch --prune origin
-git switch main
-git pull --ff-only origin main
-test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
-```
+### 3.2 Los marcadores del cambio están en el bundle
 
-Si el checkout no está limpio o el pull no es fast-forward, detenerse. No usar
-`git reset --hard` para forzar el procedimiento.
-
-## 5. Ejecutar el preflight
-
-Reemplazar el nombre de ejemplo por el paquete generado en el paso 2:
-
-```bash
-cd /srv/apps/registro_produccion
-bash scripts/deploy_produccion_fg_main_fasa195.sh --check \
-  /home/ferreteria/registro_produccion_deploy_5ee50b0.tar.gz
-```
-
-El modo `--check` puede ejecutar `git fetch`, inspeccionar Docker y extraer el
-paquete en un temporal. No construye imágenes, no recrea contenedores y no
-publica archivos.
-
-Debe terminar con:
-
-```text
-==> Preflight successful
-deployed_commit=...
-target_commit=...
-package_sha256=...
-```
-
-Detenerse si:
-
-- el paquete no coincide con `origin/main`;
-- el checkout remoto no coincide con `origin/main`;
-- la revisión publicada no es ancestro de `origin/main`;
-- hay migraciones entre ambas revisiones;
-- el contenedor actual no está healthy;
-- faltan el frontend o el manifiesto actuales.
-
-## 6. Ejecutar el deploy
-
-### Interactivo, recomendado
-
-```bash
-cd /srv/apps/registro_produccion
-bash scripts/deploy_produccion_fg_main_fasa195.sh --deploy \
-  /home/ferreteria/registro_produccion_deploy_5ee50b0.tar.gz
-```
-
-Escribir exactamente `DEPLOY` cuando se solicite.
-
-### No interactivo
-
-Usar solamente después de revisar un `--check` exitoso:
-
-```bash
-cd /srv/apps/registro_produccion
-bash scripts/deploy_produccion_fg_main_fasa195.sh --deploy --yes \
-  /home/ferreteria/registro_produccion_deploy_5ee50b0.tar.gz
-```
-
-El script construye la imagen, valida Python dentro de ella, recrea únicamente
-`produccion_fg` con `--no-deps`, espera health y después intercambia el
-frontend de forma atómica.
-
-## 7. Revisar la evidencia
-
-Una ejecución correcta termina con estas claves:
-
-```text
-deploy_status=success
-target_commit=...
-target_image=registro_produccion:...
-target_image_id=sha256:...
-produccion_fg_health=healthy
-produccion_fg_health_url=http://127.0.0.1:18005/health
-frontend_asset=assets/index-....js
-indufor_unchanged=yes
-indufor_demo_unchanged=yes
-backup_dir=...
-```
-
-Comprobación adicional en el servidor:
-
-```bash
-docker inspect registro_produccion_produccion_fg \
-  --format '{{.Image}}|{{.State.Health.Status}}'
-curl -fsS http://127.0.0.1:18005/health
-grep -E '^(commit|branch)=' \
-  /var/www/html/django/produccion_fg/RELEASE_MANIFEST.txt
-```
-
-El campo `version` del health puede provenir del `.env` y quedar desactualizado.
-La evidencia autoritativa es el commit del manifiesto junto con el ID real de
-la imagen activa.
-
-## 8. Verificación pública y PWA
-
-La red de `fasa_195` no tiene hairpin NAT confiable. Verificar el sitio público
-desde la computadora local:
+Los textos de las vistas viven en los **chunks lazy**, no en el bundle principal: para
+verificar un cambio hay que buscar el texto en los chunks que el entry referencia.
 
 ```powershell
-$response = Invoke-WebRequest https://produccion.servinlgsm.com.ar/ -UseBasicParsing
-$response.StatusCode
-[regex]::Match($response.Content, 'assets/index-[A-Za-z0-9_-]+\.js').Value
+$base = 'https://produccion.servinlgsm.com.ar/'
+$entry = [regex]::Match((Invoke-WebRequest $base -UseBasicParsing).Content, 'assets/index-[A-Za-z0-9_-]+\.js').Value
+$js = (Invoke-WebRequest "$base$entry" -UseBasicParsing).Content
+$chunks = [regex]::Matches($js, 'assets/[A-Za-z0-9_-]+\.js') | ForEach-Object { $_.Value } | Sort-Object -Unique
+$todo = $js
+foreach ($c in $chunks) { $todo += (Invoke-WebRequest "$base$c" -UseBasicParsing).Content }
+$todo.Contains('Total del turno')
 ```
 
-Resultado esperado: HTTP 200 y el mismo `frontend_asset` informado por el
-deploy.
+Sólo la **presencia** de un texto prueba algo: que no aparezca no demuestra que el
+deploy sea viejo (el texto puede haber cambiado de nombre, o vivir en otro chunk).
 
-Para la prueba funcional, pedir a una persona operadora que cierre y vuelva a
-abrir la aplicación. Si la PWA conserva la revisión anterior:
+### 3.3 La API responde
 
-1. hacer recarga completa;
-2. desregistrar el Service Worker;
-3. limpiar los datos del sitio;
-4. abrir nuevamente la aplicación.
+```powershell
+Invoke-WebRequest https://produccion.servinlgsm.com.ar/api/health -UseBasicParsing | Select-Object -ExpandProperty Content
+```
+
+Esperado: HTTP 200 y `"database":"ok"`.
+
+### 3.4 Los contenedores están healthy
+
+```bash
+ssh fasa_189 "docker ps --format '{{.Names}} | {{.Status}}' | grep registro_produccion"
+```
+
+### 3.5 Smoke funcional
+
+```powershell
+# Cargar el login y comprobar que no hay errores de consola (Playwright)
+```
+
+Como mínimo: el login carga, el bundle nuevo se está sirviendo y `/api/health` da
+`database: ok`. Para la prueba funcional completa (cargar un parte de Caminos) hace
+falta una persona operadora con credenciales.
+
+## 4. Sobre las etiquetas de versión
+
+`/api/health` expone `version` (`APP_VERSION`), `commit` (`BUILD_COMMIT`) y `branch`
+(`BUILD_BRANCH`).
+
+- `BUILD_COMMIT` y `BUILD_BRANCH` los inyecta Coolify en cada deploy, con el commit y
+  la rama reales.
+- **No hay que definir `SOURCE_COMMIT` ni `COOLIFY_BRANCH` a mano en la app de
+  Coolify.** Si esas variables están definidas por el usuario, Coolify no inyecta los
+  valores reales: las pisa con el literal `unknown` y el health vuelve a mentir. Es
+  la causa histórica de que producción reportara `commit: unknown`.
+- `APP_VERSION` viene del env file del servicio
+  (`/srv/env/registro_produccion/<servicio>.env`), que es de `root`: no se puede
+  cambiar sin `sudo`. Por eso el campo `version` puede quedar desactualizado; la
+  referencia es `commit`.
+
+Comprobación:
+
+```powershell
+$token = (Get-Content "$env:USERPROFILE\.coolify-token" -Raw).Trim()
+Invoke-RestMethod -Uri 'https://coolify.vogelconsultoria.com.ar/api/v1/applications/4hcjxromkdmdylfjbw0fgvs4/envs' `
+  -Headers @{ Authorization = "Bearer $token" } |
+  Where-Object { $_.key -in 'SOURCE_COMMIT','COOLIFY_BRANCH' } |
+  Select-Object key, value
+```
+
+Si ese listado devuelve algo, esas variables están tapando los valores reales de
+Coolify y hay que borrarlas.
 
 ## Rollback
 
-El rollback es automático si falla la imagen, el health, el frontend, el
-manifiesto o las invariantes de servicios vecinos. Restaura:
+El compose no tiene rollback automático: si el deploy sale mal, la forma segura de
+volver atrás es **revertir en `main` y redesplegar** (commit revert + deploy), que
+deja el historial auditado.
 
-1. imagen/tag anterior de `produccion_fg`;
-2. contenedor anterior;
-3. frontend anterior;
-4. `RELEASE_MANIFEST.txt` anterior;
-5. health interno.
-
-El manifiesto del intento queda en `~/deploy-backups/registro_produccion/` con
-uno de estos estados:
-
-- `status=success`;
-- `status=rolled_back`;
-- `status=rollback_failed`.
-
-Si aparece `rollback_failed`, no improvisar cambios sobre Nginx, `.env`, bases
-o instancias vecinas. Conservar la salida y revisar el backup, el ID de imagen
-y el estado del contenedor.
+Si el problema es sólo de configuración del host (por ejemplo un env file), no
+improvisar: los `/srv/env/registro_produccion/` son de `root` y no se editan a mano.
 
 ## Migraciones
 
-El deploy aplica las migraciones de `db_migrations/*.sql` con el runner
-`python -m app.migrate` (ver `backend/app/migrate.py`). Las migraciones del
-proyecto son **idempotentes**, así que se pueden correr en cada deploy.
-
-### Cómo se aplican en el deploy de Coolify
-
-**Al arrancar el container**, desde el entrypoint (`docker-entrypoint.py`), que
-corre `python -m app.migrate` antes de levantar gunicorn. Se habilita con
-`RUN_MIGRATIONS=1` en el `docker-compose.yml` (servicios `produccion_fg` e
-`indufor`).
-
-> **El Pre-deployment Command de Coolify NO sirve para esta app.** Con el build
-> pack `dockercompose`, Coolify intenta ejecutar el comando en un contenedor
-> con nombre = uuid del deploy, que para compose nunca se crea, y el deploy
-> falla con:
->
-> ```
-> Deployment failed: Pre-deployment command: Could not find a valid container.
-> ```
->
-> Ese contenedor "builder" solo existe en el build pack `dockerfile`. Por eso
-> las migraciones corren en el entrypoint del container.
-
-El runner toma un lock de MySQL (`GET_LOCK('registro_produccion:db_migrations')`):
-`produccion_fg` e `indufor` apuntan a la misma base y en un deploy arrancan a
-la vez, así que sin el lock los dos podrían aplicar el mismo `ALTER` y el
-segundo fallaría con "Duplicate column name".
-
-Si una migración falla, el entrypoint lo loguea y **la app sigue levantando**
-(con compose el container anterior ya fue reemplazado, así que abortar dejaría
-el servicio caído). Para cortar el deploy en vez de seguir, activar
-`MIGRATIONS_STRICT=1`.
-
-La imagen incluye `db_migrations/` (`COPY db_migrations /app/db_migrations` en
-el `Dockerfile`).
-
-Para correrlo a mano contra la base que apunta `produccion_fg.env`:
-
-```bash
-cd backend && python -m app.migrate
-```
-
-Notas:
-
-- No requiere escribir SQL ni entrar a la base: el runner recorre los archivos
-  en orden y falla ruidosamente si alguno no aplica.
-- `DB_MIGRATIONS_DIR` permite apuntar a otra carpeta si hiciera falta.
-- El deploy controlado de `main`
-  (`scripts/deploy_produccion_fg_main_fasa195.sh`) sigue **abortando** si el
-  rango trae cambios bajo `db_migrations/`: es una ruta distinta, pensada para
-  una revisión explícita. La ruta de Coolify es la que corre el runner.
-
-No agregar migraciones manuales a pasos ad-hoc fuera de `db_migrations/`.
+- Se aplican **al arrancar el backend** (`RUN_MIGRATIONS=1` en el compose). El
+  **Pre-deployment Command** de Coolify no funciona con el build pack
+  `dockercompose`: corre en un contenedor que para compose nunca se crea y falla
+  con `Could not find a valid container`.
+- Cada `.sql` de `db_migrations/` tiene que ser **idempotente**: el runner las
+  ejecuta en cada arranque.
+- `produccion_fg` e `indufor` apuntan a la misma base y **arrancan juntos** en un
+  deploy: el runner serializa con `GET_LOCK` (lock de MySQL) para que los dos no
+  apliquen el mismo `ALTER` al mismo tiempo.
+- Si una migración falla, los backends no levantan: el síntoma es
+  `produccion_fg` reiniciando en loop. Ver los logs del contenedor.
 
 ## Diagnóstico rápido
 
 ### El frontend sigue viejo
 
-Comparar el asset publicado con la salida del deploy:
-
-```bash
-grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' \
-  /var/www/html/django/produccion_fg/frontend/index.html | head -1
-```
-
-Si el servidor tiene el asset correcto, aplicar los pasos de PWA/Service
-Worker del apartado anterior.
+1. Verificar el hash del bundle (§3.1). Si no cambió, el deploy no llegó.
+2. Si el bundle cambió pero el navegador muestra la versión anterior: es el **service
+   worker** de la PWA. Recargar sin caché, o desregistrar el SW y limpiar los datos
+   del sitio.
 
 ### El contenedor no queda healthy
 
 ```bash
-docker inspect registro_produccion_produccion_fg \
-  --format '{{.Image}}|{{.State.Status}}|{{.State.Health.Status}}'
-docker logs registro_produccion_produccion_fg --tail 100
+ssh fasa_189 "docker logs --tail 200 <contenedor>"
 ```
 
-No mostrar ni copiar secretos de los logs.
+Causas frecuentes: migración que falla, `.env` del servicio ilegible o build roto.
 
-### El preflight dice que producción no es ancestro de `main`
+### `/api/health` dice `commit: unknown`
 
-Existe una revisión desplegada que todavía no fue mergeada o el historial
-divergió. Mergear primero el PR correcto o preparar un rollback explícito. No
-forzar el deploy.
+No es un síntoma de que falte el deploy: es una etiqueta. Ver §4.
+
+### El deploy quedó `failed`
+
+Releer el `logs` del deployment en la API de Coolify: cada línea trae el `command` y
+su `output`. Si el fallo es de build, el error está en la etapa de la imagen; si es de
+arranque, en la etapa de los contenedores.
 
 ## Otros documentos
 
-- [`docs/DEPLOY_GITHUB_MAIN_RUNBOOK.md`](docs/DEPLOY_GITHUB_MAIN_RUNBOOK.md):
-  flujo multiinstancia que actualiza `indufor` y `produccion_fg`; no usar para
-  el deploy normal descrito aquí.
-- [`docs/DEMO_DEPLOY_RUNBOOK.md`](docs/DEMO_DEPLOY_RUNBOOK.md): entorno demo.
-- `README_DEPLOY.md`: referencia histórica de la migración Docker.
+| Documento | Estado |
+|---|---|
+| `docs/DEPLOY_GITHUB_MAIN_RUNBOOK.md` | Runbook del **flujo manual anterior** (paquete + Nginx). Legacy: describe un host y rutas que ya no sirven producción. |
+| `docs/DEMO_ENVIRONMENT.md`, `docs/DEMO_DEPLOY_RUNBOOK.md` | Instancia `indufor_demo`. |
+| `README_DEPLOY.md` | Resumen del flujo anterior. Legacy. |
+| `AGENTS.md` §11 | Reglas del proyecto. |

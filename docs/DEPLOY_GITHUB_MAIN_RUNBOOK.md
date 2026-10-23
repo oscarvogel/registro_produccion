@@ -1,5 +1,12 @@
 # Deploy desde GitHub main
 
+> ⚠️ **LEGACY (2026-10-23).** Este runbook describe el flujo manual anterior
+> (paquete `.tar.gz` + `scripts/deploy_produccion_fg_main_fasa195.sh` + copia de
+> archivos a un Nginx del host, en `fasa_195`). **Ese host y esas rutas ya no
+> sirven producción**: en `fasa_189` no existe `/srv/apps/registro_produccion`
+> ni `/var/www/html/django/produccion_fg/`. El deploy vigente es por **Coolify**:
+> ver [`DEPLOY.md`](../DEPLOY.md). Se conserva este documento como antecedente.
+>
 > **Guía canónica de deploy a `fasa_195` desde `origin/main`.**
 > Cubre **backend** (containers `indufor` + `produccion_fg`) y **frontend**
 > (estáticos de `produccion_fg` servidos por Nginx).

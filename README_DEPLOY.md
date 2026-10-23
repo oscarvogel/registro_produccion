@@ -1,5 +1,10 @@
 # Deploy Docker multi-instancia
 
+> ⚠️ **LEGACY (2026-10-23).** Este resumen describe el flujo de deploy anterior
+> (paquete + script + Nginx del host, en `fasa_195`). El deploy vigente es por
+> **Coolify** sobre `fasa_189`: ver [`DEPLOY.md`](DEPLOY.md). Se conserva como
+> antecedente.
+
 Este repositorio `registro_produccion` alimenta dos instancias productivas:
 
 - `indufor`: `produccion.indufor.com.ar`, backend Docker actual en `127.0.0.1:18004`.
