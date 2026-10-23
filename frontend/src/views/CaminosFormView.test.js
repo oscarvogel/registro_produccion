@@ -229,6 +229,24 @@ describe('CaminosFormView', () => {
     expect(wrapper.text()).not.toContain('Total del turno: 18 h')
   })
 
+  it('explains the composition of the shift total in business terms', async () => {
+    const wrapper = mountView()
+
+    wrapper.vm.form.hr_inicio = 8286
+    wrapper.vm.form.hr_fin = 8292
+    wrapper.vm.procesos[0].tipo_proceso_id = 20
+    wrapper.vm.procesos[0].predio_id = 1
+    wrapper.vm.procesos[0].hr_disposicion = 6
+    wrapper.vm.pasoActual = 5
+    await nextTick()
+
+    // Issue #184: no operativas + horas trabajadas (horómetro) + a disposición.
+    expect(wrapper.text()).toContain('No operativas 0 h + trabajadas (horómetro) 6 h + a disposición 6 h')
+    // El perfilado se trabaja pero no se anota como horas: ya va dentro de las trabajadas.
+    expect(wrapper.text()).toContain('Las horas de perfilado se trabajan pero no se anotan como horas')
+    expect(wrapper.text()).not.toContain('Jornada 6 h + horas no operativas')
+  })
+
   it('adds the non-operational hours to the shift total', async () => {
     const wrapper = mountView()
 
