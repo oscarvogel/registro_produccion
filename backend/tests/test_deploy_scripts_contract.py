@@ -133,27 +133,37 @@ def test_github_main_runbook_documents_safe_operator_flow():
 
 
 def test_deploy_md_is_the_canonical_produccion_fg_runbook():
+    """El deploy vigente es por Coolify sobre `fasa_189` (verificado 2026-10-23).
+
+    El flujo manual por paquete quedo como antecedente: las rutas que usaba
+    (`/srv/apps/registro_produccion`, `/var/www/html/django/produccion_fg/`) no
+    existen en el host, asi que el contrato tiene que fijar la realidad vigente.
+    """
     runbook = read("DEPLOY.md")
+
     required = [
         "Guía canónica",
         "origin/main",
-        "únicamente `produccion_fg`",
-        "build_deploy_package.ps1",
-        "git archive",
-        "npm ci",
-        "registro_produccion:latest",
-        "deploy_produccion_fg_main_fasa195.sh --check",
-        "deploy_produccion_fg_main_fasa195.sh --deploy",
-        "--no-deps",
-        "python -m app.migrate",
-        "Pre-deployment Command",
-        "Service Worker",
-        "rollback_failed",
+        "Coolify",
+        "registro-produccion-production",
+        "4hcjxromkdmdylfjbw0fgvs4",
+        "dockercompose",
+        "fasa_189",
+        "/api/v1/deploy",
+        "/api/v1/deployments",
+        "traefik",
+        "produccion.servinlgsm.com.ar",
+        "assets/index-",
+        # El CI corre tests pero no despliega: el deploy es un paso aparte.
+        "no publica nada",
     ]
 
     missing = [fragment for fragment in required if fragment not in runbook]
     assert missing == []
-    assert "sin modificar la etiqueta `registro_produccion:latest`" in runbook
+    # La evidencia autoritativa es el hash del bundle, no las etiquetas de version.
+    assert "hash del bundle" in runbook
+    assert "APP_VERSION" in runbook
+    assert "BUILD_COMMIT" in runbook
 
 
 def test_coolify_deploy_ships_and_runs_db_migrations():

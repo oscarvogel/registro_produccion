@@ -5,10 +5,12 @@
 > host y el reverse proxy es **traefik**.
 
 > **Histórico:** hasta 2026-10-23 este documento describía un flujo manual (paquete
-> `.tar.gz` + script `deploy_produccion_fg_main_fasa195.sh` + copia de archivos a un
-> Nginx del host). Ese flujo **no sirve más producción**: las rutas que usaba
-> (`/srv/apps/registro_produccion`, `/var/www/html/django/produccion_fg/`) no existen
-> en el host. Se conserva la referencia al final, sólo como antecedente.
+> `.tar.gz` + script `deploy_produccion_fg_main_fasa195.sh` + `build_deploy_package.ps1`
+> + copia de archivos a un Nginx del host). Ese flujo **no sirve más producción**: las
+> rutas que usaba (`/srv/apps/registro_produccion`, `/var/www/html/django/produccion_fg/`)
+> no existen en el host. Los scripts siguen en el repo, pero **no tienen dónde correr**:
+> no hay checkout en el host ni Nginx que publique ese directorio. Se conserva la
+> referencia al final, sólo como antecedente.
 
 ## Topología vigente (verificada el 2026-10-23)
 
@@ -181,14 +183,32 @@ falta una persona operadora con credenciales.
 
 ## 4. Sobre las etiquetas de versión
 
-`/api/health` devuelve `version` (`APP_VERSION`) y `commit` (`BUILD_COMMIT`). **Hoy
-pueden quedar desactualizadas**: `APP_VERSION` viene de los env files del host y
-`BUILD_COMMIT` del `SOURCE_COMMIT` que Coolify inyecta.
+`/api/health` expone `version` (`APP_VERSION`), `commit` (`BUILD_COMMIT`) y `branch`
+(`BUILD_BRANCH`).
 
-Por eso la **evidencia autoritativa** de qué está desplegado es:
+- `BUILD_COMMIT` y `BUILD_BRANCH` los inyecta Coolify en cada deploy, con el commit y
+  la rama reales.
+- **No hay que definir `SOURCE_COMMIT` ni `COOLIFY_BRANCH` a mano en la app de
+  Coolify.** Si esas variables están definidas por el usuario, Coolify no inyecta los
+  valores reales: las pisa con el literal `unknown` y el health vuelve a mentir. Es
+  la causa histórica de que producción reportara `commit: unknown`.
+- `APP_VERSION` viene del env file del servicio
+  (`/srv/env/registro_produccion/<servicio>.env`), que es de `root`: no se puede
+  cambiar sin `sudo`. Por eso el campo `version` puede quedar desactualizado; la
+  referencia es `commit`.
 
-1. el `commit` del deployment de Coolify, y
-2. el **hash del bundle** que sirve el sitio.
+Comprobación:
+
+```powershell
+$token = (Get-Content "$env:USERPROFILE\.coolify-token" -Raw).Trim()
+Invoke-RestMethod -Uri 'https://coolify.vogelconsultoria.com.ar/api/v1/applications/4hcjxromkdmdylfjbw0fgvs4/envs' `
+  -Headers @{ Authorization = "Bearer $token" } |
+  Where-Object { $_.key -in 'SOURCE_COMMIT','COOLIFY_BRANCH' } |
+  Select-Object key, value
+```
+
+Si ese listado devuelve algo, esas variables están tapando los valores reales de
+Coolify y hay que borrarlas.
 
 ## Rollback
 
@@ -202,11 +222,14 @@ improvisar: los `/srv/env/registro_produccion/` son de `root` y no se editan a m
 ## Migraciones
 
 - Se aplican **al arrancar el backend** (`RUN_MIGRATIONS=1` en el compose). El
-  pre-deployment command de Coolify no funciona con el build pack `dockercompose`.
+  **Pre-deployment Command** de Coolify no funciona con el build pack
+  `dockercompose`: corre en un contenedor que para compose nunca se crea y falla
+  con `Could not find a valid container`.
 - Cada `.sql` de `db_migrations/` tiene que ser **idempotente**: el runner las
   ejecuta en cada arranque.
-- Ojo: como el compose despliega las dos instancias, una migración nueva corre en el
-  mismo deploy contra la base de producción y contra la de Indufor.
+- `produccion_fg` e `indufor` apuntan a la misma base y **arrancan juntos** en un
+  deploy: el runner serializa con `GET_LOCK` (lock de MySQL) para que los dos no
+  apliquen el mismo `ALTER` al mismo tiempo.
 - Si una migración falla, los backends no levantan: el síntoma es
   `produccion_fg` reiniciando en loop. Ver los logs del contenedor.
 
