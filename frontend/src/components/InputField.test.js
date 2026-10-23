@@ -51,4 +51,18 @@ describe('InputField', () => {
     expect(input.attributes('aria-describedby')).toBe('litros-error')
     expect(wrapper.get('#litros-error').text()).toContain('Ingresá una cantidad válida.')
   })
+
+  it('describes the field with a hint and links it to the input', () => {
+    const wrapper = mount(InputField, {
+      props: {
+        id: 'hr-disposicion',
+        label: 'Horas a disposición',
+        hint: 'Es el complemento del turno.',
+      },
+    })
+
+    const input = wrapper.get('input')
+    expect(input.attributes('aria-describedby')).toBe('hr-disposicion-hint')
+    expect(wrapper.get('#hr-disposicion-hint').text()).toBe('Es el complemento del turno.')
+  })
 })

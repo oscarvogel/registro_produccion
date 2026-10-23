@@ -61,9 +61,9 @@ function mountView(unidad = { idUnidadNegocio: 7, nombre: 'Caminos' }) {
           template: '<section><h2>{{ title }}</h2><slot /></section>',
         },
         InputField: {
-          props: ['label', 'modelValue'],
+          props: ['label', 'modelValue', 'hint'],
           emits: ['update:modelValue'],
-          template: '<label><span>{{ label }}</span><input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" /></label>',
+          template: '<label><span>{{ label }}</span><input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" /><small v-if="hint">{{ hint }}</small></label>',
         },
       },
     },
@@ -185,6 +185,67 @@ describe('CaminosFormView', () => {
     expect(wrapper.vm.puedeAvanzar).toBe(false)
     expect(wrapper.text()).toContain('Horas de remolque: 4 h de 3 h')
     expect(wrapper.text()).toContain('Reducí las horas de remolque')
+  })
+
+  it('explains that disposition hours complete the shift while towing hours run inside the jornada', async () => {
+    const wrapper = mountView()
+
+    wrapper.vm.procesos[0].tipo_proceso_id = 20
+    wrapper.vm.procesos[0].predio_id = 1
+    wrapper.vm.procesos[0].hr_disposicion = 6
+    wrapper.vm.agregarProceso()
+    wrapper.vm.procesos[1].tipo_proceso_id = 21
+    wrapper.vm.procesos[1].predio_id = 1
+    wrapper.vm.procesos[1].hr_remolque = 6
+    wrapper.vm.pasoActual = 5
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Horas a disposición')
+    expect(wrapper.text()).toContain('Es el complemento del turno')
+    expect(wrapper.text()).toContain('No son horas de trabajo')
+    expect(wrapper.text()).toContain('Horas de remolque')
+    expect(wrapper.text()).toContain('Van dentro de la jornada')
+  })
+
+  it('shows the shift total without adding the towing hours', async () => {
+    const wrapper = mountView()
+
+    wrapper.vm.form.hr_inicio = 8286
+    wrapper.vm.form.hr_fin = 8292
+    wrapper.vm.procesos[0].tipo_proceso_id = 20
+    wrapper.vm.procesos[0].predio_id = 1
+    wrapper.vm.procesos[0].hr_disposicion = 6
+    wrapper.vm.agregarProceso()
+    wrapper.vm.procesos[1].tipo_proceso_id = 21
+    wrapper.vm.procesos[1].predio_id = 1
+    wrapper.vm.procesos[1].hr_remolque = 6
+    wrapper.vm.pasoActual = 5
+    await nextTick()
+
+    expect(wrapper.vm.horasJornada).toBe(6)
+    expect(wrapper.vm.totalHorasDisposicion).toBe(6)
+    expect(wrapper.vm.totalTurno).toBe(12)
+    expect(wrapper.text()).toContain('Total del turno: 12 h')
+    expect(wrapper.text()).not.toContain('Total del turno: 18 h')
+  })
+
+  it('adds the non-operational hours to the shift total', async () => {
+    const wrapper = mountView()
+
+    wrapper.vm.form.hr_inicio = 1
+    wrapper.vm.form.hr_fin = 4
+    wrapper.vm.form.hrs_no_op = 2
+    wrapper.vm.form.motivo_no_op = 'Reparacion'
+    wrapper.vm.procesos[0].tipo_proceso_id = 20
+    wrapper.vm.procesos[0].predio_id = 1
+    wrapper.vm.procesos[0].hr_disposicion = 6
+    wrapper.vm.pasoActual = 5
+    await nextTick()
+
+    expect(wrapper.vm.horasJornada).toBe(3)
+    expect(wrapper.vm.horasNoOperativas).toBe(2)
+    expect(wrapper.vm.totalTurno).toBe(11)
+    expect(wrapper.text()).toContain('Total del turno: 11 h')
   })
 
   it('sends a trimmed two-process payload without concatenating operations', async () => {

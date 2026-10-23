@@ -192,6 +192,109 @@ def test_non_operational_hours_do_not_reduce_meter_difference_for_towing():
     assert data.procesos[1].hr_remolque == 14
 
 
+def test_accepts_single_process_part():
+    data = ParteCaminosCreate.model_validate(
+        _base_payload(
+            hr_inicio=8286,
+            hr_fin=8292,
+            procesos=[
+                {
+                    "tipo_proceso_id": 20,
+                    "predio": "PREDIO 1",
+                    "hr_disposicion": 6,
+                }
+            ],
+        )
+    )
+
+    assert len(data.procesos) == 1
+    assert data.procesos[0].hr_disposicion == 6
+
+
+def test_accepts_real_part_with_disposition_and_towing():
+    """MOTON-Nº2 del 22/10/2026: jornada de 6 h, 6 h a disposición y 6 h de remolque.
+
+    El turno es de 12 h: la disposición es el complemento del turno y el remolque
+    vive dentro de la jornada. Sumar las dos métricas contaría 18 h.
+    """
+    data = ParteCaminosCreate.model_validate(
+        _base_payload(
+            hr_inicio=8286,
+            hr_fin=8292,
+            procesos=[
+                {
+                    "tipo_proceso_id": 20,
+                    "predio": "PREDIO 1",
+                    "hr_disposicion": 6,
+                },
+                {
+                    "tipo_proceso_id": 21,
+                    "predio": "PREDIO 1",
+                    "hr_remolque": 6,
+                },
+            ],
+        )
+    )
+
+    assert data.hr_fin - data.hr_inicio == 6
+    assert data.procesos[0].hr_disposicion == 6
+    assert data.procesos[1].hr_remolque == 6
+
+
+def test_accepts_part_with_non_operational_hours():
+    data = ParteCaminosCreate.model_validate(
+        _base_payload(
+            hr_inicio=1,
+            hr_fin=4,
+            hrs_no_op=2,
+            motivo_no_op="Reparacion",
+            procesos=[
+                {
+                    "tipo_proceso_id": 20,
+                    "predio": "PREDIO 1",
+                    "hr_disposicion": 8,
+                },
+                {
+                    "tipo_proceso_id": 21,
+                    "predio": "PREDIO 1",
+                    "hr_remolque": 3,
+                },
+            ],
+        )
+    )
+
+    assert data.hrs_no_op == 2
+    assert data.procesos[0].hr_disposicion == 8
+    assert data.procesos[1].hr_remolque == 3
+
+
+def test_towing_error_explains_that_disposition_is_not_part_of_the_jornada():
+    with pytest.raises(ValidationError) as excinfo:
+        ParteCaminosCreate.model_validate(
+            _base_payload(
+                hr_inicio=1,
+                hr_fin=4,
+                procesos=[
+                    {
+                        "tipo_proceso_id": 20,
+                        "predio": "PREDIO 1",
+                        "hr_disposicion": 8,
+                    },
+                    {
+                        "tipo_proceso_id": 21,
+                        "predio": "PREDIO 1",
+                        "hr_remolque": 4,
+                    },
+                ],
+            )
+        )
+
+    mensaje = str(excinfo.value)
+    assert "horas de remolque" in mensaje
+    assert "complemento del turno" in mensaje
+    assert "no se suman a la jornada" in mensaje
+
+
 def test_fuel_requires_meter_load_place_and_remito():
     with pytest.raises(ValidationError, match="kilometraje u horometro"):
         ParteCaminosCreate.model_validate(_base_payload(combustible=50))
