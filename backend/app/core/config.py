@@ -36,6 +36,16 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production-with-a-real-secret-key"
     ACCESS_TOKEN_EXPIRE_HOURS: int = 8
 
+    # Evidencia fotografica de horas y produccion (issue #194).
+    #
+    # El default corresponde al volumen Docker que monta el compose
+    # (/app/media), asi que funciona sin tocar los .env del servidor. Se
+    # puede sobreescribir por entorno si el volumen se mueve.
+    EVIDENCIA_STORAGE_DIR: str = "/app/media/evidencias"
+    # Tope de lo que acepta el backend. El nginx deberia permitir un poco mas
+    # (client_max_body_size) para que el multipart con sus campos quepa.
+    EVIDENCIA_MAX_UPLOAD_MB: int = 10
+
     class Config:
         # Load .env from the backend root regardless of process working directory.
         env_file = str(Path(__file__).resolve().parents[2] / ".env")

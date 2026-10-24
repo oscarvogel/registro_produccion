@@ -290,37 +290,66 @@ Cambios en el flujo existente:
   `EVIDENCIA_MAX_UPLOAD_MB: int = 10`.
 - El backend crea el directorio si no existe (con `mkdir -p`).
 
-**Docker:**
+**Docker** (implementado en el issue #196):
 ```yaml
 services:
   produccion_fg:
     volumes:
       - /srv/env/registro_produccion/produccion_fg.env:/run/secrets/registro.env:ro
       - /srv/env/registro_produccion/mysql-central-ca.pem:/run/secrets/mysql-central-ca.pem:ro
-      - evidencia_fg:/app/media          # <-- NUEVO: volumen nombrado
+      - evidencia:/app/media          # <-- NUEVO: volumen nombrado
+  indufor:
+    volumes:
+      ...
+      - evidencia:/app/media          # <-- el MISMO volumen
 volumes:
-  evidencia_fg:                          # <-- NUEVO
+  evidencia:
+    name: registro_produccion_evidencia   # <-- nombre explicito
 ```
 
 Un **volumen nombrado** es lo correcto acá: sobrevive al `--force-recreate` del deploy, no depende
-de que el path del host exista, y no se monta en `ro`. El `indufor` lleva su propio volumen
-(`evidencia_indufor`) para no mezclar evidencias de dos clientes.
+de que el path del host exista, y no se monta en `ro`. El nombre es explícito para que no dependa
+del nombre del proyecto de compose.
+
+> **Un SOLO volumen para las dos instancias.** `produccion_fg` e `indufor` comparten la base `fg`:
+> con volúmenes separados, una foto subida por Servinlgsm daría **404** en Indufor. Es el riesgo
+> R-11 del plan, y el motivo de que el volumen esté declarado una sola vez.
 
 **nginx** (`frontend/nginx.conf.template`), en el bloque `location /api/`:
 ```nginx
 client_max_body_size 12m;   # default es 1m -> las fotos darian 413
 ```
-El proxy ya cubre `/api/`, así que las fotos se sirven sin tocar traefik.
+El proxy ya cubre `/api/`, así que las fotos se sirven sin tocar traefik. El límite de nginx
+(12m) va **por encima** del tope del backend (10 MB) para que el multipart con sus campos quepa
+entero.
 
-**Punto de fricción a resolver en el deploy:** el script aborta si cambian `db_migrations`.
-La migración de este plan se aplica **a mano** en el servidor antes del deploy, y el
-procedimiento queda escrito en `docs/`.
+**Migraciones:** se aplican **solas** al arrancar el contenedor (ver 3.6 b). No hay que hacer
+nada a mano antes de desplegar.
 
 **Higiene operativa (importante):** como las fotos viven fuera de MySQL, el backup de la base
 **no las incluye**. Hay que (a) sumar el volumen al procedimiento de backup y (b) barrer los
 archivos huérfanos: evidencia cuyo `form_uuid` no corresponde a ningún registro y que tiene más
-de N días. Se propone un `scripts/purge_evidencia_huerfana.py` + una entrada en el cron del
-servidor.
+de N días.
+
+El barrido es `backend/scripts/purge_evidencia_huerfana.py` (implementado en el issue #196):
+
+```bash
+# informa (default)
+python scripts/purge_evidencia_huerfana.py
+# borra de verdad
+python scripts/purge_evidencia_huerfana.py --si
+# con mas margen
+python scripts/purge_evidencia_huerfana.py --dias 30
+```
+
+Borra dos cosas: las **filas de evidencia** cuyo parte no existe (y su archivo) y los
+**archivos en disco sin fila** (escrituras a medias). Tiene guarda de edad (7 días por
+defecto) para no tocar una foto que todavía está encolada en un teléfono sin conexión, y
+sin `--si` **sólo informa**. Dentro del contenedor:
+
+```bash
+docker compose exec produccion_fg python scripts/purge_evidencia_huerfana.py --si
+```
 
 ### 4.5 Frontend
 
@@ -467,7 +496,7 @@ Un issue, una rama, un PR. Todos desde `main`, todos en draft primero.
 | # | Issue | Rama | Alcance | Depende de |
 |---|---|---|---|---|
 | **1** | **#194** — Esquema + flags de tipo de proceso | `codex/issue-194-esquema-evidencia` | Migración SQL (tabla `produccion_evidencia` + flags + seed D8), modelo, schemas, `admin_legacy.py`, checkboxes en Admin | — |
-| **2** | Infra: volumen + nginx | `codex/issue-NN-infra-evidencia` | `docker-compose.yml` (**un** volumen para las dos instancias), `nginx.conf.template` (`client_max_body_size`), `config.py` (settings), `scripts/purge_evidencia_huerfana.py` | — |
+| **2** | **#196** — Infra: volumen + nginx | `codex/issue-196-infra-evidencia` | `docker-compose.yml` (**un** volumen para las dos instancias), `nginx.conf.template` (`client_max_body_size`), `config.py` (settings), `backend/scripts/purge_evidencia_huerfana.py` | — |
 | **3** | API de evidencia | `codex/issue-NN-api-evidencia` | `routes/evidencia.py`, `core/evidencia.py` (reglas R1–R9, cobertura por roles), upload/link/serve/verify, validación R2 en el alta, tests | 1, 2 |
 | **4** | Captura y envío en el formulario | `codex/issue-NN-frontend-evidencia` | `EvidenciaField.vue`, paso condicional en `tipoProcesoRules.js`, casilla *"el horómetro se ve en esta pantalla"*, compresión, gates de `puedeAvanzar`, resumen en Revisión, tests | 3 |
 | **5** | Modo offline | `codex/issue-NN-offline-evidencia` | `db.js` v4, store `pendingEvidencias`, orden de sync (evidencia → registro), `PendientesView.vue` | 4 |
@@ -588,20 +617,22 @@ sólo D-C a D-F, que son decisiones menores que se pueden tomar durante la imple
 
 ### Estado
 
-- [x] **Issue #194** (issue 1 del plan) — esquema + flags. Hecho: migración, modelo, schemas,
-      rutas de admin, checkboxes en Admin, tests. Validado contra MySQL real.
-- [ ] **Issue 2** — volumen Docker + `client_max_body_size` de nginx + barrido de huérfanos.
+- [x] **Issue #194** (issue 1 del plan) — esquema + flags. Hecho y mergeado (PR #195).
+- [x] **Issue #196** (issue 2 del plan) — infra: volumen Docker compartido, límite de nginx,
+      settings y barrido de huérfanos.
 - [ ] **Issue 3** — API de evidencia.
 - [ ] **Issue 4** — captura en el formulario.
 - [ ] **Issue 5** — modo offline.
 - [ ] **Issue 6** — verificación por el encargado.
 - [ ] **Issue 7** — manuales y procedimientos.
 
-### Antes de abrir el issue 2
+### Antes de abrir el issue 3
 
 1. Cerrar **D-F** (¿se puede adjuntar una foto nueva a un registro ya creado?): con D7 el
    operador puede declarar mal y el encargado va a rechazar.
-2. Confirmar que el volumen de evidencia sea **uno solo** para las dos instancias (R-11).
+2. Confirmar que el volumen de evidencia quede **creado** en el servidor antes del primer
+   deploy con fotos: `docker volume create registro_produccion_evidencia` (o lo crea el propio
+   `docker compose up`).
 
 ### Cómo se working
 

@@ -15,6 +15,12 @@ server {
     }
 
     location /api/ {
+        # Las fotos de evidencia llegan por /api/ (multipart). El limite por
+        # defecto de nginx es 1 MB y cualquier foto real lo supera: sin esto
+        # el operador recibe 413 y no puede adjuntar nada.
+        # El backend acepta hasta EVIDENCIA_MAX_UPLOAD_MB (10 MB); acá va un
+        # poco mas para que el multipart con sus campos quepa entero.
+        client_max_body_size 12m;
         proxy_pass http://${BACKEND_HOST}:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;

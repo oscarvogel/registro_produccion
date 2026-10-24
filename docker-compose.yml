@@ -27,6 +27,7 @@ services:
     volumes:
       - /srv/env/registro_produccion/indufor.env:/run/secrets/registro.env:ro
       - /srv/env/registro_produccion/mysql-central-ca.pem:/run/secrets/mysql-central-ca.pem:ro
+      - evidencia:/app/media
     ports:
       - "127.0.0.1:18004:8000"
 
@@ -44,6 +45,7 @@ services:
     volumes:
       - /srv/env/registro_produccion/produccion_fg.env:/run/secrets/registro.env:ro
       - /srv/env/registro_produccion/mysql-central-ca.pem:/run/secrets/mysql-central-ca.pem:ro
+      - evidencia:/app/media
     ports:
       - "127.0.0.1:18005:8000"
 
@@ -96,3 +98,16 @@ services:
       traefik.http.routers.registro-produccion-indufor-https.tls.certresolver: letsencrypt
       traefik.http.routers.registro-produccion-indufor-https.service: registro-produccion-indufor
       traefik.http.services.registro-produccion-indufor.loadbalancer.server.port: "80"
+
+# Las fotos de evidencia (issue #194) viven en disco, no en MySQL.
+#
+# Es UN SOLO volumen para los dos backends: produccion_fg e indufor comparten
+# la base `fg`, asi que una foto subida por una instancia tiene que poder
+# leerse desde la otra. Con dos volumenes separados, una foto daria 404.
+#
+# Un volumen nombrado sobrevive al --force-recreate del deploy, cosa que un
+# path del host no garantiza. El nombre es explicito para que no dependa del
+# nombre del proyecto de compose.
+volumes:
+  evidencia:
+    name: registro_produccion_evidencia
