@@ -1,7 +1,14 @@
 import { defineStore } from 'pinia'
 import api from '@/services/api'
 import db from '@/services/db'
-import { ensurePendingIdentity, queuePendingProductionRecord } from '@/services/pendingRecords'
+import { queuePendingProductionRecord } from '@/services/pendingRecords'
+import {
+  contarEvidenciasPendientes,
+  listarEvidenciasPendientes,
+  marcarEvidenciaConError,
+  marcarEvidenciaSincronizada,
+  queuePendingEvidencia,
+} from '@/services/pendingEvidencias'
 import { useToastStore } from '@/stores/toast'
 import {
   extractApiErrorMessage,
@@ -43,10 +50,6 @@ const createFormUuid = () => (
   globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`
 )
 
-const isPermanentSyncError = (status) => (
-  status >= 400 && status < 500 && ![401, 403, 408, 429].includes(status)
-)
-
 function isValidCatalogPayload(data) {
   return Array.isArray(data)
 }
@@ -66,6 +69,8 @@ export const useProduccionStore = defineStore('produccion', {
     rodales: [],
     lugaresCarga: [],
     pendingCount: 0,
+    // Fotos de evidencia encoladas todavia sin subir (decision D3).
+    pendingEvidenceCount: 0,
     catalogosLoadedAt: 0,
     loading: false,
     submitting: false,
@@ -335,6 +340,58 @@ export const useProduccionStore = defineStore('produccion', {
       return data
     },
 
+    // Encola las fotos de evidencia del formulario (decision D3). La foto
+    // queda en el telefono hasta que vuelva la senal.
+    async encolarEvidencias({ formUuid, fotos = [] }) {
+      const encoladas = []
+      for (const foto of fotos) {
+        if (!foto?.blob) continue
+        const id = await queuePendingEvidencia({
+          formUuid,
+          tipo: foto.tipo,
+          blob: foto.blob,
+          incluyeHorometro: Boolean(foto.incluyeHorometro),
+          nombre: foto.nombre,
+        })
+        encoladas.push(id)
+      }
+      await this.refreshPendingEvidenceCount()
+      return encoladas
+    },
+
+    // Sube las fotos encoladas de un formulario y devuelve los ids de la
+    // evidencia (los que van en el payload del parte). El upload es
+    // idempotente por (form_uuid, tipo): si la foto ya estaba en el
+    // servidor, devuelve la misma fila y no duplica.
+    async subirEvidenciasPendientes(formUuid) {
+      const pendientes = await listarEvidenciasPendientes(formUuid)
+      const ids = []
+      for (const fila of pendientes) {
+        try {
+          const respuesta = await this.uploadEvidencia({
+            formUuid: fila.formUuid,
+            tipo: fila.tipo,
+            archivo: fila.blob,
+            incluyeHorometro: Boolean(fila.incluyeHorometro),
+          })
+          ids.push(respuesta.id)
+          await marcarEvidenciaSincronizada(fila.id)
+        } catch (err) {
+          await marcarEvidenciaConError(
+            fila.id,
+            extractApiErrorMessage(err, 'No se pudo subir la foto de evidencia.'),
+          )
+          throw err
+        }
+      }
+      await this.refreshPendingEvidenceCount()
+      return ids
+    },
+
+    async refreshPendingEvidenceCount() {
+      this.pendingEvidenceCount = await contarEvidenciasPendientes()
+    },
+
     async submitProduccion(formData) {
       this.submitting = true
       this.error = null
@@ -384,82 +441,12 @@ export const useProduccionStore = defineStore('produccion', {
       this.pendingCount = await db.pendingRecords.count()
     },
 
-    async syncPending() {
-      if (this.syncingPending) {
-        return { successCount: 0, pendingCount: this.pendingCount, permanentFailureCount: 0 }
-      }
-      this.syncingPending = true
-      const pending = await db.pendingRecords.where('synced').equals(0).toArray()
-      if (!pending.length) {
-        this.syncingPending = false
-        return { successCount: 0, pendingCount: 0, permanentFailureCount: 0 }
-      }
-
-      this.error = null
-      let successCount = 0
-      let permanentFailureCount = 0
-
-      try {
-        for (const record of pending) {
-          try {
-            await db.pendingRecords.update(record.id, {
-              syncStatus: 'syncing',
-              lastAttemptAt: Date.now(),
-              retryCount: Number(record.retryCount || 0) + 1,
-            })
-            const submissionPayload = await ensurePendingIdentity(record)
-            await api.post('/api/produccion/', submissionPayload, {
-              _suppressErrorToast: true,
-            })
-            await db.pendingRecords.delete(record.id)
-            successCount++
-          } catch (err) {
-            const status = err?.response?.status
-
-            if (isPermanentSyncError(status)) {
-              const detail = extractApiErrorMessage(
-                err,
-                'Error permanente al sincronizar el registro',
-              )
-              await db.pendingRecords.update(record.id, {
-                synced: 1,
-                syncStatus: 'failed',
-                syncError: detail,
-                failedAt: Date.now(),
-              })
-              permanentFailureCount++
-              continue
-            }
-
-            await db.pendingRecords.update(record.id, {
-              synced: 0,
-              syncStatus: 'pending',
-              syncError: [401, 403].includes(status)
-                ? 'La sesión debe validarse nuevamente antes de enviar.'
-                : extractApiErrorMessage(
-                    err,
-                    'Error transitorio. Se reintentará automáticamente.',
-                  ),
-            })
-          }
-        }
-
-        await this.refreshPendingCount()
-        if (permanentFailureCount > 0) {
-          this.error = `No se pudieron sincronizar ${permanentFailureCount} registro(s) por un error permanente.`
-          useToastStore().error('Sincronizacion parcial', this.error)
-        } else if (successCount > 0) {
-          useToastStore().success('Pendientes sincronizados', `${successCount} registro(s) enviados.`)
-        }
-        return {
-          successCount,
-          pendingCount: this.pendingCount,
-          permanentFailureCount,
-        }
-      } finally {
-        this.syncingPending = false
-      }
-    },
+    // NOTA: `syncPending` NO vive en este store. `stores/produccion.js` (el
+    // store que usa la app) lo reemplaza por una version que ademas sabe
+    // que tipo de parte es el que se sincroniza (`produccion`, `caminos`,
+    // `combustible`). Tener dos copias de la regla de sync hacia que la
+    // evidencia se suba antes que el parte (decision D3) era una fuente de
+    // divergencia: la copia de aca nunca se ejecutaba.
 
     // Carga inicial de catálogos
     async loadCatalogos({ force = false } = {}) {
