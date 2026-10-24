@@ -642,7 +642,8 @@ abiertas sólo D-C a D-E, que son decisiones menores que se pueden tomar durante
 - [x] **Issue #200** (issue 4 del plan) — captura en el formulario: paso condicional
       "Evidencia", foto con la cámara del teléfono, declaración de D7 y subida antes
       del parte.
-- [ ] **Issue 5** — modo offline.
+- [x] **Issue 5** — modo offline: la foto se encola en la base local del
+  teléfono y el sync sube primero la evidencia y después el parte.
 - [ ] **Issue 6** — verificación por el encargado.
 - [ ] **Issue 7** — manuales y procedimientos.
 
@@ -655,6 +656,30 @@ abiertas sólo D-C a D-E, que son decisiones menores que se pueden tomar durante
 3. Confirmar que el volumen de evidencia quede **creado** en el servidor antes del primer
    deploy con fotos: `docker volume create registro_produccion_evidencia` (o lo crea el propio
    `docker compose up`).
+
+### Notas de la implementación del issue #202 (modo offline)
+
+- **El `syncPending` que corre es el de `stores/produccion.js`, no el de
+  `stores/produccionLegacy.js`.** El store delega en el legacy y después
+  **reemplaza** `syncPending` por una versión que además sabe qué tipo de
+  parte es el que se sincroniza (`produccion`, `caminos`, `combustible`).
+  La copia del legacy era código muerto: la regla de "primero la foto, después
+  el parte" (D3) se había puesto ahí y nunca se ejecutaba. Se borró del legacy
+  y se puso en el store vivo, para que no haya dos reglas que puedan divergir.
+- **La cola de fotos es una tabla nueva de Dexie (`pendingEvidencias`, v4).**
+  El `Blob` se guarda crudo: pasarlo a base64 multiplica por 4 el espacio y
+  obligaría a una copia extra de la memoria (riesgo R-6). Con la compresión del
+  issue #200 (lado mayor 1600 px, JPEG 0.8) una foto queda en ~90 KB.
+- **La foto se identifica por `form_uuid`, igual que el parte.** Sin eso el
+  backend no puede vincular la evidencia con el registro cuando lo crea (R2),
+  y el link de D-F (`POST /registros/{id}/evidencias`) no se puede usar desde
+  la cola.
+- **El badge de *Pendientes* es informativo, no un botón.** El operador ve si
+  la foto sigue en el teléfono o si ya se subió; el envío lo hace el sync.
+- **La pantalla de *Pendientes* se refresca sola** cuando el store sincroniza
+  por su cuenta (evento `online` o timer de la app): si no, seguía mostrando
+  un parte ya enviado como "requieren atención" y una foto ya subida como
+  "esperando subir".
 
 ### Cómo se working
 
