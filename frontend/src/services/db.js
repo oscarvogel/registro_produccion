@@ -19,4 +19,13 @@ db.version(3).stores({
   catalogos: 'key, catalog, timestamp',
 })
 
+// v4: las fotos de evidencia encoladas (decision D3).
+// La foto se guarda como Blob crudo: codificarla en base64 multiplica por 4
+// el espacio y obliga a una copia extra de la memoria.
+db.version(4).stores({
+  pendingRecords: '++id, timestamp, synced, syncStatus, clientId',
+  catalogos: 'key, catalog, timestamp',
+  pendingEvidencias: '++id, formUuid, tipo, synced, syncStatus',
+})
+
 export default db

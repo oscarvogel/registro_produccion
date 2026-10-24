@@ -29,6 +29,18 @@ vi.mock('@/services/db', () => ({
         })),
       })),
     },
+    // Cola de fotos de evidencia (issue #202): el sync sube primero la foto
+    // y despues el parte.
+    pendingEvidencias: {
+      count: vi.fn(async () => 0),
+      update: vi.fn(),
+      where: vi.fn(() => ({
+        equals: vi.fn(() => ({
+          count: vi.fn(async () => 0),
+          toArray: vi.fn(async () => []),
+        })),
+      })),
+    },
   },
 }))
 

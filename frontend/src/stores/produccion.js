@@ -161,7 +161,19 @@ export function useProduccionStore(...args) {
           const endpoint = pendingSubmissionEndpoint(identifiedPayload)
           const submissionPayload = stripPendingMetadata(identifiedPayload)
 
-          await api.post(endpoint, submissionPayload, { _suppressErrorToast: true })
+          // ORDEN DE SYNC (decision D3): primero la evidencia, despues el
+          // parte. Si la foto no sube, el registro NO se envia: el backend
+          // rechaza (422) un parte sin la evidencia que su tipo de proceso
+          // exige (R2). El error de la foto se propaga y deja el registro en
+          // la cola para el proximo intento.
+          const idsEvidencia = await store.subirEvidenciasPendientes(
+            submissionPayload.form_uuid,
+          )
+          const payloadConEvidencia = idsEvidencia.length
+            ? { ...submissionPayload, evidencias: idsEvidencia }
+            : submissionPayload
+
+          await api.post(endpoint, payloadConEvidencia, { _suppressErrorToast: true })
           await db.pendingRecords.delete(record.id)
           successCount++
         } catch (err) {

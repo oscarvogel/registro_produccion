@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const state = vi.hoisted(() => ({
   records: [],
+  evidencias: [],
+  evidenciasToArray: vi.fn(async () => state.evidencias),
+  store: null,
   auth: {
     user: { idPersonal: 7, unidad_ids: [], unidad_negocio: null },
     isAdmin: true,
@@ -37,15 +40,22 @@ vi.mock('@/services/db', () => ({
       delete: state.deleteRecord,
       update: state.updateRecord,
     },
+    pendingEvidencias: {
+      toArray: state.evidenciasToArray,
+    },
   },
 }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => state.auth }))
-vi.mock('@/stores/produccion', () => ({
-  useProduccionStore: () => ({
+vi.mock('@/stores/produccion', async () => {
+  const { reactive } = await import('vue')
+  state.store = reactive({
+    pendingCount: 0,
+    pendingEvidenceCount: 0,
     refreshPendingCount: state.refreshPendingCount,
     syncPending: state.syncPending,
-  }),
-}))
+  })
+  return { useProduccionStore: () => state.store }
+})
 vi.mock('@/stores/connectivity', () => ({ useConnectivityStore: () => state.connectivity }))
 vi.mock('@/stores/toast', () => ({ useToastStore: () => state.toast }))
 
@@ -75,6 +85,12 @@ const global = {
 describe('PendientesView', () => {
   beforeEach(() => {
     state.records = []
+    state.evidencias = []
+    state.evidenciasToArray.mockClear()
+    if (state.store) {
+      state.store.pendingCount = 0
+      state.store.pendingEvidenceCount = 0
+    }
     state.auth.isAdmin = true
     state.refreshPendingCount.mockClear()
     state.deleteRecord.mockClear()
@@ -160,5 +176,70 @@ describe('PendientesView', () => {
 
     expect(state.apiPost).toHaveBeenCalledTimes(1)
     expect(state.apiPost.mock.calls[0][0]).toBe('/api/produccion/')
+  })
+
+  it('avisa que la foto sigue en el telefono cuando la evidencia todavia no subio', async () => {
+    state.records = [{
+      id: 21,
+      timestamp: Date.now(),
+      payload: { UN: 'Demo', form_uuid: 'uuid-21' },
+      synced: 0,
+      syncStatus: 'pending',
+    }]
+    state.evidencias = [
+      { id: 1, formUuid: 'uuid-21', tipo: 'procesador', synced: 0, syncStatus: 'pending' },
+    ]
+
+    const wrapper = mount(PendientesView, { global })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('1 foto(s) adjunta(s), esperando subir')
+  })
+
+  it('confirma que la foto ya subio cuando la evidencia esta sincronizada', async () => {
+    state.records = [{
+      id: 22,
+      timestamp: Date.now(),
+      payload: { UN: 'Demo', form_uuid: 'uuid-22' },
+      synced: 0,
+      syncStatus: 'pending',
+    }]
+    state.evidencias = [
+      { id: 2, formUuid: 'uuid-22', tipo: 'procesador', synced: 1, syncStatus: 'synced' },
+    ]
+
+    const wrapper = mount(PendientesView, { global })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Foto subida')
+  })
+
+  it('recarga la cola cuando el store sincroniza solo', async () => {
+    state.store.pendingCount = 1
+    state.store.pendingEvidenceCount = 1
+    state.records = [{
+      id: 23,
+      timestamp: Date.now(),
+      payload: { UN: 'Demo', form_uuid: 'uuid-23' },
+      synced: 0,
+      syncStatus: 'pending',
+    }]
+    state.evidencias = [
+      { id: 3, formUuid: 'uuid-23', tipo: 'procesador', synced: 0, syncStatus: 'pending' },
+    ]
+
+    const wrapper = mount(PendientesView, { global })
+    await flushPromises()
+    expect(wrapper.text()).toContain('1 foto(s) adjunta(s), esperando subir')
+
+    const lecturasAntes = state.evidenciasToArray.mock.calls.length
+
+    // El store sincroniza por su cuenta (evento 'online' o timer de la app):
+    // la pantalla tiene que releer la cola en vez de mostrar datos viejos.
+    state.store.pendingCount = 0
+    state.store.pendingEvidenceCount = 0
+    await flushPromises()
+
+    expect(state.evidenciasToArray.mock.calls.length).toBeGreaterThan(lecturasAntes)
   })
 })

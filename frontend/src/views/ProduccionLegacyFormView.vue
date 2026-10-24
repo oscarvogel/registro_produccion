@@ -1209,25 +1209,40 @@ function ensureFormUuid() {
   return formUuidRef.value
 }
 
-// Sube las fotos y devuelve los ids de la evidencia.
-async function subirEvidencias(formUuid) {
-  const ids = []
+// Las fotos a subir: la del procesador (con la declaracion) y, si hace
+// falta, la del horometro.
+function fotosDeEvidencia() {
+  const fotos = []
   if (evidenciaFotos.procesador) {
-    const respuesta = await store.uploadEvidencia({
-      formUuid,
+    fotos.push({
       tipo: ROL_PROCESADOR,
-      archivo: evidenciaFotos.procesador.file,
+      blob: evidenciaFotos.procesador.file,
       incluyeHorometro: incluyeHorometroEnFoto.value,
+      nombre: evidenciaFotos.procesador.nombre,
     })
-    ids.push(respuesta.id)
   }
   // Si el operador declaró que el horometro se ve en la pantalla del
   // procesador, esa foto ya cubre el horometro: no se sube una segunda.
   if (mostrarCampoHorometro.value && evidenciaFotos.horometro) {
+    fotos.push({
+      tipo: ROL_HOROMETRO,
+      blob: evidenciaFotos.horometro.file,
+      incluyeHorometro: false,
+      nombre: evidenciaFotos.horometro.nombre,
+    })
+  }
+  return fotos
+}
+
+// Sube las fotos y devuelve los ids de la evidencia.
+async function subirEvidencias(formUuid, fotos) {
+  const ids = []
+  for (const foto of fotos) {
     const respuesta = await store.uploadEvidencia({
       formUuid,
-      tipo: ROL_HOROMETRO,
-      archivo: evidenciaFotos.horometro.file,
+      tipo: foto.tipo,
+      archivo: foto.blob,
+      incluyeHorometro: foto.incluyeHorometro,
     })
     ids.push(respuesta.id)
   }
@@ -2043,28 +2058,24 @@ async function handleSubmit() {
         })
         return
       }
-      if (!navigator.onLine) {
-        // La cola offline de fotos es el issue 5: por ahora no se puede
-        // guardar un parte que exige evidencia sin conexión.
-        await Swal.fire({
-          icon: 'warning',
-          title: 'Sin conexión',
-          text: 'Este tipo de proceso necesita la foto de evidencia y no hay conexión para subirla. Guardá el registro cuando tengas señal.',
-          confirmButtonColor: '#3d935d',
-        })
-        return
-      }
       formUuid = ensureFormUuid()
-      try {
-        evidencias = await subirEvidencias(formUuid)
-      } catch (error) {
-        await Swal.fire({
-          icon: 'error',
-          title: 'No se pudo subir la foto',
-          text: error?.message || 'Falló la subida de la foto de evidencia. Revisá la conexión e intentá de nuevo.',
-          confirmButtonColor: '#3d935d',
-        })
-        return
+      const fotos = fotosDeEvidencia()
+      if (navigator.onLine) {
+        try {
+          evidencias = await subirEvidencias(formUuid, fotos)
+        } catch (error) {
+          await Swal.fire({
+            icon: 'error',
+            title: 'No se pudo subir la foto',
+            text: error?.message || 'Falló la subida de la foto de evidencia. Revisá la conexión e intentá de nuevo.',
+            confirmButtonColor: '#3d935d',
+          })
+          return
+        }
+      } else {
+        // Sin senal (decision D3): la foto queda encolada en el telefono y
+        // se sube ANTES que el parte cuando vuelva la conexion.
+        await store.encolarEvidencias({ formUuid, fotos })
       }
     }
 

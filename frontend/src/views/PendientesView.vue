@@ -142,6 +142,9 @@
                   <AppBadge :tone="isFailedRecord(record) ? 'error' : 'warning'">
                     {{ isFailedRecord(record) ? 'Falló sincronización' : 'Pendiente' }}
                   </AppBadge>
+                  <AppBadge v-if="evidenciaLabel(record)" tone="info">
+                    {{ evidenciaLabel(record) }}
+                  </AppBadge>
                   <span class="text-xs text-outline">{{ formatDate(record.timestamp) }}</span>
                 </div>
                 <p class="mt-2 text-base font-extrabold text-on-surface">
@@ -279,7 +282,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import api from '@/services/api'
 import { ensurePendingIdentity, pendingSubmissionEndpoint, stripPendingMetadata } from '@/services/pendingRecords'
 import { buildCaminosProcessGroups } from '@/services/pendingRecordDetail'
@@ -303,6 +306,7 @@ const connectivityStore = useConnectivityStore()
 const toast = useToastStore()
 
 const records = ref([])
+const evidencias = ref([])
 const loading = ref(false)
 const syncing = ref(false)
 const retryingId = ref(null)
@@ -557,8 +561,37 @@ onUnmounted(() => {
   window.removeEventListener('offline', updateOnline)
 })
 
+// El store puede sincronizar solo (por el evento 'online' o el timer de la
+// app), sin pasar por el boton de esta pantalla. Si no se recarga la lista,
+// el operador ve un parte que ya se envio como si siguiera esperando, y una
+// foto que ya subio como si faltara. Los dos contadores del store son la
+// senal de que la cola cambio.
+watch(
+  () => `${produccionStore.pendingCount}:${produccionStore.pendingEvidenceCount}`,
+  () => {
+    loadRecords()
+  },
+)
+
 function isFailedRecord(record) {
   return record?.synced === 1 || record?.syncStatus === 'failed'
+}
+
+// Fotos de evidencia encoladas de un registro (decision D3): el operador
+// tiene que saber si la foto sigue en el telefono o ya se subio.
+function evidenciasDe(record) {
+  const formUuid = record?.payload?.form_uuid || record?.clientId || ''
+  if (!formUuid) return []
+  return evidencias.value.filter((fila) => fila.formUuid === formUuid)
+}
+
+function evidenciaLabel(record) {
+  const fotos = evidenciasDe(record)
+  if (!fotos.length) return ''
+  const esperando = fotos.some((foto) => Number(foto.synced || 0) !== 1)
+  return esperando
+    ? `${fotos.length} foto(s) adjunta(s), esperando subir`
+    : 'Foto subida'
 }
 
 function isPendingRecord(record) {
@@ -574,6 +607,9 @@ async function loadRecords() {
   loading.value = true
   try {
     records.value = await db.pendingRecords.orderBy('timestamp').reverse().toArray()
+    // La cola de evidencias llega con la v4 de la base local. Si el telefono
+    // todavia no migro, la pantalla de Pendientes tiene que seguir funcionando.
+    evidencias.value = db.pendingEvidencias ? await db.pendingEvidencias.toArray() : []
     await produccionStore.refreshPendingCount()
     lastCheckAt.value = Date.now()
   } finally {
