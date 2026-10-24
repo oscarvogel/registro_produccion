@@ -639,15 +639,20 @@ abiertas sólo D-C a D-E, que son decisiones menores que se pueden tomar durante
       settings y barrido de huérfanos. Hecho y mergeado (PR #197).
 - [x] **Issue #198** (issue 3 del plan) — API de evidencia: upload, servir bytes, listar,
       verificar, D-F y R2/R3 en el alta.
-- [ ] **Issue 4** — captura en el formulario.
+- [x] **Issue #200** (issue 4 del plan) — captura en el formulario: paso condicional
+      "Evidencia", foto con la cámara del teléfono, declaración de D7 y subida antes
+      del parte.
 - [ ] **Issue 5** — modo offline.
 - [ ] **Issue 6** — verificación por el encargado.
 - [ ] **Issue 7** — manuales y procedimientos.
 
-### Antes de abrir el issue 4
+### Antes de abrir el issue 5
 
-1. Alinear `horasValidas` del formulario legacy con la regla del backend (`hr_fin > hr_inicio`).
-2. Confirmar que el volumen de evidencia quede **creado** en el servidor antes del primer
+1. La cola offline tiene que guardar **la foto**, no sólo el parte: hoy la foto vive en
+   memoria y si el operador guarda el borrador, la foto se pierde (issue #200).
+2. Mientras la foto no se pueda encolar, un proceso que exige evidencia **no se puede
+   guardar sin conexión**: el formulario lo avisa y no guarda el parte.
+3. Confirmar que el volumen de evidencia quede **creado** en el servidor antes del primer
    deploy con fotos: `docker volume create registro_produccion_evidencia` (o lo crea el propio
    `docker compose up`).
 

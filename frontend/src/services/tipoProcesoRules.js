@@ -11,6 +11,27 @@ export function processRequiresHorometro(processType) {
   return Boolean(processType.requiere_horometro)
 }
 
+// ─── Evidencia fotografica (issue #200) ────────────────────────────
+// El paso "Evidencia" aparece solo cuando el tipo de proceso exige foto.
+// A diferencia del horometro (que viene del backend en `requiere_horometro`),
+// los flags de evidencia son opcionales: sin datos NO se exige foto.
+export const ROL_PROCESADOR = 'procesador'
+export const ROL_HOROMETRO = 'horometro'
+
+export function processRequiresEvidence(processType) {
+  if (!processType || typeof processType !== 'object') return false
+  return Boolean(processType.requiere_foto_procesador || processType.requiere_foto_horometro)
+}
+
+// Roles de evidencia que exige el tipo de proceso.
+export function evidenceRoles(processType) {
+  const roles = []
+  if (!processType || typeof processType !== 'object') return roles
+  if (processType.requiere_foto_procesador) roles.push(ROL_PROCESADOR)
+  if (processType.requiere_foto_horometro) roles.push(ROL_HOROMETRO)
+  return roles
+}
+
 // Pasos del wizard de carga de produccion.
 export const PRODUCCION_STEPS = [
   { key: 'contexto', label: 'Contexto' },
@@ -19,6 +40,7 @@ export const PRODUCCION_STEPS = [
   { key: 'proceso', label: 'Proceso' },
   { key: 'tiempo', label: 'Tiempo' },
   { key: 'produccion', label: 'Producción' },
+  { key: 'evidencia', label: 'Evidencia' },
   { key: 'consumos', label: 'Consumos' },
   { key: 'ubicacion', label: 'Ubicación' },
   { key: 'revision', label: 'Revisión' },
@@ -26,7 +48,13 @@ export const PRODUCCION_STEPS = [
 
 // El paso "Tiempo" (horometro inicial/final) solo aplica a procesos que
 // requieren horometro. Una camioneta, por ejemplo, lo omite.
+// El paso "Evidencia" solo aplica a los procesos que exigen foto.
 export function productionSteps(processType) {
   const requires = processRequiresHorometro(processType)
-  return PRODUCCION_STEPS.filter((step) => step.key !== 'tiempo' || requires)
+  const evidence = processRequiresEvidence(processType)
+  return PRODUCCION_STEPS.filter((step) => {
+    if (step.key === 'tiempo') return requires
+    if (step.key === 'evidencia') return evidence
+    return true
+  })
 }
