@@ -12,6 +12,7 @@ from app.core.database import Base  # noqa: F401  (reexportado para conveniencia
 from app.models.asignacion_operativa import AsignacionOperativa  # noqa: F401
 from app.models.carga_comb import CargaComb  # noqa: F401
 from app.models.dashboard import KpiDefinicion, TipoProcesoKpi  # noqa: F401
+from app.models.evidencia import ProduccionEvidencia  # noqa: F401
 from app.models.item import Item  # noqa: F401
 from app.models.lugar_carga import LugarCarga  # noqa: F401
 from app.models.lugar_carga_unidad_negocio import LugarCargaUnidadNegocio  # noqa: F401

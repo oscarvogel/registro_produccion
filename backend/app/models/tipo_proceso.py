@@ -12,6 +12,15 @@ class TipoDeProceso(Base):
     requiere_predio = Column(Boolean, nullable=False, default=False)
     requiere_rodal = Column(Boolean, nullable=False, default=False)
     requiere_horometro = Column(Boolean, nullable=False, default=True)
+    # Exigencia de evidencia fotografica (issue #194).
+    #
+    # NULL = sin configurar; la API lo expone como False (no exige evidencia).
+    # 0 = configurado, no exige evidencia. 1 = configurado, exige evidencia.
+    #
+    # OJO: `requiere_horometro` es otro concepto: define si el parte pide
+    # horometro inicial/final. Este flag define si hace falta FOTOGRAFIARLO.
+    requiere_foto_horometro = Column(Boolean, nullable=True)
+    requiere_foto_procesador = Column(Boolean, nullable=True)
     activo = Column(SmallInteger, nullable=False, default=1)
 
 
