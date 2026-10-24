@@ -635,6 +635,18 @@ const SECTIONS = {
   observaciones: 'Observaciones',
 }
 
+// Resumen de la evidencia fotografica exigida por un tipo de proceso.
+// Se muestra en UNA sola columna de la grilla: con dos columnas (una por
+// flag) la columna de acciones quedaba fuera de pantalla a 1366px.
+function evidenciaResumen(row) {
+  const horometro = Boolean(row.requiere_foto_horometro)
+  const procesador = Boolean(row.requiere_foto_procesador)
+  if (horometro && procesador) return 'Ambas'
+  if (horometro) return 'Horómetro'
+  if (procesador) return 'Procesador'
+  return '—'
+}
+
 const ENTITY_DEFINITIONS = {
   personal: {
     title: 'Personal',
@@ -748,8 +760,7 @@ const ENTITY_DEFINITIONS = {
       { key: 'requiere_predio', label: 'Predio', type: 'badge', trueText: 'Sí', falseText: 'No' },
       { key: 'requiere_rodal', label: 'Rodal', type: 'badge', trueText: 'Sí', falseText: 'No' },
       { key: 'requiere_horometro', label: 'Horómetro', type: 'badge', trueText: 'Sí', falseText: 'No' },
-      { key: 'requiere_foto_horometro', label: 'Foto Horómetro', type: 'badge', trueText: 'Sí', falseText: 'No' },
-      { key: 'requiere_foto_procesador', label: 'Foto Procesador', type: 'badge', trueText: 'Sí', falseText: 'No' },
+      { key: 'evidencia_requisitos', label: 'Evidencia' },
       { key: 'activo', label: 'Estado', type: 'badge', trueText: 'Activo', falseText: 'Inactivo' },
     ],
     fields: [
@@ -764,6 +775,13 @@ const ENTITY_DEFINITIONS = {
       { key: 'requiere_foto_procesador', label: 'Requiere Foto Procesador', type: 'checkbox', output: 'bool', default: false, section: 'requisitos' },
       { key: 'activo', label: 'Activo', type: 'checkbox', output: 'int', default: true, section: 'principal' },
     ],
+    // Resumen de la evidencia exigida. Es UNA sola columna (y no dos) porque
+    // la grilla de tipos de proceso entra justa en 1366px: con dos columnas
+    // mas la columna de acciones quedaba fuera de pantalla.
+    decorate: (row) => ({
+      ...row,
+      evidencia_requisitos: evidenciaResumen(row),
+    }),
   },
   'lugares-carga': {
     title: 'Lugares de Carga',
@@ -1067,12 +1085,16 @@ async function loadRows() {
   loading.value = true
   error.value = null
   try {
-    rows.value = await adminStore.fetchEntity(entity.value, {
+    const fetched = await adminStore.fetchEntity(entity.value, {
       skip: page.value * limit.value,
       limit: limit.value,
       buscar: searchText.value,
       unidad_id: unidadFilter.value || null,
     })
+    // Permite derivar columnas (por ejemplo el resumen de evidencia) sin
+    // tocar el contrato de la grilla.
+    const decorate = meta.value?.decorate
+    rows.value = decorate ? fetched.map((row) => decorate(row)) : fetched
   } catch (err) {
     rows.value = []
     error.value = safeAdminErrorMessage(err, `No se pudo cargar ${meta.value.title.toLowerCase()}`)

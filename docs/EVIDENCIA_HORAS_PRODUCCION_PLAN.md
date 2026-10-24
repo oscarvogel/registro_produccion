@@ -80,13 +80,15 @@ propio bloque extra en el formulario (Sistema de Corte: `pies_16/14/12/10`, `pul
 
 - Vue 3 + Pinia + Vite + Tailwind. `ProduccionFormView.vue` deriva a `CaminosFormView.vue`
   (UN Caminos) o `ProduccionLegacyFormView.vue` (1780 líneas, todo lo demás).
-- Wizard de 9 pasos con array **estático**: `['Contexto', 'Operador', 'Equipo', 'Proceso',
-  'Tiempo', 'Producción', 'Consumos', 'Ubicación', 'Revisión']`, y `totalPasos = pasos.length`.
-  Para agregar un paso condicional hay que volver `pasos` un `computed`.
+- Wizard de 9 pasos. `frontend/src/services/tipoProcesoRules.js` ya expone
+  `productionSteps(processType)`, que **omite** el paso "Tiempo" cuando el proceso no usa
+  horómetro. Los pasos ya son condicionales: agregar el paso "Evidencia" es sumar una
+  entrada al filtro, no reindexar el wizard.
 - `puedeAvanzar` es un `switch` por índice de paso: es donde va la puerta de evidencia.
 - Cola offline: Dexie `produccion_offline`, store `pendingRecords` (`db.js` está en **v3**).
 - Admin CRUD: `AdminCrudView.vue` con `ENTITY_DEFINITIONS`; `tipos-proceso` ya tiene una sección
-  `requisitos` con los tres checkboxes `requiere_*`.
+  `requisitos` con los tres checkboxes `requiere_*`. Las entidades pueden definir un
+  `decorate(row)` para derivar columnas sin tocar `DataTable`.
 - Detalle de registro: `RecordDetailModal.vue`, agrupado en secciones, con
   `dashboardRegistros.js` como store.
 
@@ -445,7 +447,14 @@ está en la máquina** al declarar, y la **persona que revisa** al verificar.
 - `backend/app/models/tipo_proceso.py`: dos columnas nuevas.
 - `backend/app/api/routes/admin_legacy.py`: `_to_tipo_proceso_response` y el create/update.
 - `frontend/src/views/admin/AdminCrudView.vue`: dos checkboxes nuevos en la sección `requisitos`
-  de `tipos-proceso`, más dos columnas en la grilla para verlo de un vistazo.
+  de `tipos-proceso`, más **una** columna "Evidencia" en la grilla que resume los dos flags
+  (`Ambas` / `Horómetro` / `Procesador` / `—`). El resumen se calcula con un hook `decorate`
+  por entidad, sin tocar el contrato de `DataTable`.
+  > **Una sola columna, no dos:** la grilla de tipos de proceso entra *justa* en 1366px
+  > (0px de margen). Con dos columnas el desborde llegaba a **208px** y la columna de
+  > acciones quedaba fuera de pantalla. Con una, el desborde es de **37px**, y a 1638x969
+  > (la del cliente) es **0px**. Medido con `frontend/scripts/evidenciaAdminCapture.mjs`.
+  > Ver `docs/EVIDENCIA_ADMIN_VISUAL_REVIEW.md`.
 - `frontend/src/views/ProduccionLegacyFormView.vue`: el formulario de producción lee los flags
   desde `tipoProcesoSeleccionado` (ya disponible vía `store.tiposProceso`).
 
