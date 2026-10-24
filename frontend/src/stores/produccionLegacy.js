@@ -317,6 +317,24 @@ export const useProduccionStore = defineStore('produccion', {
       }
     },
 
+    // Sube una foto de evidencia (issue #200). La foto viaja suelta, con el
+    // `form_uuid` del formulario; el backend la vincula al registro cuando
+    // se crea.
+    async uploadEvidencia({ formUuid, tipo, archivo, incluyeHorometro = false }) {
+      const formData = new FormData()
+      formData.append('form_uuid', formUuid)
+      formData.append('tipo', tipo)
+      formData.append('incluye_horometro', incluyeHorometro ? 'true' : 'false')
+      formData.append('archivo', archivo, archivo?.name || 'evidencia.jpg')
+      const { data } = await api.post('/api/produccion/evidencias', formData, {
+        // multipart: si se deja el Content-Type por defecto (json), axios
+        // manda el FormData como JSON y el backend no lo entiende.
+        headers: { 'Content-Type': 'multipart/form-data' },
+        _suppressErrorToast: true,
+      })
+      return data
+    },
+
     async submitProduccion(formData) {
       this.submitting = true
       this.error = null

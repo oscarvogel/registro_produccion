@@ -381,7 +381,7 @@
             El horómetro inicial ({{ form.hr_inicio }}) no puede ser menor al horómetro final del registro anterior ({{ ultimaHoraFinRef }}).
           </span>
           <span v-else>
-            Las lecturas de horómetro deben ser mayores a 0, y la lectura final no puede ser menor a la inicial.
+            Las lecturas de horómetro deben ser mayores a 0, y la lectura final debe ser mayor a la inicial.
           </span>
         </div>
         <div class="grid grid-cols-2 gap-4 mt-3">
@@ -580,6 +580,56 @@
       <div v-show="pasoId === 'produccion'" v-if="form.tipo_de_proceso_id && camposActivos.length === 0" class="app-surface-muted rounded-lg border p-3 text-sm text-[var(--app-text-muted)]">
         No hay campos de producción definidos para este tipo de proceso.
       </div>
+
+      <!-- ═══ EVIDENCIA FOTOGRÁFICA (solo si el tipo de proceso exige foto) ═══ -->
+      <SectionCard v-show="pasoId === 'evidencia'" v-if="evidenciaRequerida" title="Evidencia Fotográfica">
+        <p class="mb-3 text-sm text-[var(--app-text-muted)]">
+          Este tipo de proceso pide foto de respaldo. Tomala ahora: se sube al guardar el registro y después la revisa el encargado.
+        </p>
+
+        <div class="space-y-3">
+          <EvidenciaField
+            v-if="requiereFotoProcesador"
+            v-model="evidenciaFotos.procesador"
+            titulo="Foto de la pantalla del procesador"
+            ayuda="Mostrá la pantalla del procesador (plantas y/o m3)."
+            requerido
+          />
+
+          <label
+            v-if="requiereFotoHorometro && requiereFotoProcesador"
+            class="flex items-start gap-2.5 rounded-xl border border-neutral-300/70 bg-[var(--app-surface-muted)] px-3 py-2.5"
+          >
+            <input
+              v-model="incluyeHorometroEnFoto"
+              type="checkbox"
+              class="mt-0.5 h-4 w-4 shrink-0 rounded border-neutral-300 text-primary focus:ring-primary/30"
+            />
+            <span class="text-sm font-semibold text-[var(--app-text)]">
+              En esa misma pantalla se ve el horómetro
+              <span class="mt-0.5 block text-xs font-normal text-[var(--app-text-muted)]">
+                Marcá esto si la foto de arriba ya muestra el horómetro: con esa sola foto alcanza y no hace falta sacar otra.
+              </span>
+            </span>
+          </label>
+
+          <EvidenciaField
+            v-if="mostrarCampoHorometro"
+            v-model="evidenciaFotos.horometro"
+            titulo="Foto del horómetro"
+            ayuda="Fotografiá el horómetro con la lectura final."
+            :subtexto="subtextoHorometro"
+            requerido
+          />
+
+          <p
+            v-if="mostrarErrorEvidencia"
+            class="rounded-lg border border-error/30 bg-error-light/40 px-3 py-2 text-sm font-semibold text-error-dark"
+          >
+            Falta la foto de evidencia. No se puede guardar el registro sin ella.
+          </p>
+        </div>
+      </SectionCard>
 
       <!-- ═══ 7. COMBUSTIBLE ═══ -->
       <SectionCard v-show="pasoId === 'consumos'" title="Combustible">
@@ -984,11 +1034,18 @@ import Swal from 'sweetalert2'
 import SectionCard from '@/components/SectionCard.vue'
 import InputField from '@/components/InputField.vue'
 import AutocompleteField from '@/components/AutocompleteField.vue'
+import EvidenciaField from '@/components/produccion/EvidenciaField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import ActionBar from '@/components/ui/ActionBar.vue'
 import motivosNoOperativos from '@/data/motivosNoOperativos.json'
 import { cleanLocationValues, getLocationRequirements, shouldShowActaPredioFields } from '@/services/actaPredioRules'
-import { processRequiresHorometro, productionSteps } from '@/services/tipoProcesoRules'
+import {
+  processRequiresHorometro,
+  productionSteps,
+  evidenceRoles,
+  ROL_HOROMETRO,
+  ROL_PROCESADOR,
+} from '@/services/tipoProcesoRules'
 import { focusInside } from '@/utils/focusInside'
 import { normalizeRemito } from '@/utils/remito'
 
@@ -1054,6 +1111,7 @@ const puedeAvanzar = computed(() => {
     case 'proceso': return !!form.tipo_de_proceso_id
     case 'tiempo': return horasValidas.value
     case 'produccion': return produccionValida.value
+    case 'evidencia': return evidenciaCompleta.value
     case 'consumos': return combustibleValido.value
     case 'ubicacion': return ubicacionValida.value
     case 'revision': return true
@@ -1102,6 +1160,82 @@ const tipoProcesoNombre = computed(() => {
   return tipoProcesoSeleccionado.value?.nombre || ''
 })
 
+// ─── Evidencia fotografica (issue #200) ───
+// Las fotos se toman en el paso "Evidencia" y se suben al guardar el parte.
+const evidenciaFotos = reactive({ procesador: null, horometro: null })
+// El operador declara que el horometro se ve en la pantalla del procesador
+// (decision D7): con esa sola foto alcanza y no hace falta la del horometro.
+const incluyeHorometroEnFoto = ref(false)
+
+const rolesEvidencia = computed(() => evidenceRoles(tipoProcesoSeleccionado.value))
+const requiereFotoProcesador = computed(() => rolesEvidencia.value.includes(ROL_PROCESADOR))
+const requiereFotoHorometro = computed(() => rolesEvidencia.value.includes(ROL_HOROMETRO))
+const evidenciaRequerida = computed(() => rolesEvidencia.value.length > 0)
+const horometroEnFotoProcesador = computed(() => (
+  Boolean(incluyeHorometroEnFoto.value) && requiereFotoProcesador.value
+))
+// Muestra el campo del horometro solo si la foto del procesador no lo cubre.
+const mostrarCampoHorometro = computed(() => (
+  requiereFotoHorometro.value && !horometroEnFotoProcesador.value
+))
+const evidenciaCompleta = computed(() => {
+  if (!evidenciaRequerida.value) return true
+  if (requiereFotoProcesador.value && !evidenciaFotos.procesador) return false
+  if (mostrarCampoHorometro.value && !evidenciaFotos.horometro) return false
+  return true
+})
+const subtextoHorometro = computed(() => {
+  const fin = Number(form.hr_fin)
+  return fin > 0
+    ? `Documentá la lectura final: ${fin}.`
+    : 'Documentá la lectura final del horómetro.'
+})
+const resumenEvidencia = computed(() => {
+  const partes = []
+  if (evidenciaFotos.procesador) partes.push('Pantalla del procesador')
+  if (evidenciaFotos.horometro) partes.push('Horómetro')
+  if (!partes.length) return 'Sin fotos'
+  if (horometroEnFotoProcesador.value) partes.push('Horómetro (en la misma foto)')
+  return partes.join(' + ')
+})
+
+// Identidad del formulario: vincula la foto con el parte. Se genera una vez
+// por formulario (crypto.randomUUID no existe fuera de contexto seguro).
+const formUuidRef = ref('')
+function ensureFormUuid() {
+  if (!formUuidRef.value) {
+    formUuidRef.value = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`
+  }
+  return formUuidRef.value
+}
+
+// Sube las fotos y devuelve los ids de la evidencia.
+async function subirEvidencias(formUuid) {
+  const ids = []
+  if (evidenciaFotos.procesador) {
+    const respuesta = await store.uploadEvidencia({
+      formUuid,
+      tipo: ROL_PROCESADOR,
+      archivo: evidenciaFotos.procesador.file,
+      incluyeHorometro: incluyeHorometroEnFoto.value,
+    })
+    ids.push(respuesta.id)
+  }
+  // Si el operador declaró que el horometro se ve en la pantalla del
+  // procesador, esa foto ya cubre el horometro: no se sube una segunda.
+  if (mostrarCampoHorometro.value && evidenciaFotos.horometro) {
+    const respuesta = await store.uploadEvidencia({
+      formUuid,
+      tipo: ROL_HOROMETRO,
+      archivo: evidenciaFotos.horometro.file,
+    })
+    ids.push(respuesta.id)
+  }
+  return ids
+}
+
+// Cambiar el tipo de proceso descarta las fotos: eran de otro proceso.
+// (el watch va despues de `form`, que se declara mas abajo)
 const requisitosUbicacion = computed(() => getLocationRequirements(tipoProcesoSeleccionado.value))
 const requiereActa = computed(() => requisitosUbicacion.value.requiere_acta)
 const requierePredio = computed(() => requisitosUbicacion.value.requiere_predio)
@@ -1228,13 +1362,23 @@ const form = reactive({
   lugar_carga_id: 0,
 })
 
+// Cambiar el tipo de proceso descarta las fotos: eran de otro proceso.
+watch(() => form.tipo_de_proceso_id, () => {
+  evidenciaFotos.procesador = null
+  evidenciaFotos.horometro = null
+  incluyeHorometroEnFoto.value = false
+})
+
 const actaNormalizada = computed(() => String(form.acta ?? '').trim())
 
 const horasValidas = computed(() => {
   const inicio = Number(form.hr_inicio)
   const fin = Number(form.hr_fin)
   if (inicio <= 0 || fin <= 0) return false
-  if (fin < inicio) return false
+  // La lectura final tiene que ser MAYOR que la inicial: es lo que valida
+  // el backend para los procesos que usan horometro (mismo criterio que el
+  // formulario de Caminos).
+  if (fin <= inicio) return false
   // hr_inicio no puede ser menor al hr_fin del registro anterior
   if (ultimaHoraFinRef.value > 0 && inicio < ultimaHoraFinRef.value) return false
   return true
@@ -1334,6 +1478,10 @@ const mostrarErrorProduccion = computed(() => {
   return pasoId.value === 'produccion' && !produccionValida.value
 })
 
+const mostrarErrorEvidencia = computed(() => {
+  return pasoId.value === 'evidencia' && !evidenciaCompleta.value
+})
+
 const mostrarErrorUbicacion = computed(() => {
   return pasoId.value === 'ubicacion' && !ubicacionValida.value
 })
@@ -1346,6 +1494,7 @@ const stepComplete = computed(() => pasos.value.map((step) => {
     case 'proceso': return !!form.tipo_de_proceso_id
     case 'tiempo': return horasValidas.value
     case 'produccion': return produccionValida.value
+    case 'evidencia': return evidenciaCompleta.value
     case 'consumos': return combustibleValido.value
     case 'ubicacion': return ubicacionValida.value
     case 'revision': return puedeAvanzar.value
@@ -1363,6 +1512,9 @@ const revisionItems = computed(() => {
   ]
   if (requiereHorometro.value) {
     items.push({ label: 'Horómetros', value: `${form.hr_inicio || '-'} a ${form.hr_fin || '-'}` })
+  }
+  if (evidenciaRequerida.value) {
+    items.push({ label: 'Evidencia', value: resumenEvidencia.value })
   }
   items.push(
     { label: 'Producción', value: `${resolveProduccion() || 0} ${resolveUnidadProduccion() || ''}`.trim() },
@@ -1406,10 +1558,16 @@ const mensajePasoIncompleto = computed(() => {
     if (ultimaHoraFinRef.value > 0 && inicio > 0 && inicio < ultimaHoraFinRef.value) {
       return `El horómetro inicial (${form.hr_inicio}) no puede ser menor al horómetro final del registro anterior (${ultimaHoraFinRef.value}).`
     }
-    return 'Revisá las lecturas de horómetro: inicio y fin deben ser mayores a 0, y la lectura final no puede ser menor a la inicial.'
+    return 'Revisá las lecturas de horómetro: inicio y fin deben ser mayores a 0, y la lectura final debe ser mayor a la inicial.'
   }
   if (pasoId.value === 'produccion' && !produccionValida.value) {
     return 'Completá los campos de producción con valores mayores a 0 para continuar.'
+  }
+  if (pasoId.value === 'evidencia' && !evidenciaCompleta.value) {
+    if (requiereFotoProcesador.value && !evidenciaFotos.procesador) {
+      return 'Tomá la foto de la pantalla del procesador para continuar.'
+    }
+    return 'Tomá la foto del horómetro para continuar.'
   }
   if (pasoId.value === 'consumos' && !combustibleValido.value) {
     if (Number(form.combustible) <= 0) {
@@ -1838,7 +1996,7 @@ async function handleSubmit() {
       const inicio = Number(form.hr_inicio)
       const msg = (ultimaHoraFinRef.value > 0 && inicio > 0 && inicio < ultimaHoraFinRef.value)
         ? `El horómetro inicial (${form.hr_inicio}) no puede ser menor al horómetro final del registro anterior (${ultimaHoraFinRef.value}).`
-        : 'Las lecturas de horómetro deben ser mayores a 0, y la lectura final no puede ser menor a la inicial.'
+        : 'Las lecturas de horómetro deben ser mayores a 0, y la lectura final debe ser mayor a la inicial.'
       await Swal.fire({
         icon: 'warning',
         title: 'Lecturas de horómetro inválidas',
@@ -1869,6 +2027,46 @@ async function handleSubmit() {
     }
 
     const nombre = tipoProcesoNombre.value
+
+    // ─── Evidencia fotografica (issue #200) ───
+    // La foto se sube ANTES del parte: viaja suelta, con el `form_uuid` del
+    // formulario, y el backend la vincula al registro cuando lo crea.
+    let formUuid = ''
+    let evidencias = []
+    if (evidenciaRequerida.value) {
+      if (!evidenciaCompleta.value) {
+        await Swal.fire({
+          icon: 'warning',
+          title: 'Falta la foto de evidencia',
+          text: 'Este tipo de proceso pide foto de respaldo. Tomala para poder guardar el registro.',
+          confirmButtonColor: '#3d935d',
+        })
+        return
+      }
+      if (!navigator.onLine) {
+        // La cola offline de fotos es el issue 5: por ahora no se puede
+        // guardar un parte que exige evidencia sin conexión.
+        await Swal.fire({
+          icon: 'warning',
+          title: 'Sin conexión',
+          text: 'Este tipo de proceso necesita la foto de evidencia y no hay conexión para subirla. Guardá el registro cuando tengas señal.',
+          confirmButtonColor: '#3d935d',
+        })
+        return
+      }
+      formUuid = ensureFormUuid()
+      try {
+        evidencias = await subirEvidencias(formUuid)
+      } catch (error) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'No se pudo subir la foto',
+          text: error?.message || 'Falló la subida de la foto de evidencia. Revisá la conexión e intentá de nuevo.',
+          confirmButtonColor: '#3d935d',
+        })
+        return
+      }
+    }
 
     // Resolver km según tipo de proceso
     let kmCarreteo = form.km_carreteo
@@ -1935,6 +2133,10 @@ async function handleSubmit() {
       unidad_produccion: resolveUnidadProduccion(),
       tabla: 'tipo_de_proceso',
       codigo_tabla: form.tipo_de_proceso_id || 0,
+    }
+    if (formUuid) {
+      payload.form_uuid = formUuid
+      payload.evidencias = evidencias
     }
 
     const result = await store.submitProduccion(payload)
