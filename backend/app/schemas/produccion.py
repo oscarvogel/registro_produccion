@@ -221,6 +221,10 @@ class TableroProduccionCreate(BaseModel):
     remito: str = Field(default="", max_length=12)
     remito2: str = Field(default="", max_length=12)
     remito3: str = Field(default="", max_length=12)
+    # Ids de la evidencia fotografica que el operador adjunta al parte
+    # (issue #198). Las fotos se suben antes que el parte (modo offline), asi
+    # que el backend las vincula al registro cuando lo crea.
+    evidencias: list[int] = Field(default_factory=list)
 
     @field_validator("remito", "remito2", "remito3")
     @classmethod

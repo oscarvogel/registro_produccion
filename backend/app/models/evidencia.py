@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer, SmallInteger, String, UniqueConstraint
+from sqlalchemy import Column, DateTime, Index, Integer, SmallInteger, String
 
 from app.core.database import Base
 
@@ -20,9 +20,11 @@ class ProduccionEvidencia(Base):
 
     __tablename__ = "produccion_evidencia"
     __table_args__ = (
-        # Como maximo una foto de procesador y una de horometro por
-        # formulario. Es lo que deduplica los reintentos de subida.
-        UniqueConstraint("form_uuid", "tipo", name="uq_evidencia_form_tipo"),
+        # Indice NORMAL, no unico: con D-F puede haber mas de una fila por
+        # (form_uuid, tipo) -- la foto rechazada queda como historial y la
+        # nueva la reemplaza. La unicidad "una sola evidencia viva por tipo"
+        # la garantiza la aplicacion (ver app/api/routes/evidencia.py).
+        Index("idx_evidencia_form_tipo", "form_uuid", "tipo"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -39,9 +41,13 @@ class ProduccionEvidencia(Base):
     mime = Column(String(100), nullable=False, default="")
     tamano = Column(Integer, nullable=False, default=0)
     hash_sha256 = Column(String(64), nullable=False, default="")
-    # 0 pendiente, 1 verificada, 2 rechazada.
+    # 0 pendiente, 1 verificada, 2 rechazada, 3 reemplazada.
     estado = Column(SmallInteger, nullable=False, default=0)
+    # Nombre de quien la cargo (auditoria legible).
     cargado_por = Column(String(80), nullable=False, default="")
+    # idPersonal de quien la cargo: el nombre no es univoco y los permisos
+    # se deciden por id, no por texto.
+    cargado_por_id = Column(Integer, nullable=True, index=True)
     verificado_por = Column(String(80), nullable=False, default="")
     verificado_at = Column(DateTime, nullable=True)
     comentario = Column(String(255), nullable=False, default="")
