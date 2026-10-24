@@ -1,12 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_, func, inspect, text
+from sqlalchemy import or_, and_, func, inspect
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List
 from datetime import date, datetime
-from contextlib import contextmanager
 
 from app.api.deps import get_db, get_current_user
+from app.core.evidencia import (
+    mensaje_faltante,
+    mensaje_faltante_horometro,
+    proceso_usa_horometro,
+    roles_exigidos,
+    roles_faltantes,
+)
+from app.core.locks import (
+    adquirir_lock as _adquirir_lock,
+    form_submission_lock as _form_submission_lock,
+    liberar_lock as _liberar_lock,
+)
 from app.core.legacy_columns import (
     EQUIPO_MAX_LENGTH,
     OPERADOR_MAX_LENGTH,
@@ -26,6 +37,7 @@ from app.models.ubicacion import Acta, Predio, Rodal
 from app.models.produccion import TableroProduccion
 from app.models.carga_comb import CargaComb
 from app.models.asignacion_operativa import AsignacionOperativa
+from app.models.evidencia import ProduccionEvidencia
 from app.models.lugar_carga import LugarCarga
 from app.models.lugar_carga_unidad_negocio import LugarCargaUnidadNegocio
 from app.schemas.produccion import (
@@ -47,39 +59,11 @@ from app.schemas.produccion import (
 
 router = APIRouter(prefix="/produccion", tags=["produccion"])
 
-
-def _acquire_form_submission_lock(db: Session, lock_name: str) -> bool:
-    result = db.execute(
-        text("SELECT GET_LOCK(:lock_name, 10)"),
-        {"lock_name": lock_name},
-    ).scalar()
-    return result == 1
-
-
-def _release_form_submission_lock(db: Session, lock_name: str) -> None:
-    db.execute(
-        text("SELECT RELEASE_LOCK(:lock_name)"),
-        {"lock_name": lock_name},
-    )
-
-
-@contextmanager
-def _form_submission_lock(db: Session, lock_name: str):
-    # Named locks belong to a MySQL connection, not a transaction. Keep this
-    # dedicated connection checked out until RELEASE_LOCK has completed.
-    connection = db.get_bind().connect()
-    try:
-        if not _acquire_form_submission_lock(connection, lock_name):
-            raise HTTPException(
-                status_code=503,
-                detail="No se pudo reservar el envío. Se reintentará automáticamente.",
-            )
-        yield
-    finally:
-        try:
-            _release_form_submission_lock(connection, lock_name)
-        finally:
-            connection.close()
+# Los locks con nombre viven en app/core/locks.py: el alta de un parte y la
+# carga de evidencia los usan. Se mantienen los nombres viejos acá porque los
+# tests los referencian.
+_acquire_form_submission_lock = _adquirir_lock
+_release_form_submission_lock = _liberar_lock
 
 
 def _table_exists(db: Session, table_name: str) -> bool:
@@ -672,6 +656,86 @@ async def get_ultima_hora_fin(
     return UltimaHoraFinResponse(hr_fin=float(row.hr_fin))
 
 
+# ─── Evidencia fotografica (issue #198) ───
+def _tipo_proceso_del_registro(db: Session, data: TableroProduccionCreate) -> TipoDeProceso | None:
+    """Tipo de proceso del parte (None si el parte no es de produccion)."""
+    if data.tabla != "tipo_de_proceso" or not data.codigo_tabla:
+        return None
+    return db.query(TipoDeProceso).filter(TipoDeProceso.id == int(data.codigo_tabla)).first()
+
+
+def _evidencias_del_formulario(db: Session, data: TableroProduccionCreate) -> list[ProduccionEvidencia]:
+    """Filas de evidencia que el cliente dice adjuntar a este parte."""
+    ids: list[int] = []
+    for valor in data.evidencias or []:
+        try:
+            parsed = int(valor)
+        except (TypeError, ValueError):
+            continue
+        if parsed > 0 and parsed not in ids:
+            ids.append(parsed)
+    if not ids:
+        return []
+
+    filas = db.query(ProduccionEvidencia).filter(ProduccionEvidencia.id.in_(ids)).all()
+    if len(filas) != len(ids):
+        raise HTTPException(
+            status_code=422,
+            detail="Una de las fotos de evidencia no existe. Volve a adjuntarla.",
+        )
+    por_id = {fila.id: fila for fila in filas}
+    for evidencia_id in ids:
+        fila = por_id[evidencia_id]
+        if data.form_uuid and fila.form_uuid != data.form_uuid:
+            raise HTTPException(
+                status_code=422,
+                detail="Una de las fotos de evidencia no corresponde a este formulario.",
+            )
+        if fila.registro_id:
+            raise HTTPException(
+                status_code=422,
+                detail="Una de las fotos de evidencia ya esta vinculada a otro registro.",
+            )
+    return [por_id[evidencia_id] for evidencia_id in ids]
+
+
+def _validar_evidencia_y_horometro(
+    db: Session,
+    data: TableroProduccionCreate,
+    evidencias: list[ProduccionEvidencia],
+) -> None:
+    """R2 (evidencia obligatoria por roles) y R3 (hora final obligatoria).
+
+    La cobertura se calcula por ROLES (R7), no por tipo: una foto de la
+    pantalla del procesador cubre el horometro si el operador declaro que se
+    ve en esa pantalla (D7). Una foto rechazada no cuenta.
+    """
+    proceso = _tipo_proceso_del_registro(db, data)
+    if proceso is None:
+        return
+
+    exigidos = roles_exigidos(
+        bool(proceso.requiere_foto_horometro),
+        bool(proceso.requiere_foto_procesador),
+    )
+    faltantes = roles_faltantes(exigidos, evidencias)
+    if faltantes:
+        raise HTTPException(
+            status_code=422,
+            detail=mensaje_faltante(faltantes, proceso.nombre),
+        )
+
+    if not proceso_usa_horometro(proceso.campos):
+        return
+    if data.hr_fin <= 0:
+        raise HTTPException(status_code=422, detail=mensaje_faltante_horometro())
+    if data.hr_inicio > 0 and data.hr_fin <= data.hr_inicio:
+        raise HTTPException(
+            status_code=422,
+            detail="La lectura final del horometro debe ser mayor que la inicial.",
+        )
+
+
 # ─── Crear registro en tablero_produccion ───
 @router.post("/", response_model=TableroProduccionResponse, status_code=201)
 @router.post("", response_model=TableroProduccionResponse, status_code=201, include_in_schema=False)
@@ -711,6 +775,11 @@ async def create_produccion(
             )
             if existing:
                 return existing
+
+        # Evidencia fotografica (issue #198): R2 y R3 se validan antes de
+        # crear el registro, adentro del lock que ya serializa el alta.
+        evidencias = _evidencias_del_formulario(db, data)
+        _validar_evidencia_y_horometro(db, data, evidencias)
 
         # Get next ID (tablero_produccion doesn't have auto_increment)
         max_id = db.query(func.max(TableroProduccion.id)).scalar() or 0
@@ -774,6 +843,11 @@ async def create_produccion(
         )
         db.add(registro)
         db.flush()
+
+        # La evidencia se vincula al registro recien creado (issue #198).
+        # Hasta ahora viajaba suelta, enganchada por `form_uuid`.
+        for fila in evidencias:
+            fila.registro_id = new_id
 
         # El abastecimiento asociado al parte se registra en la misma
         # transaccion: el parte y el egreso de stock nacen o fallan juntos.

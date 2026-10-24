@@ -497,7 +497,7 @@ Un issue, una rama, un PR. Todos desde `main`, todos en draft primero.
 |---|---|---|---|---|
 | **1** | **#194** — Esquema + flags de tipo de proceso | `codex/issue-194-esquema-evidencia` | Migración SQL (tabla `produccion_evidencia` + flags + seed D8), modelo, schemas, `admin_legacy.py`, checkboxes en Admin | — |
 | **2** | **#196** — Infra: volumen + nginx | `codex/issue-196-infra-evidencia` | `docker-compose.yml` (**un** volumen para las dos instancias), `nginx.conf.template` (`client_max_body_size`), `config.py` (settings), `backend/scripts/purge_evidencia_huerfana.py` | — |
-| **3** | API de evidencia | `codex/issue-NN-api-evidencia` | `routes/evidencia.py`, `core/evidencia.py` (reglas R1–R9, cobertura por roles), upload/link/serve/verify, validación R2 en el alta, tests | 1, 2 |
+| **3** | **#198** — API de evidencia | `codex/issue-198-api-evidencia` | `routes/evidencia.py`, `core/evidencia.py` (reglas R1–R9, cobertura por roles), upload/link/serve/verify, validación R2 en el alta, tests | 1, 2 |
 | **4** | Captura y envío en el formulario | `codex/issue-NN-frontend-evidencia` | `EvidenciaField.vue`, paso condicional en `tipoProcesoRules.js`, casilla *"el horómetro se ve en esta pantalla"*, compresión, gates de `puedeAvanzar`, resumen en Revisión, tests | 3 |
 | **5** | Modo offline | `codex/issue-NN-offline-evidencia` | `db.js` v4, store `pendingEvidencias`, orden de sync (evidencia → registro), `PendientesView.vue` | 4 |
 | **6** | Verificación por el encargado | `codex/issue-NN-verificacion-evidencia` | Sección Evidencia en `RecordDetailModal.vue` (con el aviso de la declaración), botones Verificar/Rechazar, filtro en `DashboardRegistrosView.vue` | 4 |
@@ -606,30 +606,47 @@ Además, para este plan:
 | **D-C** | ¿La verificación puede rechazar y dejar el registro sin evidencia válida? | Sí: el rechazo marca la foto, el registro queda *observado*, no se borra | Si el rechazo debe **impedir** el registro, hay que agregar un estado al registro y una regla en el dashboard |
 | **D-D** | ¿Quién puede **rechazar**? | `encargado` y `admin` | Si también debe poder hacerlo un supervisor de UN, cambia la dependencia del endpoint |
 | **D-E** | Nombre de los tipos de evidencia | `horometro` y `procesador` | Ajustable; es el `tipo` de la columna y el valor del enum |
-| **D-F** | ¿Se puede **editar** una foto cargada? | **Pendiente de definir — sube de prioridad con D7.** Si el operador declara mal que el horómetro está en la pantalla, el encargado rechaza y hace falta un camino de corrección | **Recomendado:** permitir adjuntar una foto nueva a un registro ya creado (`POST /api/produccion/{id}/evidencias`), que reemplaza a la rechazada. Sin esto, un rechazo obliga a rehacer el registro entero |
+| **D-F** | ¿Se puede **editar** una foto cargada? | **RESUELTO 2026-10-25 (issue #198):** **sí**, se puede adjuntar una foto nueva a un registro ya creado (`POST /api/produccion/registros/{id}/evidencias`). Si el encargado rechaza la foto, el operador sube otra sin rehacer el parte entero. | Cerrado en la implementación del issue #198. La unicidad "una sola evidencia **viva** por `(form_uuid, tipo)`" la garantiza la aplicación: la foto rechazada queda como historial y la nueva la reemplaza. |
+
+### Notas de la implementación del issue #198 (API)
+
+- **Los estados de la evidencia pasaron de tres a cuatro.** Se agregó `3 = reemplazada`: la foto
+  anterior a la que subió una posterior queda como historial, pero **no** se marca como
+  "rechazada" (a nadie la evaluó). Por eso el índice único `(form_uuid, tipo)` pasó a ser un
+  índice normal: puede haber más de una fila por tipo (la rechazada + la viva).
+- **`cargado_por_id`**: el nombre de quien subió la foto no es unívoco y los permisos se
+  deciden por id, no por texto.
+- **El lock de MySQL** pasó a `backend/app/core/locks.py` (lo usan el alta del parte y la
+  subida de evidencia). La subida toma `prod_evid:{form_uuid}`: dos reintentos simultáneos no
+  pueden dejar dos evidencias vivas del mismo tipo.
+- **R3 y el formulario legacy (pendiente para el issue 4):** el backend exige `hr_fin > hr_inicio`
+  en los tipos de proceso cuyo `campos` incluye `hora_inicio`/`hora_fin`. El formulario legacy
+  (`ProduccionLegacyFormView.vue`) hoy acepta `hr_fin == hr_inicio` ("la lectura final no puede
+  ser *menor*"). El issue 4 tiene que alinear `horasValidas` con el backend, o el operador va a
+  ver un 422 en un caso que la pantalla daba por válido.
 
 ---
 
 ## 10. Próximo paso
 
-**D-A y D-B están resueltas** (ver sección 9). El alcance del plan está cerrado; quedan abiertas
-sólo D-C a D-F, que son decisiones menores que se pueden tomar durante la implementación.
+**D-A, D-B y D-F están resueltas** (ver sección 9). El alcance del plan está cerrado; quedan
+abiertas sólo D-C a D-E, que son decisiones menores que se pueden tomar durante la implementación.
 
 ### Estado
 
 - [x] **Issue #194** (issue 1 del plan) — esquema + flags. Hecho y mergeado (PR #195).
 - [x] **Issue #196** (issue 2 del plan) — infra: volumen Docker compartido, límite de nginx,
-      settings y barrido de huérfanos.
-- [ ] **Issue 3** — API de evidencia.
+      settings y barrido de huérfanos. Hecho y mergeado (PR #197).
+- [x] **Issue #198** (issue 3 del plan) — API de evidencia: upload, servir bytes, listar,
+      verificar, D-F y R2/R3 en el alta.
 - [ ] **Issue 4** — captura en el formulario.
 - [ ] **Issue 5** — modo offline.
 - [ ] **Issue 6** — verificación por el encargado.
 - [ ] **Issue 7** — manuales y procedimientos.
 
-### Antes de abrir el issue 3
+### Antes de abrir el issue 4
 
-1. Cerrar **D-F** (¿se puede adjuntar una foto nueva a un registro ya creado?): con D7 el
-   operador puede declarar mal y el encargado va a rechazar.
+1. Alinear `horasValidas` del formulario legacy con la regla del backend (`hr_fin > hr_inicio`).
 2. Confirmar que el volumen de evidencia quede **creado** en el servidor antes del primer
    deploy con fotos: `docker volume create registro_produccion_evidencia` (o lo crea el propio
    `docker compose up`).
@@ -640,4 +657,4 @@ sólo D-C a D-F, que son decisiones menores que se pueden tomar durante la imple
    rama desde `main` → migración → modelo → esquema → Admin → validaciones → PR draft.
 2. Validar la migración contra la base real (MariaDB de WSL, base `registro_demo`) con el runner
    del proyecto (`python -m app.migrate`), **dos veces seguidas** para probar la idempotencia.
-3. Seguir con los issues 2 (infra) y 3 (API).
+3. Seguir con los issues 4 (frontend), 5 (offline) y 6 (verificación).

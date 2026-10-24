@@ -6,7 +6,9 @@ produccion (`/api/produccion/tipo-proceso`, que alimenta el wizard). Ya se
 han desincronizado una vez (el flag `requiere_horometro` faltaba en uno de
 los dos), asi que los campos viven en un mixin comun.
 """
-from pydantic import BaseModel, field_validator
+from datetime import datetime
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class RequisitosEvidenciaMixin(BaseModel):
@@ -28,3 +30,40 @@ class RequisitosEvidenciaMixin(BaseModel):
         if value is None:
             return False
         return value
+
+
+class EvidenciaResponse(BaseModel):
+    """Una foto de evidencia, tal como la ve el frontend.
+
+    `url` es la ruta para bajar los bytes: la foto vive en el volumen del
+    servidor, no en la base (decision D2).
+    """
+
+    id: int
+    registro_id: int | None = None
+    form_uuid: str = ""
+    tipo: str = ""
+    incluye_horometro: bool = False
+    # 0 pendiente, 1 verificada, 2 rechazada, 3 reemplazada.
+    estado: int = 0
+    mime: str = ""
+    tamano: int = 0
+    hash_sha256: str = ""
+    cargado_por: str = ""
+    verificado_por: str = ""
+    verificado_at: datetime | None = None
+    comentario: str = ""
+    created_at: datetime | None = None
+    url: str = ""
+
+
+class EvidenciaVerificacion(BaseModel):
+    """Cuerpo del PATCH de verificacion (R5).
+
+    El estado tiene que ser 1 (verificada) o 2 (rechazada): volver a
+    "pendiente" desde el backend dejaria el registro sin cobertura y nadie
+    avisado.
+    """
+
+    estado: int
+    comentario: str = Field(default="", max_length=255)

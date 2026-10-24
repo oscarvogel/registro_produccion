@@ -231,6 +231,7 @@ def test_produccion_evidencia_model_is_registered():
         "hash_sha256",
         "estado",
         "cargado_por",
+        "cargado_por_id",
         "verificado_por",
         "verificado_at",
         "comentario",
@@ -239,14 +240,27 @@ def test_produccion_evidencia_model_is_registered():
         assert expected in columns, expected
 
 
-def test_produccion_evidencia_has_unique_form_uuid_and_tipo():
+def test_produccion_evidencia_indexes_form_uuid_and_tipo():
+    # Issue #198 (D-F): el indice UNIQUE (form_uuid, tipo) paso a ser un
+    # indice NORMAL. Con D-F puede haber mas de una fila por tipo: la foto
+    # rechazada queda como historial y la nueva la reemplaza. La unicidad
+    # "una sola evidencia viva por tipo" la garantiza la aplicacion.
+    indices = {
+        tuple(sorted(column.name for column in index.columns)): index.name
+        for index in ProduccionEvidencia.__table__.indexes
+    }
+
+    assert indices.get(("form_uuid", "tipo")) == "idx_evidencia_form_tipo"
+
+
+def test_produccion_evidencia_has_no_unique_constraint_on_form_uuid_and_tipo():
     constraints = {
         tuple(sorted(col.name for col in constraint.columns))
         for constraint in ProduccionEvidencia.__table__.constraints
         if constraint.__class__.__name__ == "UniqueConstraint"
     }
 
-    assert ("form_uuid", "tipo") in constraints
+    assert ("form_uuid", "tipo") not in constraints
 
 
 # ─── Contrato de la migracion ─────────────────────────────────────
