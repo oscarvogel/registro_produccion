@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_, func, inspect, text
+from sqlalchemy import or_, and_, func, inspect
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List
 from datetime import date, datetime
