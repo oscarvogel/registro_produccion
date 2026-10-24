@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from datetime import date
 
 from app.core.remito import normalize_remito
+from app.schemas.evidencia import RequisitosEvidenciaMixin
 
 
 # Numeric fields that the frontend can send as an empty string or null when
@@ -87,7 +88,7 @@ class UnidadNegocioResponse(BaseModel):
 
 
 # --- Tipo de Proceso ---
-class TipoProcesoResponse(BaseModel):
+class TipoProcesoResponse(RequisitosEvidenciaMixin):
     id: int
     nombre: str
     campos: str

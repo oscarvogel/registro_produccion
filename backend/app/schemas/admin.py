@@ -1,6 +1,8 @@
 from datetime import date
 from pydantic import BaseModel, Field
 
+from app.schemas.evidencia import RequisitosEvidenciaMixin
+
 
 class DashboardTipoProcesoItem(BaseModel):
     id: int
@@ -251,6 +253,8 @@ class TipoProcesoCreate(BaseModel):
     requiere_predio: bool = False
     requiere_rodal: bool = False
     requiere_horometro: bool = True
+    requiere_foto_horometro: bool = False
+    requiere_foto_procesador: bool = False
     activo: int = 1
 
 
@@ -262,10 +266,12 @@ class TipoProcesoUpdate(BaseModel):
     requiere_predio: bool | None = None
     requiere_rodal: bool | None = None
     requiere_horometro: bool | None = None
+    requiere_foto_horometro: bool | None = None
+    requiere_foto_procesador: bool | None = None
     activo: int | None = None
 
 
-class TipoProcesoResponse(BaseModel):
+class TipoProcesoResponse(RequisitosEvidenciaMixin):
     id: int
     nombre: str
     campos: str

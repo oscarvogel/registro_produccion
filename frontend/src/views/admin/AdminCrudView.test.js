@@ -62,6 +62,87 @@ describe('AdminCrudView tipos de proceso', () => {
     expect(labels).toContain('Requiere Rodal')
   })
 
+  it('shows the evidence requirement checkboxes in the process type form', async () => {
+    const wrapper = mount(AdminCrudView, {
+      global: {
+        directives: {
+          motionPanel: {},
+          motionPop: {},
+        },
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    })
+    await flushPromises()
+
+    const nuevo = wrapper.findAll('button').find((button) => button.text().includes('Nuevo'))
+    expect(nuevo).toBeTruthy()
+    await nuevo.trigger('click')
+
+    const requisitos = wrapper.findAll('button').find((button) => button.text() === 'Requisitos')
+    expect(requisitos).toBeTruthy()
+    await requisitos.trigger('click')
+
+    const labels = wrapper.findAll('label').map((label) => label.text())
+    expect(labels).toContain('Requiere Foto Horómetro')
+    expect(labels).toContain('Requiere Foto Procesador')
+  })
+
+  it('summarizes the required evidence in a single column', async () => {
+    // Una sola columna y no dos: la grilla de tipos de proceso entra justa en
+    // 1366px y con dos columnas mas la de acciones quedaba fuera de pantalla.
+    const base = {
+      campos: 'm3,plantas',
+      unidad_ids: [144],
+      requiere_acta: false,
+      requiere_predio: false,
+      requiere_rodal: false,
+      requiere_horometro: true,
+      activo: 1,
+    }
+    api.get.mockImplementation((url) => {
+      if (String(url).includes('tipos-proceso')) {
+        return Promise.resolve({
+          data: [
+            { ...base, id: 3, nombre: 'PROCESO', requiere_foto_horometro: true, requiere_foto_procesador: true },
+            { ...base, id: 4, nombre: 'VOLTEO', requiere_foto_horometro: false, requiere_foto_procesador: true },
+            { ...base, id: 5, nombre: 'HORAS MAQUINAS', requiere_foto_horometro: true, requiere_foto_procesador: false },
+            { ...base, id: 1, nombre: 'CARGA', requiere_foto_horometro: false, requiere_foto_procesador: false },
+          ],
+        })
+      }
+      return Promise.resolve({ data: [] })
+    })
+
+    const wrapper = mount(AdminCrudView, {
+      global: {
+        directives: {
+          motionPanel: {},
+          motionPop: {},
+        },
+        stubs: {
+          AppIcon: true,
+        },
+      },
+    })
+    await flushPromises()
+
+    const tabla = wrapper.find('table')
+    expect(tabla.exists()).toBe(true)
+
+    const celdas = tabla.findAll('td').map((celda) => celda.text().trim())
+    expect(celdas).toContain('Ambas')
+    expect(celdas).toContain('Procesador')
+    expect(celdas).toContain('Horómetro')
+    expect(celdas).toContain('—')
+
+    // Y no hay dos columnas separadas por flag.
+    const encabezados = tabla.findAll('th').map((th) => th.text().trim())
+    expect(encabezados.filter((titulo) => titulo.includes('Foto'))).toHaveLength(0)
+    expect(encabezados).toContain('Evidencia')
+  })
+
   it('shows a friendly message instead of raw SQL when saving fails', async () => {
     api.post.mockRejectedValueOnce({
       response: {
