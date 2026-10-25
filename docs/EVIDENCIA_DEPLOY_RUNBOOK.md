@@ -83,11 +83,15 @@ Y el volumen, montado en los dos backends:
 
 ```bash
 ssh fasa_189 "docker volume ls | grep evidencia"
-ssh fasa_189 "docker run --rm -v registro_produccion_evidencia:/data:ro alpine sh -c 'ls -la /data'"
+ssh fasa_189 "docker run --rm -v \$(docker volume ls -q | grep evidencia):/data:ro alpine sh -c 'ls -la /data'"
 ```
 
-El volumen lo crea el `docker compose up` del deploy, con el nombre explicito
-`registro_produccion_evidencia`.
+El volumen lo crea el `docker compose up` del deploy. El `name:` del compose
+(`registro_produccion_evidencia`) **no es el que queda en el servidor**: Coolify
+pisa el nombre de los volúmenes con el prefijo de su proyecto, y en
+`fasa_189` el volumen real se llama `4hcjxromkdmdylfjbw0fgvs4_evidencia`. Por
+eso los comandos lo resuelven con `docker volume ls` y nunca lo escriben a
+mano.
 
 ### 4.2 El circuito de la foto, de punta a punta
 

@@ -16,7 +16,7 @@ pero las fotos dan error al abrirlas.
 | Que | Donde | Como |
 |---|---|---|
 | Datos de la evidencia (ruta, hash, estado, verificado por) | MySQL, tabla `produccion_evidencia` | El respaldo de la base que ya se hace |
-| Los archivos de las fotos | Volumen Docker `registro_produccion_evidencia` | Este documento |
+| Los archivos de las fotos | Volumen Docker `evidencia` (el `name:` del compose es `registro_produccion_evidencia`, pero en el servidor queda con el prefijo de Coolify: ver sección 2) | Este documento |
 
 El volumen es **uno solo** para las dos instancias (`produccion_fg` e
 `indufor`): las dos comparten la base `fg`, asi que una foto subida por una
@@ -40,14 +40,30 @@ volumes:
     name: registro_produccion_evidencia
 ```
 
-Para verificar que existe y ver cuanto ocupa:
+<div class="warning">
+<b>Ojo: en el deploy por Coolify ese <code>name:</code> no es el que queda.</b>
+Coolify pisa el nombre de los volúmenes con el prefijo de su proyecto de
+compose. En <code>fasa_189</code> el volumen real se llama
+<code>4hcjxromkdmdylfjbw0fgvs4_evidencia</code> (el prefijo es el UUID de la
+app de Coolify, <code>4hcjxromkdmdylfjbw0fgvs4</code>).
+<br><br>
+Por eso <b>ningún comando de este documento debe escribir el nombre a mano</b>:
+hay que resolverlo con <code>docker volume ls</code>. Un nombre escrito a mano
+da <i>no such volume</i> y el respaldo sale vacío sin avisar.
+</div>
+
+Los comandos de abajo usan una variable `VOL` que se resuelve una vez:
 
 ```bash
-docker volume ls | grep evidencia
-docker volume inspect registro_produccion_evidencia
-docker run --rm -v registro_produccion_evidencia:/data:ro alpine \
+VOL=$(docker volume ls -q | grep evidencia)
+echo "volumen de evidencia: $VOL"
+docker volume inspect "$VOL"
+docker run --rm -v "$VOL:/data:ro" alpine \
   sh -c 'du -sh /data; find /data -type f | wc -l'
 ```
+
+Si `echo` no muestra nada, el volumen no existe todavia: lo crea el
+`docker compose up` del deploy.
 
 ## 3. Respaldo (sin bajar la aplicacion)
 
@@ -56,9 +72,10 @@ siguiendo subiendo fotos mientras se arma el `.tar.gz`.
 
 ```bash
 mkdir -p /srv/backups/registro_produccion
+VOL=$(docker volume ls -q | grep evidencia)
 
 docker run --rm \
-  -v registro_produccion_evidencia:/data:ro \
+  -v "$VOL:/data:ro" \
   -v /srv/backups/registro_produccion:/backup \
   alpine sh -c 'cd /data && tar czf /backup/evidencia-$(date +%F-%H%M).tar.gz .'
 ```
@@ -81,7 +98,7 @@ docker run --rm -v /srv/backups/registro_produccion:/backup:ro alpine \
   sh -c 'tar tzf /backup/evidencia-2026-10-25-0030.tar.gz | grep -c "\."'
 
 # 3. Contar los archivos que hay ahora en el volumen
-docker run --rm -v registro_produccion_evidencia:/data:ro alpine \
+docker run --rm -v "$VOL:/data:ro" alpine \
   sh -c 'find /data -type f | wc -l'
 
 # 4. Comparar con las filas de la base
@@ -109,6 +126,8 @@ Restaurar el volumen **borra lo que hay ahora**. Por eso hay que confirmar el
 archivo antes de empezar.
 
 ```bash
+VOL=$(docker volume ls -q | grep evidencia)
+
 # 0. Confirmar que el archivo existe y se puede leer
 docker run --rm -v /srv/backups/registro_produccion:/backup:ro alpine \
   sh -c 'tar tzf /backup/evidencia-2026-10-25-0030.tar.gz | head'
@@ -119,7 +138,7 @@ docker compose stop produccion_fg indufor
 
 # 2. Reemplazar el contenido del volumen
 docker run --rm \
-  -v registro_produccion_evidencia:/data \
+  -v "$VOL:/data" \
   -v /srv/backups/registro_produccion:/backup:ro \
   alpine sh -c 'cd /data && rm -rf ./* && tar xzf /backup/evidencia-2026-10-25-0030.tar.gz'
 
@@ -127,7 +146,7 @@ docker run --rm \
 docker compose up -d produccion_fg indufor
 
 # 4. Verificar
-docker run --rm -v registro_produccion_evidencia:/data:ro alpine \
+docker run --rm -v "$VOL:/data:ro" alpine \
   sh -c 'find /data -type f | wc -l'
 ```
 
@@ -174,6 +193,7 @@ borra algo que despues hay que recuperar, el respaldo tiene que estar previo.
 |---|---|
 | La foto da error al abrirla | El archivo no esta en el volumen. Comparar `find /data -type f \| wc -l` con `SELECT COUNT(*) FROM produccion_evidencia`. |
 | El listado muestra evidencia y la foto no se ve | La fila existe pero el archivo se borro (purge) o nunca subio (subida a medias). |
-| El volumen no existe | `docker volume ls`. El deploy lo crea: `docker compose up -d` lo levanta con nombre explicito. |
+| El volumen no existe | `docker volume ls \| grep evidencia`. El deploy lo crea: `docker compose up -d` lo levanta. |
+| `no such volume` al respaldar | El nombre esta escrito a mano y no es el real. Resolverlo con `VOL=$(docker volume ls -q \| grep evidencia)`. |
 | El respaldo sale vacio | El volumen estaba vacio (nadie subio fotos) o el `tar` se corrio con otra ruta. Repetir con el path explicito. |
 | La restauracion no trae las fotos | El `.tar.gz` estaba corrupto: por eso el paso 0 de la restauracion abre el archivo antes de borrar nada. |
