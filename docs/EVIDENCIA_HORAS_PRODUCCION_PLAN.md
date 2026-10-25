@@ -541,7 +541,7 @@ Un issue, una rama, un PR. Todos desde `main`, todos en draft primero.
 | **7** | **#208** — Documentación y despliegue | `codex/issue-208-docs-evidencia` | Manuales de operador/encargado/admin, procedimiento de backup del volumen, runbook de despliegue, variables de la gateway | 3–6 | Mergeado (PR #209) |
 | **+** | **#206** — Aviso por WhatsApp al encargado | `codex/issue-206-aviso-whatsapp` | Cliente de la `vogel_whatsapp_api`, aviso al encargado cuando la foto queda vinculada a un registro | 3, 4 | Mergeado (PR #207) |
 | **+** | **#210** — Nombre real del volumen | `codex/issue-210-nombre-volumen` | La documentación decía `registro_produccion_evidencia`; Coolify pisa el `name:` del compose y el real es `<hash>_evidencia` | — | Mergeado (PR #211) |
-| **+** | **#212** — La evidencia no se exige por defecto | `codex/issue-212-evidencia-off` | La migración encendía los flags de tres procesos; ahora los deja en `0` (D8 revisada), tests que lo fijan, manual del admin | 1 | En curso (este PR) |
+| **+** | **#212** — La evidencia no se exige por defecto | `codex/issue-212-evidencia-off` | La migración encendía los flags de tres procesos; ahora los deja en `0` (D8 revisada), tests que lo fijan, manual del admin | 1 | Mergeado (PR #213) |
 
 El issue **#206** no estaba en el plan original: se agregó después, cuando se decidió
 que el encargado tiene que enterarse de la foto pendiente sin tener que entrar al
@@ -706,8 +706,20 @@ funcionalidad del plan está completa y mergeada; lo que queda es el
 
 ### Estado del despliegue (25/10/2026)
 
-**Desplegado en producción** (Coolify, `fasa_189`), commit `8e86a93` (PR #209),
-frontend y backend juntos. Verificado:
+**Desplegado en producción** (Coolify, `fasa_189`), commit `d710692` (PR #213),
+frontend y backend juntos. Es el segundo deploy del día: el primero fue `8e86a93`
+(PR #209) y este trae el **default OFF** de la evidencia (issue #212).
+
+Verificado del deploy `d710692` (deployment `nondnazf7l126g6qidg3sxhx`):
+
+- `/api/health` de las dos instancias: `commit=d710692`, `branch=main`, `database=ok`.
+- El manual del admin publicado: `/manuales/manual-admin.md` ya dice *"Los dos vienen
+  desactivados"* y el PDF (`/manuales/pdf/manual-admin.pdf`) tiene 19 páginas con las 10
+  imágenes embebidas (9 capturas + logo), sin capturas faltantes.
+- El bundle del frontend no cambia (`index-CsjC38Ia.js`): este PR no toca el código del
+  frontend, sólo el manual y sus capturas.
+
+Verificado del deploy `8e86a93` (el primero):
 
 - `/api/health` de las dos instancias: `commit=8e86a93`, `database=ok`.
 - Bundle nuevo (`index-CsjC38Ia.js`) con los textos del paso `Evidencia`.
@@ -719,6 +731,13 @@ frontend y backend juntos. Verificado:
   backends.
 - La gateway de WhatsApp responde con la key de Coolify (`client: bot_fg`) y la
   instancia `oscar_claro_2` existe y está `connected`.
+
+> **El deploy del issue #212 no cambia el estado de la evidencia en producción.** La
+> migración original (la del deploy `8e86a93`) dejó los flags de `PROCESO`, `VOLTEO` y
+> `HORAS MAQUINAS` en `1`; el `UPDATE` corregido sólo toca filas `NULL`. Lo que cambia
+> con este deploy es el **default** (instalaciones nuevas y filas nunca configuradas) y
+> el manual, que ahora dice que los tipos vienen sin exigir evidencia. Ver el punto 1 de
+> "Lo que falta para producción".
 
 ### Lo que falta para producción
 
@@ -890,6 +909,10 @@ frontend y backend juntos. Verificado:
   comprueba que los tres procesos quedan en `0`.
 - **`CARGA` y `EXTRACCION` nunca pidieron ni piden foto**: no aparecen en la
   migración y no tienen con qué exigirla.
+- **El deploy `d710692` no baja los flags de producción.** Es lo esperado: el
+  `UPDATE` corregido sólo toca filas `NULL` y en producción los tres procesos
+  quedaron en `1` con la migración original. Bajar los flags es una acción del
+  administrador en Admin, a propósito.
 
 ### Cómo se working
 
