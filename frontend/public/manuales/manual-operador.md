@@ -12,7 +12,7 @@
 1. [Alcance y acceso](#1-alcance-y-acceso)
 2. [Sincronización y navegación móvil](#2-sincronizacion-y-navegacion-movil)
 3. [Inicio](#3-inicio)
-4. [Carga de Producción en 9 pasos](#4-carga-de-produccion-en-9-pasos)
+4. [Carga de Producción en 9 o 10 pasos](#4-carga-de-produccion-en-9-o-10-pasos)
 5. [Borradores, offline y Pendientes](#5-borradores-offline-y-pendientes)
 6. [Mis Registros y Configuración](#6-mis-registros-y-configuracion)
 7. [Errores frecuentes y buenas prácticas](#7-errores-frecuentes-y-buenas-practicas)
@@ -71,9 +71,11 @@ En `Inicio` revisá antes de cargar:
 
 Los accesos rápidos `Ir a Carga de Producción`, `Ir a Carga de Combustible`, `Ver Pendientes` y `Abrir Mis Registros` llevan directamente a cada función.
 
-## 4. Carga de Producción en 9 pasos
+## 4. Carga de Producción en 9 o 10 pasos
 
 Entrá desde `Inicio` o desde `Producción > Carga de Producción`. La pantalla muestra `Paso N de 9`. En el teléfono se avanza con `Siguiente` y se vuelve con `Anterior`.
+
+Cuando el tipo de proceso que elegiste pide foto de respaldo, el formulario suma un paso, `Evidencia`, entre `Producción` y `Consumos`, y la pantalla muestra `Paso N de 10`. El paso aparece sólo en los tipos de proceso que lo piden: en los demás, el formulario sigue con 9 pasos.
 
 ![Paso 1: contexto](/manuales/capturas/operador/05-contexto.png)
 
@@ -131,9 +133,28 @@ Completá los campos que muestra el proceso. Según el catálogo pueden aparecer
 
 Los valores requeridos deben ser mayores a 0. La aplicación calcula la unidad principal de producción según el primer campo productivo disponible.
 
-![Paso 7: consumos](/manuales/capturas/operador/11-consumos.png)
+### Paso 7 - Evidencia Fotográfica
 
-### Paso 7 - Consumos
+Este paso aparece sólo cuando el tipo de proceso pide foto de respaldo. La pantalla se titula `Evidencia Fotográfica` y avisa: **"Este tipo de proceso pide foto de respaldo. Tomala ahora: se sube al guardar el registro y después la revisa el encargado."**
+
+Qué se pide depende del tipo de proceso:
+
+- `Foto de la pantalla del procesador`: **"Mostrá la pantalla del procesador (plantas y/o m³)."**
+- `Foto del horómetro`: **"Fotografiá el horómetro con la lectura final."** El texto de ayuda recuerda la lectura que hay que documentar, por ejemplo `Documentá la lectura final: 1850.`
+
+Los dos campos aparecen con el distintivo `Obligatoria` hasta que tienen foto; después pasa a `Lista`. El botón `Tomar foto` abre la cámara del teléfono. Con la foto puesta se ve una miniatura y aparecen `Rehacer foto` y `Quitar`.
+
+**La casilla "En esa misma pantalla se ve el horómetro".** Si la foto del procesador ya muestra el horómetro, marcá esta casilla: **"Marcá esto si la foto de arriba ya muestra el horómetro: con esa sola foto alcanza y no hace falta sacar otra."** Al marcarla desaparece el campo `Foto del horómetro` y la foto de la pantalla cubre los dos casos.
+
+<div class="warning">
+El paso no deja avanzar sin la foto. Si aparece el error `Falta la foto de evidencia. No se puede guardar el registro sin ella.`, falta la foto del procesador: tomala antes de seguir.
+</div>
+
+La foto no se manda sola: se sube junto con el registro, en el paso `Revisión`.
+
+![Paso 8: consumos](/manuales/capturas/operador/11-consumos.png)
+
+### Paso 8 - Consumos
 
 El paso agrupa `Combustible`, `Consumos` y, para el proceso correspondiente, `Sistema de Corte`.
 
@@ -151,9 +172,9 @@ El combustible cargado dentro del parte descuenta stock. No repitas ese abasteci
 
 Si el proceso es `PROCESO`, también se solicitan `Espada`, `Puntera`, `Cadena`, `Piñón` y `Cantidad de Cadenas`.
 
-![Paso 8: ubicación](/manuales/capturas/operador/12-ubicacion.png)
+![Paso 9: ubicación](/manuales/capturas/operador/12-ubicacion.png)
 
-### Paso 8 - Ubicación y Referencia
+### Paso 9 - Ubicación y Referencia
 
 Completá los campos que el tipo de proceso exige:
 
@@ -165,11 +186,11 @@ Completá los campos que el tipo de proceso exige:
 
 Si el tipo de trabajo no requiere Acta, Predio ni Rodal, la pantalla lo informa. Si falta una referencia obligatoria, aparece `Completá Acta, Predio, Rodal o Lugar de Carga para este tipo de trabajo`.
 
-![Paso 9: revisión](/manuales/capturas/operador/13-revision.png)
+![Paso 10: revisión](/manuales/capturas/operador/13-revision.png)
 
-### Paso 9 - Revisión y Confirmación
+### Paso 10 - Revisión y Confirmación
 
-Antes de guardar, revisá fecha, unidad, operador, equipo, proceso, horario, producción, horas no operativas y ubicación. Si todo es correcto, presioná `Guardar Registro`.
+Antes de guardar, revisá fecha, unidad, operador, equipo, proceso, horario, producción, horas no operativas, evidencia fotográfica y ubicación. Si todo es correcto, presioná `Guardar Registro`.
 
 El resultado esperado es el mensaje `Registro guardado`. Si no hay conexión, el parte queda en el teléfono y se informa que debe revisarse en `Pendientes`.
 
@@ -198,6 +219,16 @@ En `Producción > Pendientes` podés:
 `Eliminar` descarta el registro de la cola local del dispositivo. La acción es definitiva para esa copia y no reemplaza una corrección del registro en el servidor.
 </div>
 
+### La foto viaja antes que el parte
+
+Cuando el tipo de proceso pide foto y cargás sin conexión, la foto **no se pierde**: queda guardada en el teléfono y se sube al servidor **antes** que el registro.
+
+El orden importa: la foto se sube primero y recién después se envía el parte. Si la foto no sube, el parte no se envía. Por eso la foto queda en el teléfono y no en un servidor intermedio: es lo único que garantiza que el registro nunca se guarde sin su evidencia.
+
+<div class="warning">
+Si un pendiente indica que la foto todavía no subió, la foto sigue en el teléfono: no hace falta volver a sacarla. Con conexión, la cola la sube sola o se puede forzar con `Reintentar`.
+</div>
+
 ## 6. Mis Registros y Configuración
 
 ![Mis registros](/manuales/capturas/operador/15-mis-registros.png)
@@ -216,6 +247,8 @@ En `Configuración` podés instalar la PWA cuando el navegador lo ofrezca y cerr
 | No aparece el equipo | Confirmá la unidad y la asignación del equipo al operador. |
 | `Revisá las horas` | Usá valores mayores a 0 y un fin mayor o igual al inicio; respetá el fin anterior del equipo. |
 | Producción inválida | Completá los campos dinámicos con valores mayores a 0. |
+| Falta la foto de evidencia | El paso `Evidencia` no deja avanzar: tomá la foto de la pantalla del procesador. Si esa foto ya muestra el horómetro, marcá la casilla y no hace falta la segunda. |
+| El pendiente no se envía | Abrí `Ver detalle`: si dice que la foto sigue en el teléfono, la foto está bien y sólo falta conexión. |
 | Falta Acta, Predio, Rodal o Lugar de Carga | Completá la referencia exigida por el proceso. |
 | Pendiente fallido | Abrí `Ver detalle`, revisá el error y usá `Reintentar`. |
 
@@ -223,6 +256,7 @@ Buenas prácticas:
 
 - Confirmá unidad, equipo y proceso antes de completar producción.
 - No cargues dos veces el mismo abastecimiento de combustible.
+- Tomá la foto en el momento de la carga, con la pantalla y el horómetro legibles: es lo que revisa el encargado.
 - Revisá el resumen final antes de guardar.
 - Sincronizá los pendientes cuando recuperes conexión.
 - Cerrá sesión si el dispositivo es compartido.

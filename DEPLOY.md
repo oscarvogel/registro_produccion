@@ -333,6 +333,9 @@ arranque, en la etapa de los contenedores.
 
 | Documento | Estado |
 |---|---|
+| `docs/EVIDENCIA_DEPLOY_RUNBOOK.md` | Runbook del despliegue de la **evidencia fotográfica**: qué se publica junto, las variables de la gateway de WhatsApp y cómo verificar el circuito. |
+| `docs/EVIDENCIA_BACKUP_VOLUMEN.md` | Procedimiento de **respaldo y restauración del volumen** de las fotos (las fotos no están en MySQL). |
+| `docs/EVIDENCIA_HORAS_PRODUCCION_PLAN.md` | Plan de la evidencia fotográfica: estado de los issues, decisiones y notas de implementación. |
 | `docs/DEPLOY_GITHUB_MAIN_RUNBOOK.md` | Runbook del **flujo manual anterior** (paquete + Nginx). Legacy: describe un host y rutas que ya no sirven producción. |
 | `docs/DEMO_ENVIRONMENT.md`, `docs/DEMO_DEPLOY_RUNBOOK.md` | Instancia `indufor_demo`. |
 | `README_DEPLOY.md` | Resumen del flujo anterior. Legacy. |

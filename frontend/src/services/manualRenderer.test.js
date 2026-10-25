@@ -11,7 +11,6 @@ import {
   inline,
   slugifyHeading,
 } from './manualRenderer.js'
-
 const here = dirname(fileURLToPath(import.meta.url))
 const manualsDir = resolve(here, '../../public/manuales')
 
@@ -89,7 +88,16 @@ describe('manualRenderer - renderAllowedHtmlLine (the bug from issue #28)', () =
 describe('manualRenderer - local Markdown images', () => {
   it('renders local mobile captures with a stable class', () => {
     expect(renderMarkdownImage('![Inicio móvil](/manuales/capturas/operador/02-inicio.png)'))
-      .toBe('<img class="manual-screenshot" src="/manuales/capturas/operador/02-inicio.png" alt="Inicio móvil" loading="lazy" decoding="async">')
+      .toBe('<img class="manual-screenshot" src="/manuales/capturas/operador/02-inicio.png" alt="Inicio móvil" decoding="async">')
+  })
+
+  it('no marca las capturas como lazy: el PDF del manual se imprimiria sin ellas', () => {
+    // El PDF se genera con Chromium (scripts/docsPdf.mjs). Al imprimir,
+    // Chromium no decodifica las imagenes `loading="lazy"` que estan fuera del
+    // viewport, y el PDF salia con capturas faltantes.
+    const html = renderManualMarkdown('![Paso 1](/manuales/capturas/operador/05-contexto.png)')
+    expect(html).not.toContain('loading="lazy"')
+    expect(html).toContain('/manuales/capturas/operador/05-contexto.png')
   })
 
   it('rejects remote or malformed Markdown images', () => {
