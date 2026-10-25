@@ -36,6 +36,33 @@
             Sin filtros extra: la unidad y el período ya están aplicados.
           </span>
         </div>
+
+        <!-- Filtro de evidencia fotografica (issue #204): el encargado tiene
+             que encontrar los registros con fotos por revisar. -->
+        <div
+          class="mt-3 flex flex-wrap items-center gap-1.5 md:w-full"
+          data-testid="filtro-evidencia"
+        >
+          <span class="text-xs font-bold uppercase tracking-wide text-neutral-500">
+            Evidencia
+          </span>
+          <button
+            v-for="opcion in filtrosEvidencia"
+            :key="opcion.value || 'todas'"
+            type="button"
+            class="rounded-full border px-3 py-1.5 text-xs font-bold transition-colors"
+            :class="
+              store.filtros.evidencia === opcion.value
+                ? 'border-secondary bg-secondary text-on-secondary'
+                : 'border-neutral-200 bg-white text-neutral-700 hover:border-secondary/40'
+            "
+            :aria-pressed="store.filtros.evidencia === opcion.value"
+            :data-testid="`filtro-evidencia-${opcion.value || 'todas'}`"
+            @click="store.setFiltroEvidencia(opcion.value)"
+          >
+            {{ opcion.label }}
+          </button>
+        </div>
       </FilterBar>
 
       <section
@@ -70,7 +97,25 @@
             row-key="id"
           >
             <template #cell-fecha="{ value }">{{ formatFecha(value) }}</template>
-            <template #cell-operacion="{ value }">{{ value || 'Producción' }}</template>
+            <template #cell-operacion="{ value, row }">
+              <span class="flex flex-wrap items-center gap-1.5">
+                <span>{{ value || 'Producción' }}</span>
+                <span
+                  v-if="esObservado(row)"
+                  class="rounded-md app-state-incident px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide"
+                  :data-testid="`observado-${row.id}`"
+                >
+                  Observado
+                </span>
+                <span
+                  v-else-if="tieneEvidenciaPendiente(row)"
+                  class="rounded-md app-state-idle px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide"
+                  :data-testid="`sin-verificar-${row.id}`"
+                >
+                  Sin verificar
+                </span>
+              </span>
+            </template>
             <template #cell-equipo="{ value }">{{ value || 'Sin equipo' }}</template>
             <template #cell-operador="{ value }">{{ value || 'Sin operador' }}</template>
             <template #cell-combustible="{ value }">
@@ -119,6 +164,18 @@
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span class="inline-flex max-w-full rounded-lg bg-info-light px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-info-dark">
                     <span class="truncate">{{ record.operacion || 'Producción' }}</span>
+                  </span>
+                  <span
+                    v-if="esObservado(record)"
+                    class="rounded-md app-state-incident px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide"
+                  >
+                    Observado
+                  </span>
+                  <span
+                    v-else-if="tieneEvidenciaPendiente(record)"
+                    class="rounded-md app-state-idle px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide"
+                  >
+                    Sin verificar
                   </span>
                   <span class="text-xs font-semibold text-neutral-400">{{ formatFecha(record.fecha) }}</span>
                 </div>
@@ -235,6 +292,11 @@ import FilterBar from '@/components/ui/FilterBar.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import RecordDetailModal from '@/components/registros/RecordDetailModal.vue'
 import { useGsapFlipList } from '@/composables/useGsapFlipList'
+import {
+  FILTROS_EVIDENCIA,
+  esObservado,
+  tieneEvidenciaPendiente,
+} from '@/utils/evidencia'
 
 const authStore = useAuthStore()
 const store = useDashboardRegistrosStore()
@@ -245,6 +307,7 @@ const router = useRouter()
 const detalleOpen = ref(false)
 const detalleId = ref(null)
 const recordsCards = ref(null)
+const filtrosEvidencia = FILTROS_EVIDENCIA
 
 useGsapFlipList({
   container: recordsCards,

@@ -13,7 +13,10 @@ function filtrosFromQuery(query) {
   const movilId = query.movil_id ? Number(query.movil_id) : null
   const fechaDesde = query.fecha_desde || null
   const fechaHasta = query.fecha_hasta || null
-  return { unId, tipoProcesoId, tipoProcesoKey, movilId, fechaDesde, fechaHasta }
+  // Filtro de evidencia fotografica (issue #204): '', 'pendiente',
+  // 'rechazada' o 'sin_evidencia'.
+  const evidencia = query.evidencia ? String(query.evidencia) : ''
+  return { unId, tipoProcesoId, tipoProcesoKey, movilId, fechaDesde, fechaHasta, evidencia }
 }
 
 function buildQueryParams(filtros) {
@@ -24,6 +27,7 @@ function buildQueryParams(filtros) {
   if (filtros.movilId) params.movil_id = filtros.movilId
   if (filtros.fechaDesde) params.fecha_desde = filtros.fechaDesde
   if (filtros.fechaHasta) params.fecha_hasta = filtros.fechaHasta
+  if (filtros.evidencia) params.evidencia = filtros.evidencia
   return params
 }
 
@@ -81,6 +85,7 @@ export const useDashboardRegistrosStore = defineStore('dashboardRegistros', {
       movilId: null,
       fechaDesde: null,
       fechaHasta: null,
+      evidencia: '',
     },
     loading: false,
     error: null,
@@ -97,7 +102,8 @@ export const useDashboardRegistrosStore = defineStore('dashboardRegistros', {
           state.filtros.tipoProcesoKey ||
           state.filtros.movilId ||
           state.filtros.fechaDesde ||
-          state.filtros.fechaHasta,
+          state.filtros.fechaHasta ||
+          state.filtros.evidencia,
       )
     },
   },
@@ -193,6 +199,15 @@ export const useDashboardRegistrosStore = defineStore('dashboardRegistros', {
       await this.fetchRegistros()
     },
 
+    /** Cambia el filtro de evidencia fotografica (issue #204). */
+    async setFiltroEvidencia(valor) {
+      const siguiente = String(valor || '')
+      if (siguiente === this.filtros.evidencia) return
+      this.filtros.evidencia = siguiente
+      this.page = 1
+      await this.fetchRegistros()
+    },
+
     async fetchDetalle(id) {
       if (!id) {
         this.detalle = null
@@ -235,6 +250,7 @@ export const useDashboardRegistrosStore = defineStore('dashboardRegistros', {
         movilId: null,
         fechaDesde: null,
         fechaHasta: null,
+        evidencia: '',
       }
       this.loading = false
       this.error = null
