@@ -53,8 +53,7 @@ describe('dashboardRegistros store (issue #104)', () => {
     )
   })
 
-  it('fetchRegistros sin unId no pega al backend y limpia el estado', async () => {
-    const store = useDashboardRegistrosStore()
+  it('fetchRegistros sin unId no pega al backend y limpia el estado', async () => {    const store = useDashboardRegistrosStore()
 
     await store.fetchRegistros()
 
@@ -215,5 +214,55 @@ describe('dashboardRegistros store (issue #104)', () => {
     expect(store.filtros.movilId).toBeNull()
     expect(store.total).toBe(0)
     expect(store.registros).toEqual([])
+  })
+
+  it('el filtro de evidencia viaja al backend (issue #204)', async () => {
+    api.get.mockResolvedValueOnce({
+      data: { items: [], total: 0, page: 1, page_size: 20, total_pages: 0 },
+    })
+    const store = useDashboardRegistrosStore()
+
+    await store.initFromQuery({ un_id: '7', evidencia: 'pendiente' })
+
+    expect(store.filtros.evidencia).toBe('pendiente')
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/dashboard/registros',
+      expect.objectContaining({
+        params: expect.objectContaining({ un_id: 7, evidencia: 'pendiente' }),
+      }),
+    )
+  })
+
+  it('setFiltroEvidencia recarga desde la primera pagina', async () => {
+    api.get.mockResolvedValue({
+      data: { items: [], total: 0, page: 1, page_size: 20, total_pages: 0 },
+    })
+    const store = useDashboardRegistrosStore()
+    store.filtros.unId = 7
+    store.page = 3
+    api.get.mockClear()
+
+    await store.setFiltroEvidencia('rechazada')
+
+    expect(store.filtros.evidencia).toBe('rechazada')
+    expect(store.page).toBe(1)
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/dashboard/registros',
+      expect.objectContaining({
+        params: expect.objectContaining({ evidencia: 'rechazada', page: 1 }),
+      }),
+    )
+  })
+
+  it('sin filtro de evidencia no manda el parametro', async () => {
+    api.get.mockResolvedValueOnce({
+      data: { items: [], total: 0, page: 1, page_size: 20, total_pages: 0 },
+    })
+    const store = useDashboardRegistrosStore()
+
+    await store.initFromQuery({ un_id: '7' })
+
+    const params = api.get.mock.calls[0][1].params
+    expect(params.evidencia).toBeUndefined()
   })
 })
