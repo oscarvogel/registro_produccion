@@ -103,22 +103,33 @@ CREATE TABLE IF NOT EXISTS produccion_evidencia (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- -----------------------------------------------------------------
--- 4. Configuracion inicial (decision D8)
+-- 4. Configuracion inicial: NINGUNA (decision D8, revisada el 25/10/2026)
 --
---   HORAS MAQUINAS -> foto del horometro
---   PROCESO        -> foto del horometro + foto de la pantalla
---   VOLTEO         -> foto de la pantalla
+-- La evidencia NO se exige por defecto. Los flags quedan en 0 (configurado:
+-- no exige evidencia) y el administrador los activa en
+-- Admin > Tipos de Proceso, proceso por proceso, cuando corresponda.
 --
--- Los procesos quedan en NULL (sin configurar = no exigen evidencia) hasta
--- que el administrador los defina en Admin.
+-- Que se reviso: esta migracion activaba los tres procesos de abajo
+-- (HORAS MAQUINAS, PROCESO y VOLTEO). Con eso, el deploy de la evidencia
+-- encendia la exigencia para todos los operadores de una, sin que nadie
+-- hubiera decidido, proceso por proceso, si el proceso la necesita.
+--
+--   HORAS MAQUINAS -> foto del horometro        (lo decide el admin)
+--   PROCESO        -> horometro + pantalla      (lo decide el admin)
+--   VOLTEO         -> foto de la pantalla       (lo decide el admin)
+--
+-- Los UPDATE de abajo solo tocan filas cuyo flag esta en NULL. Por eso, una
+-- vez que el administrador encienda o apague un flag (queda en 1 o en 0), un
+-- deploy posterior NO lo pisa: la decision es del administrador y la
+-- migracion no la pisa.
 -- -----------------------------------------------------------------
 UPDATE tipo_de_proceso
-   SET requiere_foto_horometro = 1
+   SET requiere_foto_horometro = 0
  WHERE UPPER(TRIM(nombre)) IN ('HORAS MAQUINAS', 'PROCESO')
    AND requiere_foto_horometro IS NULL;
 
 UPDATE tipo_de_proceso
-   SET requiere_foto_procesador = 1
+   SET requiere_foto_procesador = 0
  WHERE UPPER(TRIM(nombre)) IN ('PROCESO', 'VOLTEO')
    AND requiere_foto_procesador IS NULL;
 

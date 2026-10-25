@@ -83,6 +83,8 @@ En `Personal`, verificá nombre y al menos una unidad vinculada. Si editás una 
 
 `Requiere Foto Horómetro` y `Requiere Foto Procesador` son los dos campos que deciden si el operador tiene que subir una foto al cargar un registro de ese proceso.
 
+**Los dos vienen desactivados.** Ningún tipo de proceso pide foto hasta que vos lo actives a propósito: la evidencia no se exige por defecto.
+
 | Campo | Qué pide |
 | --- | --- |
 | `Requiere Foto Horómetro` | Una foto del horómetro con la lectura final. |
@@ -93,7 +95,7 @@ Con cualquiera de los dos activados, el formulario de carga suma el paso `Eviden
 Con los dos desactivados, el proceso se carga como antes: sin paso de evidencia y sin fotos. En la grilla, la columna `Evidencia` resume el requisito de cada tipo de proceso: `Ambas`, `Horómetro`, `Procesador` o `-`.
 
 <div class="warning">
-Activar un flag de foto cambia el circuito de carga de ese proceso: a partir de ese momento, ningún registro de ese tipo se guarda sin la evidencia. Conviene activarlo sólo cuando el proceso lo necesita de verdad.
+Activar un flag de foto cambia el circuito de carga de ese proceso: a partir de ese momento, ningún registro de ese tipo se guarda sin la evidencia. Conviene activarlo sólo cuando el proceso lo necesita de verdad. Y **desactivarlo también es permanente**: un despliegue posterior no vuelve a encender lo que apagaste.
 </div>
 
 ## 4. Asignaciones operativas
