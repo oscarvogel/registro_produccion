@@ -644,7 +644,8 @@ abiertas sólo D-C a D-E, que son decisiones menores que se pueden tomar durante
       del parte.
 - [x] **Issue 5** — modo offline: la foto se encola en la base local del
   teléfono y el sync sube primero la evidencia y después el parte.
-- [ ] **Issue 6** — verificación por el encargado.
+- [x] **Issue 6** — verificación por el encargado: sección de evidencia en el
+  detalle, botones Verificar / Rechazar y filtro por estado en el dashboard.
 - [ ] **Issue 7** — manuales y procedimientos.
 
 ### Antes de abrir el issue 5
@@ -680,6 +681,27 @@ abiertas sólo D-C a D-E, que son decisiones menores que se pueden tomar durante
   por su cuenta (evento `online` o timer de la app): si no, seguía mostrando
   un parte ya enviado como "requieren atención" y una foto ya subida como
   "esperando subir".
+
+### Notas de la implementación del issue #204 (verificación)
+
+- **El filtro del dashboard se aplica en el servidor.** El listado ya viene
+  paginado: filtrar en el navegador solo alcanzaría la página cargada y el
+  `total` de la paginación dejaría de cuadrar. Por eso
+  `/api/dashboard/registros` acepta `evidencia=pendiente|verificada|rechazada|
+  sin_evidencia` y cada fila trae el resumen (`evidencias_total`,
+  `evidencias_pendientes`, `evidencias_rechazadas`). Es lo que permite marcar
+  el registro **observado** en el listado sin agregar una columna (el
+  dashboard ya tiene 13 y no entra una más a 1366px).
+- **Una foto reemplazada (estado 3) no es pendiente ni rechazada**: es
+  historial de un intento anterior (D-F) y no la evaluó ningún encargado.
+- **La descarga de la foto va con el token.** El endpoint exige
+  autenticación, así que un `<img src>` pelado no llegaría a la foto: el
+  frontend baja los bytes con `responseType: 'blob'` y arma una object URL,
+  que se libera al cerrar el modal.
+- **El modal no pide la lista de evidencias si el registro no tiene fotos**:
+  el detalle ya dice cuántas hay (`evidencias_total`).
+- **El rechazo pide el motivo** (mínimo 5 caracteres) y el texto queda
+  visible en el registro: es lo que el operador lee para saber qué corregir.
 
 ### Cómo se working
 
