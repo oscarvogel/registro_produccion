@@ -311,6 +311,13 @@ Un **volumen nombrado** es lo correcto acá: sobrevive al `--force-recreate` del
 de que el path del host exista, y no se monta en `ro`. El nombre es explícito para que no dependa
 del nombre del proyecto de compose.
 
+> **Ojo: en el deploy por Coolify, el `name:` del compose no es el que queda.** Coolify pisa el
+> nombre de los volúmenes con el prefijo de su proyecto: en `fasa_189` el volumen real se llama
+> `4hcjxromkdmdylfjbw0fgvs4_evidencia` (el prefijo es el UUID de la app de Coolify). Por eso los
+> comandos de `docs/EVIDENCIA_BACKUP_VOLUMEN.md` resuelven el volumen con
+> `docker volume ls -q | grep evidencia` y nunca lo escriben a mano: un nombre escrito a mano da
+> `no such volume` y el respaldo sale vacío sin avisar.
+
 > **Un SOLO volumen para las dos instancias.** `produccion_fg` e `indufor` comparten la base `fg`:
 > con volúmenes separados, una foto subida por Servinlgsm daría **404** en Indufor. Es el riesgo
 > R-11 del plan, y el motivo de que el volumen esté declarado una sola vez.
@@ -661,20 +668,34 @@ funcionalidad del plan está completa y mergeada; lo que queda es el
   procedimiento de backup del volumen, runbook de despliegue y variables de la gateway
   en el compose. Hecho (issue #208, este PR).
 
+### Estado del despliegue (25/10/2026)
+
+**Desplegado en producción** (Coolify, `fasa_189`), commit `8e86a93` (PR #209),
+frontend y backend juntos. Verificado:
+
+- `/api/health` de las dos instancias: `commit=8e86a93`, `database=ok`.
+- Bundle nuevo (`index-CsjC38Ia.js`) con los textos del paso `Evidencia`.
+- Las rutas nuevas del backend existen (`/api/produccion/evidencias` → 405 en
+  GET, o sea, sólo acepta POST).
+- La migración corrió: `GET /api/produccion/tipos-proceso-all` responde 200 y
+  el modelo lee `requiere_foto_horometro` y `requiere_foto_procesador`.
+- El volumen de evidencia se creó y quedó montado en `/app/media` de los dos
+  backends.
+- La gateway de WhatsApp responde con la key de Coolify (`client: bot_fg`) y la
+  instancia `oscar_claro_2` existe y está `connected`.
+
 ### Lo que falta para producción
 
-1. **Desplegar** frontend y backend juntos (publicar sólo el backend rompe el
-   alta de `PROCESO`, `VOLTEO` y `HORAS MAQUINAS`). El procedimiento está en
-   `docs/EVIDENCIA_DEPLOY_RUNBOOK.md`; el general, en `DEPLOY.md`.
-2. **Cargar `WHATSAPP_API_KEY` e `WHATSAPP_INSTANCE`** (`oscar_claro_2`) en la
-   app de Coolify, en los **dos** juegos de variables (producción y preview).
-   Sin eso el aviso no sale, pero la aplicación funciona igual.
-3. **Cargar el `telefono` de los encargados** en producción. En la base de
-   demo están vacíos: si están vacíos, el aviso no sale y queda en el log.
-4. **Verificar el circuito con una persona real**: que el operador suba la foto,
+1. **Cargar el `telefono` de los encargados** en producción. En la base de
+   demo están vacíos: si están vacíos, el aviso no sale y queda en el log (el
+   parte se guarda igual).
+2. **Verificar el circuito con una persona real**: que el operador suba la foto,
    que el encargado la vea en `Detalle de registros` y que el WhatsApp llegue.
-5. **Respaldar el volumen** antes del primer deploy con fotos (ver
-   `docs/EVIDENCIA_BACKUP_VOLUMEN.md`).
+3. **Respaldar el volumen** (ver `docs/EVIDENCIA_BACKUP_VOLUMEN.md`).
+4. **Decidir si se activa `MIGRATIONS_STRICT`** en el host: hoy, si una
+   migración falla, el servicio levanta igual y queda el error en el log. Con
+   `MIGRATIONS_STRICT=1` el contenedor no levanta, que es más seguro para un
+   despliegue pero más duro para el servicio.
 
 ### Antes de abrir el issue 5
 
@@ -683,8 +704,8 @@ funcionalidad del plan está completa y mergeada; lo que queda es el
 2. Mientras la foto no se pueda encolar, un proceso que exige evidencia **no se puede
    guardar sin conexión**: el formulario lo avisa y no guarda el parte.
 3. Confirmar que el volumen de evidencia quede **creado** en el servidor antes del primer
-   deploy con fotos: `docker volume create registro_produccion_evidencia` (o lo crea el propio
-   `docker compose up`).
+   deploy con fotos: lo crea el propio `docker compose up` (en `fasa_189` quedó como
+   `4hcjxromkdmdylfjbw0fgvs4_evidencia`; ver la nota sobre el nombre en la sección 4.4).
 
 ### Notas de la implementación del issue #202 (modo offline)
 
@@ -773,6 +794,31 @@ funcionalidad del plan está completa y mergeada; lo que queda es el
   al contenedor. Ojo con la trampa de Coolify: hay que cargar el valor real en
   los **dos** juegos de variables (producción y preview), igual que con
   `SOURCE_COMMIT`.
+
+### Notas de la implementación del issue #210 (despliegue y nombre del volumen)
+
+- **El deploy se puede hacer sin VPN.** La API de Coolify
+  (`coolify.vogelconsultoria.com.ar`) es otro host y responde desde la máquina
+  de desarrollo; `scripts/deploy_produccion_fg.ps1` hace todo por API (setea
+  `SOURCE_COMMIT`/`COOLIFY_BRANCH`, dispara el deploy, espera y verifica bundle
+  y health en las dos instancias). La VPN a `fasa_189` sólo hace falta para
+  diagnóstico por SSH.
+- **Coolify pisa el `name:` de los volúmenes.** El compose declara
+  `name: registro_produccion_evidencia`, pero en el servidor el volumen quedó
+  como `4hcjxromkdmdylfjbw0fgvs4_evidencia` (prefijo del proyecto de compose
+  de Coolify, que es el UUID de la app). Por eso los procedimientos resuelven
+  el volumen con `docker volume ls -q | grep evidencia`: un nombre escrito a
+  mano da `no such volume` y el respaldo sale vacío **sin avisar**.
+- **Cómo se verificó la migración sin entrar a la base.** El endpoint
+  `GET /api/produccion/tipos-proceso-all` devuelve 200 y el modelo de
+  `TipoDeProceso` lee `requiere_foto_horometro` y `requiere_foto_procesador`:
+  si las columnas no existieran, el SELECT fallaría y daría 500. Un 200 con
+  tráfico real es la prueba.
+- **Las variables de la gateway ya estaban cargadas** en Coolify
+  (`WHATSAPP_API_KEY` e `WHATSAPP_INSTANCE=oscar_claro_2`, en producción y en
+  preview). La key responde `client: bot_fg` contra
+  `GET /api/v1/instances` de la gateway, y la instancia `oscar_claro_2` está
+  `connected`.
 
 ### Cómo se working
 
