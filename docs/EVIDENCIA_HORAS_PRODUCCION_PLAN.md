@@ -39,7 +39,35 @@ máquina. El plan agrega un **registro de evidencia**:
 | D5 | Alcance de `hr_fin` obligatorio | **Sólo en los tipos de proceso que usan horómetro** | `hr_fin` obligatoria y `> hr_inicio` en `HORAS MAQUINAS`. Los procesos sin horómetro no la exigen. |
 | D6 | Cuántas fotos del horómetro | **Una, tomada al final del trabajo** | Documenta la lectura final (`hr_fin`). No se pide foto de `hr_inicio`. |
 | D7 | Cómo se detecta que el horómetro figura en la pantalla del procesador | **Declaración del operador**, verificada por el encargado | Una casilla que el operador tilda al subir la foto del procesador. La afirmación queda guardada con la evidencia y el encargado la contrasta mirando la foto al verificar. |
-| D8 | Configuración inicial de la foto de horómetro | **`HORAS MAQUINAS` + `PROCESO`** | `PROCESO` exige las dos fotos (pantalla + horómetro) salvo que el horómetro esté en esa pantalla. `VOLTEO` sólo la de pantalla. |
+| D8 | Configuración inicial de la foto de horómetro | **REVISADA el 25/10/2026 (issue #212): NINGÚN proceso arranca exigiendo evidencia** | La exigencia se activa **a propósito**, desde Admin > Tipos de Proceso, proceso por proceso. La migración deja los flags en `0`. Ver §2.1. |
+
+### 2.1 D8 revisada — la evidencia no se exige por defecto
+
+La decisión original (D8) activaba la evidencia de tres procesos apenas se desplegaba
+la functionality: `HORAS MAQUINAS` (foto del horómetro), `PROCESO` (las dos fotos) y
+`VOLTEO` (foto de la pantalla). El deploy del 25/10/2026 (commit `8e86a93`) aplicó esa
+migración y, con ella, **encendió la exigencia para todos los operadores de una**, sin
+que nadie la hubiera decidido proceso por proceso.
+
+El usuario revisó la decisión y corrigió el rumbo:
+
+- **La evidencia no se exige por defecto.** Los tipos de proceso salen del sistema *sin*
+  exigir foto, y el administrador la activa en Admin cuando el proceso la necesita de
+  verdad.
+- `CARGA` y `EXTRACCION` nunca pidieron ni pedirán foto.
+- **Apagar un flag es permanente frente a deploys**: el `UPDATE` de la migración sólo toca
+  filas cuyo flag está en `NULL`; una vez que el admin lo deja en `0` o en `1`, un deploy
+  posterior no lo pisa.
+
+**Consecuencia práctica:** el fix de la migración (issue #212) cambia el *default* para
+instalaciones nuevas y para cualquier fila que nunca se haya configurado, pero **no
+baja los flags de producción** (allí ya quedaron en `1` cuando corrió la migración
+original). Lo baja la acción del administrador en Admin.
+
+> Nota: el `UPDATE` deja los flags en `0` (configurado: no exige) y no en `NULL`
+> (sin configurar). Los dos estados se exponen igual en la API (`False`) y en el Admin
+> (checkbox desmarcado); la diferencia es que `0` es una decisión explícita y no vuelve
+> a ser candidata del `UPDATE` de la migración.
 
 ---
 
@@ -185,13 +213,15 @@ CREATE TABLE IF NOT EXISTS produccion_evidencia (
   KEY idx_evidencia_registro (registro_id)
 );
 
--- 3. Configuracion inicial coherente con el pedido (D8)
+-- 3. Configuracion inicial: NINGUNA (D8 revisada, issue #212)
+--    La evidencia no se exige por defecto: los flags quedan en 0 y los
+--    activa el administrador desde Admin, proceso por proceso.
 --    Solo toca filas con el flag en NULL: un deploy posterior no pisa lo
 --    que el admin haya cambiado.
-UPDATE tipo_de_proceso SET requiere_foto_horometro = 1
+UPDATE tipo_de_proceso SET requiere_foto_horometro = 0
   WHERE UPPER(TRIM(nombre)) IN ('HORAS MAQUINAS', 'PROCESO')
     AND requiere_foto_horometro IS NULL;
-UPDATE tipo_de_proceso SET requiere_foto_procesador = 1
+UPDATE tipo_de_proceso SET requiere_foto_procesador = 0
   WHERE UPPER(TRIM(nombre)) IN ('PROCESO', 'VOLTEO')
     AND requiere_foto_procesador IS NULL;
 ```
@@ -508,8 +538,10 @@ Un issue, una rama, un PR. Todos desde `main`, todos en draft primero.
 | **4** | **#200** — Captura y envío en el formulario | `codex/issue-200-frontend-evidencia` | `EvidenciaField.vue`, paso condicional en `tipoProcesoRules.js`, casilla *"el horómetro se ve en esta pantalla"*, compresión, gates de `puedeAvanzar`, resumen en Revisión, tests | 3 | Mergeado (PR #201) |
 | **5** | **#202** — Modo offline | `codex/issue-202-offline-evidencia` | `db.js` v4, store `pendingEvidencias`, orden de sync (evidencia → registro), `PendientesView.vue` | 4 | Mergeado (PR #203) |
 | **6** | **#204** — Verificación por el encargado | `codex/issue-204-verificacion-evidencia` | Sección Evidencia en `RecordDetailModal.vue` (con el aviso de la declaración), botones Verificar/Rechazar, filtro en `DashboardRegistrosView.vue` | 4 | Mergeado (PR #205) |
-| **7** | **#208** — Documentación y despliegue | `codex/issue-208-docs-evidencia` | Manuales de operador/encargado/admin, procedimiento de backup del volumen, runbook de despliegue, variables de la gateway | 3–6 | En curso (este PR) |
+| **7** | **#208** — Documentación y despliegue | `codex/issue-208-docs-evidencia` | Manuales de operador/encargado/admin, procedimiento de backup del volumen, runbook de despliegue, variables de la gateway | 3–6 | Mergeado (PR #209) |
 | **+** | **#206** — Aviso por WhatsApp al encargado | `codex/issue-206-aviso-whatsapp` | Cliente de la `vogel_whatsapp_api`, aviso al encargado cuando la foto queda vinculada a un registro | 3, 4 | Mergeado (PR #207) |
+| **+** | **#210** — Nombre real del volumen | `codex/issue-210-nombre-volumen` | La documentación decía `registro_produccion_evidencia`; Coolify pisa el `name:` del compose y el real es `<hash>_evidencia` | — | Mergeado (PR #211) |
+| **+** | **#212** — La evidencia no se exige por defecto | `codex/issue-212-evidencia-off` | La migración encendía los flags de tres procesos; ahora los deja en `0` (D8 revisada), tests que lo fijan, manual del admin | 1 | En curso (este PR) |
 
 El issue **#206** no estaba en el plan original: se agregó después, cuando se decidió
 que el encargado tiene que enterarse de la foto pendiente sin tener que entrar al
@@ -622,6 +654,7 @@ Además, para este plan:
 | **D-E** | Nombre de los tipos de evidencia | `horometro` y `procesador` | Ajustable; es el `tipo` de la columna y el valor del enum |
 | **D-F** | ¿Se puede **editar** una foto cargada? | **RESUELTO 2026-10-25 (issue #198):** **sí**, se puede adjuntar una foto nueva a un registro ya creado (`POST /api/produccion/registros/{id}/evidencias`). Si el encargado rechaza la foto, el operador sube otra sin rehacer el parte entero. | Cerrado en la implementación del issue #198. La unicidad "una sola evidencia **viva** por `(form_uuid, tipo)`" la garantiza la aplicación: la foto rechazada queda como historial y la nueva la reemplaza. |
 | **D-G** | ¿Se avisa al encargado por WhatsApp? | **RESUELTO 2026-10-25 (issue #206):** **sí**, por la `vogel_whatsapp_api`, cuando la foto queda vinculada a un registro. Sólo texto (sin multimedia). El aviso **nunca** bloquea el alta. | Cerrado por el usuario. La key y la instancia se cargan como variables de entorno del backend; los teléfonos salen de `personal.telefono`. |
+| **D-H** | ¿La evidencia se exige por defecto? | **RESUELTO 2026-10-25 (issue #212): NO.** Los tipos de proceso salen sin exigir evidencia y el administrador la activa en Admin, proceso por proceso. | Cerrado por el usuario. La migración deja los flags en `0`; el `UPDATE` sólo toca filas `NULL`, así que la decisión del admin no la pisa ningún deploy posterior. Ver §2.1. |
 
 ### Notas de la implementación del issue #198 (API)
 
@@ -666,7 +699,10 @@ funcionalidad del plan está completa y mergeada; lo que queda es el
   registro. Hecho y mergeado (PR #207).
 - [x] **Issue 7** — documentación y despliegue: manuales de operador/encargado/admin,
   procedimiento de backup del volumen, runbook de despliegue y variables de la gateway
-  en el compose. Hecho (issue #208, este PR).
+  en el compose. Hecho (issue #208, PR #209).
+- [x] **Issue #210** — el nombre real del volumen en la documentación (PR #211).
+- [x] **Issue #212** — la evidencia no se exige por defecto (D8 revisada): la migración
+  deja los flags en `0` y hay tests que lo fijan.
 
 ### Estado del despliegue (25/10/2026)
 
@@ -686,13 +722,21 @@ frontend y backend juntos. Verificado:
 
 ### Lo que falta para producción
 
-1. **Cargar el `telefono` de los encargados** en producción. En la base de
+1. **Apagar los flags de evidencia en Admin** (acción del administrador, pendiente):
+   `PROCESO` (horómetro + procesador), `VOLTEO` (procesador) y `HORAS MAQUINAS`
+   (horómetro). El deploy del 25/10/2026 aplicó la migración original, que los dejó
+   en `1`: mientras sigan así, el formulario **pide la foto** en esos procesos. La
+   corrección del issue #212 cambia el default para instalaciones nuevas y para filas
+   nunca configuradas, pero **no baja los flags ya encendidos** (el `UPDATE` sólo toca
+   filas `NULL`): los baja el admin en Admin > Tipos de Proceso. Es una decisión
+   deliberada: así la evidencia queda **deshabilitada hasta que el usuario la autorice**.
+2. **Cargar el `telefono` de los encargados** en producción. En la base de
    demo están vacíos: si están vacíos, el aviso no sale y queda en el log (el
    parte se guarda igual).
-2. **Verificar el circuito con una persona real**: que el operador suba la foto,
+3. **Verificar el circuito con una persona real**: que el operador suba la foto,
    que el encargado la vea en `Detalle de registros` y que el WhatsApp llegue.
-3. **Respaldar el volumen** (ver `docs/EVIDENCIA_BACKUP_VOLUMEN.md`).
-4. **Decidir si se activa `MIGRATIONS_STRICT`** en el host: hoy, si una
+4. **Respaldar el volumen** (ver `docs/EVIDENCIA_BACKUP_VOLUMEN.md`).
+5. **Decidir si se activa `MIGRATIONS_STRICT`** en el host: hoy, si una
    migración falla, el servicio levanta igual y queda el error en el log. Con
    `MIGRATIONS_STRICT=1` el contenedor no levanta, que es más seguro para un
    despliegue pero más duro para el servicio.
@@ -819,6 +863,33 @@ frontend y backend juntos. Verificado:
   preview). La key responde `client: bot_fg` contra
   `GET /api/v1/instances` de la gateway, y la instancia `oscar_claro_2` está
   `connected`.
+
+### Notas de la implementación del issue #212 (la evidencia no se exige por defecto)
+
+- **El problema no era el código, era la migración.** La lógica de negocio ya era
+  correcta: `tipoProcesoRules.js` (frontend) y `_validar_evidencia_y_horometro`
+  (backend) sólo piden foto si el flag del tipo de proceso está en `1`. Lo que
+  encendía la exigencia era el `UPDATE` del punto 4 de
+  `db_migrations/20261024_evidencia_produccion.sql`, que corría **solo**, al
+  desplegar. Ahora deja los flags en `0`.
+- **La migración no pisa la decisión del administrador.** Los dos `UPDATE` siguen
+  filtrando por `IS NULL`: una vez que el admin deja un flag en `0` o en `1`, ningún
+  deploy posterior lo toca. Por eso el fix **no baja los flags ya encendidos en
+  producción** (quedaron en `1` con el deploy del 25/10/2026): los baja el admin.
+- **El comentario de la cabecera mentía.** Decía que los flags "quedan en NULL
+  hasta que el administrador los defina" mientras el código los activaba. Ahora el
+  comentario y el código dicen lo mismo.
+- **NULL, 0 y 1 significan lo mismo para la evidencia.** El backend expone
+  `None → False` (`schemas/evidencia.py`) y el Admin usa `Boolean(...)`: los dos
+  estados "sin configurar" y "no exige" se ven igual. La migración elige `0` para que
+  quede **registrado** que la decisión es explícita y la fila no vuelve a ser
+  candidata del `UPDATE`.
+- **Los tests fijan el default.** Hay cuatro tests en
+  `backend/tests/test_infra_evidencia.py` que fallan si la migración vuelve a
+  encender un flag, y uno en `backend/tests/test_evidencia_produccion.py` que
+  comprueba que los tres procesos quedan en `0`.
+- **`CARGA` y `EXTRACCION` nunca pidieron ni piden foto**: no aparecen en la
+  migración y no tienen con qué exigirla.
 
 ### Cómo se working
 

@@ -10,6 +10,7 @@ Cubre:
   configuracion que el administrador cambie en Admin.
 """
 import asyncio
+import re
 from pathlib import Path
 
 from app.api.routes import admin_legacy
@@ -299,8 +300,17 @@ def test_migration_seed_never_overwrites_admin_configuration():
     assert "requiere_foto_procesador IS NULL" in sql
 
 
-def test_migration_seeds_the_agreed_initial_configuration():
+def test_migration_leaves_the_three_processes_with_the_evidence_off():
+    """D8 revisada (issue #212): la migracion NO enciende la exigencia.
+
+    HORAS MAQUINAS, PROCESO y VOLTEO siguen nombrados (son los procesos que
+    la version anterior activaba), pero los dos UPDATE los dejan en 0. Quien
+    decide si un proceso exige evidencia es el administrador, desde Admin.
+    """
     sql = _migration_sql()
 
     assert "'HORAS MAQUINAS', 'PROCESO'" in sql
     assert "'PROCESO', 'VOLTEO'" in sql
+
+    for flag in ("requiere_foto_horometro", "requiere_foto_procesador"):
+        assert re.search(rf"SET\s+{flag}\s*=\s*0\b", sql, re.IGNORECASE), flag

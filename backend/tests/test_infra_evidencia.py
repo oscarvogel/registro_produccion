@@ -109,6 +109,59 @@ def test_nginx_template_has_balanced_blocks():
         assert "}" in nginx[inicio:], location
 
 
+# ─── Migracion de la evidencia: la exigencia NO se enciende sola ───
+
+MIGRACION_EVIDENCIA = "db_migrations/20261024_evidencia_produccion.sql"
+
+
+def test_the_migration_never_turns_the_evidence_requirement_on():
+    """La evidencia no se exige por defecto: la activa el administrador.
+
+    La migracion corria con los flags en 1 para HORAS MAQUINAS, PROCESO y
+    VOLTEO. Con eso, el deploy encendia la exigencia para todos los
+    operadores de una, sin que nadie lo hubiera decidido proceso por
+    proceso (issue #212).
+    """
+    sql = read(MIGRACION_EVIDENCIA)
+
+    assert not re.search(r"SET\s+requiere_foto_\w+\s*=\s*1", sql, re.IGNORECASE)
+
+
+def test_the_migration_leaves_the_flags_explicitly_off():
+    """Los flags quedan en 0 (configurado: no exige evidencia), no en NULL."""
+    sql = read(MIGRACION_EVIDENCIA)
+
+    for flag in ("requiere_foto_horometro", "requiere_foto_procesador"):
+        assert re.search(
+            rf"SET\s+{flag}\s*=\s*0\b", sql, re.IGNORECASE
+        ), f"{flag} deberia quedar en 0"
+
+
+def test_the_migration_only_touches_unconfigured_rows():
+    """El UPDATE solo toca filas NULL: si el admin enciende o apaga un flag
+    (queda en 1 o en 0), un deploy posterior no lo pisa."""
+    sql = read(MIGRACION_EVIDENCIA)
+
+    updates = re.findall(
+        r"UPDATE\s+tipo_de_proceso\s+SET\s+requiere_foto_\w+\s*=\s*0(.*?);",
+        sql,
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    assert len(updates) == 2, "se esperaba un UPDATE por flag"
+    for bloque in updates:
+        assert "IS NULL" in bloque.upper()
+
+
+def test_the_migration_still_creates_the_evidence_table():
+    """Cambiar el default no puede romper el resto de la migracion."""
+    sql = read(MIGRACION_EVIDENCIA)
+
+    assert "CREATE TABLE IF NOT EXISTS produccion_evidencia" in sql
+    assert "ADD COLUMN requiere_foto_horometro" in sql
+    assert "ADD COLUMN requiere_foto_procesador" in sql
+
+
 # ─── Settings ───────────────────────────────────────────────────
 
 def test_evidence_settings_have_working_defaults():
