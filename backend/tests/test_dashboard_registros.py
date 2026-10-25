@@ -36,9 +36,14 @@ class CapturingQuery:
         self.limit_value = None
         self._with_entities = False
         self._count_query = False
+        self._group_by = False
 
     def filter(self, *args, **kwargs):
         self.filter_calls.append((args, kwargs))
+        return self
+
+    def group_by(self, *args, **kwargs):
+        self._group_by = True
         return self
 
     def with_entities(self, *args, **kwargs):
@@ -61,6 +66,9 @@ class CapturingQuery:
         return self
 
     def all(self):
+        # La consulta agrupada del resumen de evidencia no tiene filas en el fake.
+        if self._group_by:
+            return []
         return self.rows
 
     def scalar(self):
@@ -73,11 +81,16 @@ class CapturingQuery:
 class FakeDb:
     def __init__(self, rows=None, count_value=0):
         self.query_obj = CapturingQuery(rows=rows, count_value=count_value)
+        # La consulta del resumen de evidencia (issue #204) va aparte: asi no
+        # ensucia los filtros que el test inspecciona.
+        self.evidence_query_obj = CapturingQuery(rows=[])
         # Diferentes .query() pueden querer distintos sub-queries; con uno solo alcanza
         # para los tests de helper. El endpoint detail hace su propio .query().
         self._next_first_value = None
 
-    def query(self, *_args, **_kwargs):
+    def query(self, *args, **_kwargs):
+        if args and "evidencia" in str(args[0]).lower():
+            return self.evidence_query_obj
         return self.query_obj
 
 

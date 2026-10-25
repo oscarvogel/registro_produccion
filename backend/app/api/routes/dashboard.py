@@ -5,12 +5,19 @@ from typing import List
 from datetime import date, timedelta
 
 from app.api.deps import get_db, get_current_admin_or_encargado, get_current_user
+from app.core.evidencia import (
+    ESTADO_PENDIENTE,
+    ESTADO_RECHAZADA,
+    ESTADO_VERIFICADA,
+    ESTADOS,
+)
 from app.models.personal import Personal
 from app.models.personal_unidad_negocio import PersonalUnidadNegocio
 from app.models.produccion import TableroProduccion
 from app.models.tipo_proceso import TipoDeProceso, UnidadNegocioTipoProceso
 from app.models.movil import Movil
 from app.models.dashboard import KpiDefinicion, TipoProcesoKpi
+from app.models.evidencia import ProduccionEvidencia
 from app.schemas.dashboard import (
     KpiItem,
     KpisResponse,
@@ -595,6 +602,66 @@ async def get_ranking_maquinas(
     return [RankingMaquinaItem(patente=r[0], detalle=r[1], valor=round(float(r[2] or 0), 2), registros=int(r[3])) for r in rows]
 
 
+# ─── Evidencia fotografica en el listado (issue #204) ─────────────────────
+# El filtro del dashboard (pending / verificada / rechazada / sin evidencia)
+# se aplica en el servidor: filtrar en el navegador solo alcanzaria la pagina
+# cargada y el total de la paginacion dejaria de cuadrar.
+FILTROS_EVIDENCIA = {
+    "pendiente": (ESTADO_PENDIENTE,),
+    "verificada": (ESTADO_VERIFICADA,),
+    "rechazada": (ESTADO_RECHAZADA,),
+}
+
+
+def _ids_con_evidencia(db: Session, estados: tuple[int, ...]):
+    """Subquery con los ids de registro que tienen evidencia en esos estados."""
+    return db.query(ProduccionEvidencia.registro_id).filter(
+        ProduccionEvidencia.registro_id.isnot(None),
+        ProduccionEvidencia.estado.in_(estados),
+    )
+
+
+def _aplicar_filtro_evidencia(base, db: Session, evidencia: str | None):
+    """Filtra el listado por el estado de la evidencia fotografica."""
+    if not evidencia:
+        return base
+    clave = str(evidencia).strip().lower()
+    if clave == "sin_evidencia":
+        return base.filter(~TableroProduccion.id.in_(_ids_con_evidencia(db, ESTADOS)))
+    estados = FILTROS_EVIDENCIA.get(clave)
+    if estados is None:
+        raise HTTPException(
+            status_code=422,
+            detail="El filtro de evidencia tiene que ser pendiente, verificada, rechazada o sin_evidencia.",
+        )
+    return base.filter(TableroProduccion.id.in_(_ids_con_evidencia(db, estados)))
+
+
+def _resumen_evidencia(db: Session, registro_ids: list[int]) -> dict[int, dict[str, int]]:
+    """Resumen de evidencia por registro: total, pendientes y rechazadas."""
+    if not registro_ids:
+        return {}
+    filas = (
+        db.query(
+            ProduccionEvidencia.registro_id,
+            func.count(ProduccionEvidencia.id),
+            func.sum(case((ProduccionEvidencia.estado == ESTADO_PENDIENTE, 1), else_=0)),
+            func.sum(case((ProduccionEvidencia.estado == ESTADO_RECHAZADA, 1), else_=0)),
+        )
+        .filter(ProduccionEvidencia.registro_id.in_(registro_ids))
+        .group_by(ProduccionEvidencia.registro_id)
+        .all()
+    )
+    return {
+        int(registro_id): {
+            "total": int(total or 0),
+            "pendientes": int(pendientes or 0),
+            "rechazadas": int(rechazadas or 0),
+        }
+        for registro_id, total, pendientes, rechazadas in filas
+    }
+
+
 @router.get("/registros", response_model=RegistrosPagedResponse)
 async def list_registros(
     un_id: int | None = None,
@@ -603,6 +670,7 @@ async def list_registros(
     movil_id: int | None = None,
     fecha_desde: date | None = None,
     fecha_hasta: date | None = None,
+    evidencia: str | None = None,
     page: int = 1,
     page_size: int = 20,
     user: Personal = Depends(get_current_admin_or_encargado),
@@ -610,9 +678,19 @@ async def list_registros(
 ):
     page, page_size = _normalize_pagination(page, page_size)
     base = _resolve_records_query(db, user, un_id=un_id, tipo_proceso_id=tipo_proceso_id, tipo_proceso_key=tipo_proceso_key, movil_id=movil_id, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta)
+    base = _aplicar_filtro_evidencia(base, db, evidencia)
     total = int(base.with_entities(func.count(TableroProduccion.id)).scalar() or 0)
     rows = base.order_by(TableroProduccion.fecha.desc(), TableroProduccion.id.desc()).offset((page - 1) * page_size).limit(page_size).all()
-    items = [RegistroListItem.model_validate(r) for r in rows]
+    resumen = _resumen_evidencia(db, [int(r.id) for r in rows])
+    items = []
+    for r in rows:
+        item = RegistroListItem.model_validate(r)
+        datos = resumen.get(int(r.id))
+        if datos:
+            item.evidencias_total = datos["total"]
+            item.evidencias_pendientes = datos["pendientes"]
+            item.evidencias_rechazadas = datos["rechazadas"]
+        items.append(item)
     total_pages = (total + page_size - 1) // page_size if total else 0
     return RegistrosPagedResponse(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages)
 
@@ -640,4 +718,12 @@ async def get_registro_detalle(
         if int(row.cod_operador or 0) != int(user.idPersonal):
             raise HTTPException(status_code=404, detail="Registro no encontrado")
 
-    return RegistroDetail.model_validate(row)
+    detalle = RegistroDetail.model_validate(row)
+    # Resumen de evidencia del registro (issue #204): el modal lo usa para
+    # saber si tiene que mostrar la seccion de fotos.
+    datos = _resumen_evidencia(db, [int(row.id)]).get(int(row.id))
+    if datos:
+        detalle.evidencias_total = datos["total"]
+        detalle.evidencias_pendientes = datos["pendientes"]
+        detalle.evidencias_rechazadas = datos["rechazadas"]
+    return detalle
