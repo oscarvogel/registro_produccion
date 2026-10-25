@@ -493,15 +493,22 @@ está en la máquina** al declarar, y la **persona que revisa** al verificar.
 
 Un issue, una rama, un PR. Todos desde `main`, todos en draft primero.
 
-| # | Issue | Rama | Alcance | Depende de |
-|---|---|---|---|---|
-| **1** | **#194** — Esquema + flags de tipo de proceso | `codex/issue-194-esquema-evidencia` | Migración SQL (tabla `produccion_evidencia` + flags + seed D8), modelo, schemas, `admin_legacy.py`, checkboxes en Admin | — |
-| **2** | **#196** — Infra: volumen + nginx | `codex/issue-196-infra-evidencia` | `docker-compose.yml` (**un** volumen para las dos instancias), `nginx.conf.template` (`client_max_body_size`), `config.py` (settings), `backend/scripts/purge_evidencia_huerfana.py` | — |
-| **3** | **#198** — API de evidencia | `codex/issue-198-api-evidencia` | `routes/evidencia.py`, `core/evidencia.py` (reglas R1–R9, cobertura por roles), upload/link/serve/verify, validación R2 en el alta, tests | 1, 2 |
-| **4** | Captura y envío en el formulario | `codex/issue-NN-frontend-evidencia` | `EvidenciaField.vue`, paso condicional en `tipoProcesoRules.js`, casilla *"el horómetro se ve en esta pantalla"*, compresión, gates de `puedeAvanzar`, resumen en Revisión, tests | 3 |
-| **5** | Modo offline | `codex/issue-NN-offline-evidencia` | `db.js` v4, store `pendingEvidencias`, orden de sync (evidencia → registro), `PendientesView.vue` | 4 |
-| **6** | Verificación por el encargado | `codex/issue-NN-verificacion-evidencia` | Sección Evidencia en `RecordDetailModal.vue` (con el aviso de la declaración), botones Verificar/Rechazar, filtro en `DashboardRegistrosView.vue` | 4 |
-| **7** | Documentación y despliegue | `codex/issue-NN-docs-evidencia` | Manuales de operador/encargado, procedimiento de backup del volumen, evidencia visual | 3–6 |
+| # | Issue | Rama | Alcance | Depende de | Estado |
+|---|---|---|---|---|---|
+| **1** | **#194** — Esquema + flags de tipo de proceso | `codex/issue-194-esquema-evidencia` | Migración SQL (tabla `produccion_evidencia` + flags + seed D8), modelo, schemas, `admin_legacy.py`, checkboxes en Admin | — | Mergeado (PR #195) |
+| **2** | **#196** — Infra: volumen + nginx | `codex/issue-196-infra-evidencia` | `docker-compose.yml` (**un** volumen para las dos instancias), `nginx.conf.template` (`client_max_body_size`), `config.py` (settings), `backend/scripts/purge_evidencia_huerfana.py` | — | Mergeado (PR #197) |
+| **3** | **#198** — API de evidencia | `codex/issue-198-api-evidencia` | `routes/evidencia.py`, `core/evidencia.py` (reglas R1–R9, cobertura por roles), upload/link/serve/verify, validación R2 en el alta, tests | 1, 2 | Mergeado (PR #199) |
+| **4** | **#200** — Captura y envío en el formulario | `codex/issue-200-frontend-evidencia` | `EvidenciaField.vue`, paso condicional en `tipoProcesoRules.js`, casilla *"el horómetro se ve en esta pantalla"*, compresión, gates de `puedeAvanzar`, resumen en Revisión, tests | 3 | Mergeado (PR #201) |
+| **5** | **#202** — Modo offline | `codex/issue-202-offline-evidencia` | `db.js` v4, store `pendingEvidencias`, orden de sync (evidencia → registro), `PendientesView.vue` | 4 | Mergeado (PR #203) |
+| **6** | **#204** — Verificación por el encargado | `codex/issue-204-verificacion-evidencia` | Sección Evidencia en `RecordDetailModal.vue` (con el aviso de la declaración), botones Verificar/Rechazar, filtro en `DashboardRegistrosView.vue` | 4 | Mergeado (PR #205) |
+| **7** | **#208** — Documentación y despliegue | `codex/issue-208-docs-evidencia` | Manuales de operador/encargado/admin, procedimiento de backup del volumen, runbook de despliegue, variables de la gateway | 3–6 | En curso (este PR) |
+| **+** | **#206** — Aviso por WhatsApp al encargado | `codex/issue-206-aviso-whatsapp` | Cliente de la `vogel_whatsapp_api`, aviso al encargado cuando la foto queda vinculada a un registro | 3, 4 | Mergeado (PR #207) |
+
+El issue **#206** no estaba en el plan original: se agregó después, cuando se decidió
+que el encargado tiene que enterarse de la foto pendiente sin tener que entrar al
+dashboard a mirarlo. El aviso **nunca bloquea el alta**: si no hay WhatsApp
+configurado, no hay teléfono, no hay encargados o la gateway falla, el parte se
+guarda igual y el motivo queda en el log.
 
 **Notas de secuencia:**
 
@@ -607,6 +614,7 @@ Además, para este plan:
 | **D-D** | ¿Quién puede **rechazar**? | `encargado` y `admin` | Si también debe poder hacerlo un supervisor de UN, cambia la dependencia del endpoint |
 | **D-E** | Nombre de los tipos de evidencia | `horometro` y `procesador` | Ajustable; es el `tipo` de la columna y el valor del enum |
 | **D-F** | ¿Se puede **editar** una foto cargada? | **RESUELTO 2026-10-25 (issue #198):** **sí**, se puede adjuntar una foto nueva a un registro ya creado (`POST /api/produccion/registros/{id}/evidencias`). Si el encargado rechaza la foto, el operador sube otra sin rehacer el parte entero. | Cerrado en la implementación del issue #198. La unicidad "una sola evidencia **viva** por `(form_uuid, tipo)`" la garantiza la aplicación: la foto rechazada queda como historial y la nueva la reemplaza. |
+| **D-G** | ¿Se avisa al encargado por WhatsApp? | **RESUELTO 2026-10-25 (issue #206):** **sí**, por la `vogel_whatsapp_api`, cuando la foto queda vinculada a un registro. Sólo texto (sin multimedia). El aviso **nunca** bloquea el alta. | Cerrado por el usuario. La key y la instancia se cargan como variables de entorno del backend; los teléfonos salen de `personal.telefono`. |
 
 ### Notas de la implementación del issue #198 (API)
 
@@ -629,8 +637,9 @@ Además, para este plan:
 
 ## 10. Próximo paso
 
-**D-A, D-B y D-F están resueltas** (ver sección 9). El alcance del plan está cerrado; quedan
-abiertas sólo D-C a D-E, que son decisiones menores que se pueden tomar durante la implementación.
+**D-A, D-B, D-C, D-D, D-F y D-G están resueltas** (ver sección 9). La
+funcionalidad del plan está completa y mergeada; lo que queda es el
+**despliegue a producción** y las dos cargas de datos que lo acompañan.
 
 ### Estado
 
@@ -646,7 +655,26 @@ abiertas sólo D-C a D-E, que son decisiones menores que se pueden tomar durante
   teléfono y el sync sube primero la evidencia y después el parte.
 - [x] **Issue 6** — verificación por el encargado: sección de evidencia en el
   detalle, botones Verificar / Rechazar y filtro por estado en el dashboard.
-- [ ] **Issue 7** — manuales y procedimientos.
+- [x] **Issue #206** — aviso por WhatsApp al encargado cuando la foto queda vinculada a un
+  registro. Hecho y mergeado (PR #207).
+- [x] **Issue 7** — documentación y despliegue: manuales de operador/encargado/admin,
+  procedimiento de backup del volumen, runbook de despliegue y variables de la gateway
+  en el compose. Hecho (issue #208, este PR).
+
+### Lo que falta para producción
+
+1. **Desplegar** frontend y backend juntos (publicar sólo el backend rompe el
+   alta de `PROCESO`, `VOLTEO` y `HORAS MAQUINAS`). El procedimiento está en
+   `docs/EVIDENCIA_DEPLOY_RUNBOOK.md`; el general, en `DEPLOY.md`.
+2. **Cargar `WHATSAPP_API_KEY` e `WHATSAPP_INSTANCE`** (`oscar_claro_2`) en la
+   app de Coolify, en los **dos** juegos de variables (producción y preview).
+   Sin eso el aviso no sale, pero la aplicación funciona igual.
+3. **Cargar el `telefono` de los encargados** en producción. En la base de
+   demo están vacíos: si están vacíos, el aviso no sale y queda en el log.
+4. **Verificar el circuito con una persona real**: que el operador suba la foto,
+   que el encargado la vea en `Detalle de registros` y que el WhatsApp llegue.
+5. **Respaldar el volumen** antes del primer deploy con fotos (ver
+   `docs/EVIDENCIA_BACKUP_VOLUMEN.md`).
 
 ### Antes de abrir el issue 5
 
@@ -702,6 +730,49 @@ abiertas sólo D-C a D-E, que son decisiones menores que se pueden tomar durante
   el detalle ya dice cuántas hay (`evidencias_total`).
 - **El rechazo pide el motivo** (mínimo 5 caracteres) y el texto queda
   visible en el registro: es lo que el operador lee para saber qué corregir.
+
+### Notas de la implementación del issue #206 (aviso por WhatsApp)
+
+- **El aviso se dispara cuando la foto queda vinculada a un registro**, no en la
+  subida suelta: en la subida todavía no se sabe a qué unidad pertenece. Por
+  eso los dos disparadores son el alta del parte con evidencia y el flujo D-F.
+- **El aviso nunca bloquea el alta.** Sin WhatsApp configurado, sin teléfono,
+  sin encargados o con la gateway caída, el parte se guarda igual y el motivo
+  queda en el log. El `try/except` vive en dos niveles: en
+  `avisar_evidencia_pendiente` y en el call-site de `create_produccion`.
+- **El actor de la auditoría de la gateway es el operador que cargó el parte**,
+  no el encargado que lo recibe: en el portal de la gateway se filtra por
+  `actorId` para ver qué avisos originó cada operador.
+- **El 202 de la gateway es "encolado", no entregado.** El resultado lo refleja
+  como `queued`, no como `sent`. Para saber si salió hay que consultar
+  `GET /api/v1/instances/{instancia}/messages/{messageId}`.
+- **La key y la instancia son variables de entorno del backend**, no una tabla
+  de credenciales: a diferencia de Forestal y `vogel-gestion`, acá la key no
+  está en la base.
+
+### Notas de la implementación del issue #208 (documentación y despliegue)
+
+- **Los manuales canónicos viven en `frontend/public/manuales/`**, no en
+  `docs/manuales/`. Ahí estaba el Markdown que la aplicación publica y el que
+  el CI verifica (`frontend/src/services/manualAssets.test.js`). En
+  `docs/manuales/` había una segunda copia, congelada en el commit #106, que ya
+  no coincidía con la que se publica: se eliminó, junto con los PDF viejos, y
+  el README de la carpeta ahora dice cuál es la fuente.
+- **El PDF del manual salía con capturas faltantes.** El renderer marcaba las
+  imágenes como `loading="lazy"` y, al imprimir con Chromium, no se decodifican
+  las imágenes lazy que están fuera del viewport: en el PDF quedaban círculos
+  vacíos en lugar de las capturas. Se quitó el `loading="lazy"` y se agregó un
+  test que lo fija.
+- **El manual no tiene una captura propia del paso `Evidencia`.** Las
+  capturas reales de ese paso están en `docs/screenshots/evidencia_form/`. Las
+  capturas del manual (las de `docs/manuales/capturas/`) se regeneran en el
+  issue #193, que está aparte porque las del rediseño de la navegación móvil
+  están rotas.
+- **Las variables de la gateway se declaran en el `docker-compose.yml`.** Con
+  build pack `dockercompose`, una variable que el compose no declara no llega
+  al contenedor. Ojo con la trampa de Coolify: hay que cargar el valor real en
+  los **dos** juegos de variables (producción y preview), igual que con
+  `SOURCE_COMMIT`.
 
 ### Cómo se working
 

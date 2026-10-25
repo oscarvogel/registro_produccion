@@ -59,15 +59,20 @@ function renderMarkdownImage(value) {
 
   const src = image[2].replace(/\s+"[^"]*"$/, '')
   if (!isSafeImageSrc(src)) return ''
-  return `<img class="manual-screenshot" src="${escapeHtml(src)}" alt="${escapeHtml(image[1])}" loading="lazy" decoding="async">`
+
+  // Sin `loading="lazy"`: el PDF del manual se genera con Chromium, y al
+  // imprimir, Chromium no decodifica las imagenes lazy que estan fuera del
+  // viewport. Con lazy, el PDF salia con capturas faltantes (se veian como
+  // circulos vacios). Son pocas imagenes por manual: cargarlas todas es
+  // barato y garantiza que el PDF tenga todas las capturas.
+  return `<img class="manual-screenshot" src="${escapeHtml(src)}" alt="${escapeHtml(image[1])}" decoding="async">`
 }
 
 /**
  * Try to render a single line as a whitelisted HTML block. Returns the
  * HTML string when the line matches a known shape, or an empty string
  * when the line should be processed as regular Markdown.
- */
-function renderAllowedHtmlLine(value) {
+ */function renderAllowedHtmlLine(value) {
   if (value === '</div>') return '</div>'
 
   const pageBreak = value.match(/^<div\s+class="page-break"\s*>\s*<\/div>$/)

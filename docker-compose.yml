@@ -24,6 +24,15 @@ services:
       RUN_MIGRATIONS: "1"
       BUILD_COMMIT: ${SOURCE_COMMIT:-unknown}
       BUILD_BRANCH: ${COOLIFY_BRANCH:-unknown}
+      # Gateway de WhatsApp (issue #206). Sin API key o sin instancia el aviso
+      # al encargado NO sale, pero el registro se guarda igual. Los valores
+      # reales se cargan en Coolify (app -> Environment Variables), en los dos
+      # juegos de variables (produccion y preview).
+      WHATSAPP_BASE_URL: ${WHATSAPP_BASE_URL:-https://whatsapp.vogelconsultoria.com.ar}
+      WHATSAPP_API_KEY: ${WHATSAPP_API_KEY:-}
+      WHATSAPP_INSTANCE: ${WHATSAPP_INSTANCE:-}
+      WHATSAPP_SOURCE_APP: ${WHATSAPP_SOURCE_APP:-registro-produccion}
+      WHATSAPP_TIMEOUT_SECONDS: ${WHATSAPP_TIMEOUT_SECONDS:-15}
     volumes:
       - /srv/env/registro_produccion/indufor.env:/run/secrets/registro.env:ro
       - /srv/env/registro_produccion/mysql-central-ca.pem:/run/secrets/mysql-central-ca.pem:ro
@@ -42,6 +51,15 @@ services:
       RUN_MIGRATIONS: "1"
       BUILD_COMMIT: ${SOURCE_COMMIT:-unknown}
       BUILD_BRANCH: ${COOLIFY_BRANCH:-unknown}
+      # Gateway de WhatsApp (issue #206). Sin API key o sin instancia el aviso
+      # al encargado NO sale, pero el registro se guarda igual. Los valores
+      # reales se cargan en Coolify (app -> Environment Variables), en los dos
+      # juegos de variables (produccion y preview).
+      WHATSAPP_BASE_URL: ${WHATSAPP_BASE_URL:-https://whatsapp.vogelconsultoria.com.ar}
+      WHATSAPP_API_KEY: ${WHATSAPP_API_KEY:-}
+      WHATSAPP_INSTANCE: ${WHATSAPP_INSTANCE:-}
+      WHATSAPP_SOURCE_APP: ${WHATSAPP_SOURCE_APP:-registro-produccion}
+      WHATSAPP_TIMEOUT_SECONDS: ${WHATSAPP_TIMEOUT_SECONDS:-15}
     volumes:
       - /srv/env/registro_produccion/produccion_fg.env:/run/secrets/registro.env:ro
       - /srv/env/registro_produccion/mysql-central-ca.pem:/run/secrets/mysql-central-ca.pem:ro

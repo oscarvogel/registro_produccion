@@ -79,6 +79,23 @@ En `Tipos de proceso`, `Nombre` es obligatorio. Las opciones `Requiere Acta`, `R
 
 En `Personal`, verificá nombre y al menos una unidad vinculada. Si editás una persona y dejás la contraseña vacía, la contraseña existente no cambia. En `Móviles`, `Patente` y `Detalle` son obligatorios.
 
+### Evidencia fotográfica por tipo de proceso
+
+`Requiere Foto Horómetro` y `Requiere Foto Procesador` son los dos campos que deciden si el operador tiene que subir una foto al cargar un registro de ese proceso.
+
+| Campo | Qué pide |
+| --- | --- |
+| `Requiere Foto Horómetro` | Una foto del horómetro con la lectura final. |
+| `Requiere Foto Procesador` | Una foto de la pantalla del procesador (plantas y/o m³). |
+
+Con cualquiera de los dos activados, el formulario de carga suma el paso `Evidencia` entre `Producción` y `Consumos`, y el registro **no se puede guardar sin la foto**. Con los dos activados, el operador puede marcar **"En esa misma pantalla se ve el horómetro"** y una sola foto cubre los dos casos.
+
+Con los dos desactivados, el proceso se carga como antes: sin paso de evidencia y sin fotos. En la grilla, la columna `Evidencia` resume el requisito de cada tipo de proceso: `Ambas`, `Horómetro`, `Procesador` o `-`.
+
+<div class="warning">
+Activar un flag de foto cambia el circuito de carga de ese proceso: a partir de ese momento, ningún registro de ese tipo se guarda sin la evidencia. Conviene activarlo sólo cuando el proceso lo necesita de verdad.
+</div>
+
 ## 4. Asignaciones operativas
 
 Entrá desde `Administración > Asignaciones operativas`. En el panel rápido seleccioná:
@@ -110,13 +127,19 @@ El checkbox del usuario actual está deshabilitado. No intentes quitarte el acce
 
 ![Contexto de carga admin](/manuales/capturas/admin/05-contexto.png)
 
-La carga manual del admin usa los mismos 9 pasos: `Contexto`, `Operador`, `Equipo`, `Proceso`, `Tiempo`, `Producción`, `Consumos`, `Ubicación` y `Revisión`.
+La carga manual del admin usa los mismos 9 pasos: `Contexto`, `Operador`, `Equipo`, `Proceso`, `Tiempo`, `Producción`, `Consumos`, `Ubicación` y `Revisión`. Cuando el tipo de proceso pide foto de respaldo, se suma el paso `Evidencia` entre `Producción` y `Consumos`, y la carga queda con 10 pasos.
 
 ![Revisión de carga admin](/manuales/capturas/admin/13-revision.png)
 
-En `Paso 2 - Operador`, el admin puede seleccionar el operador. En los pasos restantes confirmá equipo, proceso, horas, campos productivos dinámicos, combustible, remitos, ubicación y observaciones. Antes de `Guardar Registro`, verificá especialmente unidad, operador y equipo porque la carga impacta en reportes globales.
+En `Paso 2 - Operador`, el admin puede seleccionar el operador. En los pasos restantes confirmá equipo, proceso, horas, campos productivos dinámicos, evidencia fotográfica, combustible, remitos, ubicación y observaciones. Antes de `Guardar Registro`, verificá especialmente unidad, operador y equipo porque la carga impacta en reportes globales.
 
 Si se registra combustible dentro del parte, completá `Litros de gasoil`, `KM / Horómetro al cargar`, `Remito 1` y `Lugar de Carga`. Ese parte ya genera el consumo; no lo repitas en `Carga de Combustible`.
+
+### Verificación de la evidencia
+
+El admin también revisa la evidencia fotográfica: en `Operación > Detalle de registros` se abre cada registro y, en la sección `Evidencia Fotográfica`, los botones `Verificar` y `Rechazar` permiten dar el visto bueno o dejar el motivo del rechazo.
+
+El filtro `Esperando verificación` muestra la cola de trabajo: son los registros con fotos sin revisar.
 
 ### Borradores y trabajo offline
 
@@ -145,12 +168,14 @@ La cola de Pendientes es local al dispositivo. El admin no ve automáticamente l
 | Operación o Análisis de Producción sin datos | Ampliá el período o quitá filtros. |
 | Usuario sin acceso | Revisá estado `Activo`, rol `Encargado` y `Acceso Admin`. |
 | Horas o producción inválidas | Corregí valores mayores a 0 y respetá las validaciones del formulario. |
+| Falta la foto de evidencia | El paso `Evidencia` no deja avanzar: tomá la foto de la pantalla del procesador. Si esa foto ya muestra el horómetro, marcá la casilla y no hace falta la segunda. |
 | Pendiente fallido | Abrí `Ver detalle`, revisá el error y usá `Reintentar`. |
 
 Buenas prácticas:
 
 - Configurá primero unidades, procesos, móviles y personal; después creá asignaciones.
 - Usá `Relaciones` en unidades para revisar la configuración.
+- Activá los flags de foto de un tipo de proceso sólo cuando el proceso lo necesita: cambian el circuito de carga.
 - Revisá la carga completa antes de guardar.
 - No dupliques combustible ni elimines pendientes sin confirmación.
 - No cambies accesos admin sin validar la necesidad operativa.

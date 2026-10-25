@@ -1,6 +1,21 @@
 # Manuales de usuario
 
-Esta carpeta contiene la documentación funcional y las capturas móviles del issue #148. Las capturas se toman sobre la aplicación Vue real, con viewport `390x844` y APIs ficticias interceptadas por Playwright. No se usa la base de datos de producción.
+Esta carpeta contiene las **capturas móviles** del issue #148 y la guía para
+regenerarlas. Las capturas se toman sobre la aplicación Vue real, con viewport
+`390x844` y APIs ficticias interceptadas por Playwright. No se usa la base de datos de producción.
+
+> **Dónde están los manuales.** Los tres Markdown y los tres PDF viven en
+> `frontend/public/manuales/`: esa es la copia que la aplicación publica y la
+> que el CI verifica. Antes había una segunda copia acá que quedó congelada en
+> el commit #106 y que ya no coincidía con la que se publica; se eliminó para
+> que no haya dos versiones distintas del mismo manual.
+>
+> | Documento | Ubicación |
+> |---|---|
+> | Fuente Markdown | `frontend/public/manuales/manual-{operador,encargado,admin}.md` |
+> | PDF publicado | `frontend/public/manuales/pdf/manual-{operador,encargado,admin}.pdf` |
+> | Capturas (origen) | `docs/manuales/capturas/` |
+> | Capturas (publicadas) | `frontend/public/manuales/capturas/` |
 
 ## Dependencias
 
