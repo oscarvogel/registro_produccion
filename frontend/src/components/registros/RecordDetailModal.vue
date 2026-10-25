@@ -33,6 +33,110 @@
           </div>
         </dl>
       </section>
+
+      <!-- Evidencia fotografica (issue #204): la seccion donde el encargado
+           contrasta la foto y decide si la acepta. -->
+      <section
+        v-if="evidenciasStore.tieneEvidencias || evidenciasStore.loading"
+        class="rounded-lg border border-neutral-200 p-3"
+        data-testid="record-detail-evidencia"
+      >
+        <h4 class="mb-2 text-xs font-extrabold uppercase tracking-wide text-neutral-500">
+          Evidencia fotográfica
+        </h4>
+
+        <p v-if="evidenciasStore.loading" class="text-sm text-neutral-500">
+          Cargando las fotos...
+        </p>
+
+        <p v-else-if="evidenciasStore.error" class="text-sm font-semibold text-error-dark">
+          {{ evidenciasStore.error }}
+        </p>
+
+        <div v-else class="space-y-3">
+          <article
+            v-for="evidencia in evidenciasStore.evidencias"
+            :key="evidencia.id"
+            class="rounded-lg border border-neutral-200 p-2.5"
+            :data-testid="`evidencia-${evidencia.id}`"
+          >
+            <div class="flex gap-3">
+              <img
+                v-if="evidenciasStore.urls[evidencia.id]"
+                :src="evidenciasStore.urls[evidencia.id]"
+                :alt="rolLabel(evidencia.tipo)"
+                class="h-24 w-24 shrink-0 rounded-lg border border-neutral-200 object-cover"
+                data-testid="evidencia-foto"
+              />
+              <div
+                v-else
+                class="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg border border-dashed border-neutral-300 px-1 text-center text-[11px] font-semibold text-neutral-500"
+              >
+                Sin vista previa
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-sm font-bold text-neutral-900">{{ rolLabel(evidencia.tipo) }}</span>
+                  <AppBadge :tone="estadoTone(evidencia.estado)">
+                    {{ estadoLabel(evidencia.estado) }}
+                  </AppBadge>
+                </div>
+
+                <!-- Aviso de la declaracion D7: el operador dijo que el
+                     horometro se ve en esta pantalla. El encargado lo
+                     contrasta con la foto delante. -->
+                <p
+                  v-if="mostraDeclaracion(evidencia)"
+                  class="mt-1.5 rounded-md bg-warning-light px-2 py-1.5 text-xs font-semibold text-warning-dark"
+                  data-testid="evidencia-declaracion"
+                >
+                  El operador declaró que el horómetro se ve en esta pantalla. Revisá la foto: si el
+                  horómetro no se ve, rechazala con el motivo.
+                </p>
+
+                <p v-if="evidencia.verificado_por" class="mt-1.5 text-xs text-neutral-500">
+                  {{ Number(evidencia.estado) === ESTADO_RECHAZADA ? 'Rechazada' : 'Verificada' }} por
+                  {{ evidencia.verificado_por }}
+                  <span v-if="evidencia.verificado_at"> · {{ formatFechaHora(evidencia.verificado_at) }}</span>
+                </p>
+
+                <p
+                  v-if="evidencia.comentario"
+                  class="mt-1 text-xs font-semibold text-error-dark"
+                  data-testid="evidencia-motivo"
+                >
+                  Motivo: {{ evidencia.comentario }}
+                </p>
+
+                <div
+                  v-if="puedeVerificar && Number(evidencia.estado) === ESTADO_PENDIENTE"
+                  class="mt-2 flex flex-wrap gap-2"
+                >
+                  <AppButton
+                    size="sm"
+                    variant="primary"
+                    :loading="evidenciasStore.accionEnCurso === evidencia.id"
+                    :data-testid="`verificar-${evidencia.id}`"
+                    @click="verificar(evidencia)"
+                  >
+                    Verificar
+                  </AppButton>
+                  <AppButton
+                    size="sm"
+                    variant="danger"
+                    :disabled="evidenciasStore.accionEnCurso !== null"
+                    :data-testid="`rechazar-${evidencia.id}`"
+                    @click="rechazar(evidencia)"
+                  >
+                    Rechazar
+                  </AppButton>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
     </div>
 
     <template v-if="!loading && detalle" #actions>
@@ -45,8 +149,23 @@
 
 <script setup>
 import { computed, watch } from 'vue'
+import Swal from 'sweetalert2'
+import AppBadge from '@/components/ui/AppBadge.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import { useAuthStore } from '@/stores/auth'
 import { useDashboardRegistrosStore } from '@/stores/dashboardRegistros'
+import { useEvidenciasStore } from '@/stores/evidencias'
+import { useToastStore } from '@/stores/toast'
+import {
+  ESTADO_PENDIENTE,
+  ESTADO_RECHAZADA,
+  ESTADO_VERIFICADA,
+  ROL_PROCESADOR,
+  estadoLabel,
+  estadoTone,
+  rolLabel,
+} from '@/utils/evidencia'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -56,10 +175,18 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const store = useDashboardRegistrosStore()
+const authStore = useAuthStore()
+const evidenciasStore = useEvidenciasStore()
+const toast = useToastStore()
 
 const detalle = computed(() => store.detalle)
 const loading = computed(() => store.detalleLoading)
 const error = computed(() => store.detalleError)
+
+// Verificar y rechazar es del encargado (D-D): el operador no puede.
+const puedeVerificar = computed(
+  () => authStore.isAdmin === true || Number(authStore.user?.encargado || 0) === 1,
+)
 
 const titulo = computed(() => {
   if (!detalle.value) return 'Detalle del registro'
@@ -197,13 +324,81 @@ function formatNumero(valor) {
   return n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })
 }
 
+/** La foto del procesador con la declaracion D7: el horometro se ve en ella. */
+function mostraDeclaracion(evidencia) {
+  return (
+    evidencia.tipo === ROL_PROCESADOR && Number(evidencia.incluye_horometro || 0) === 1
+  )
+}
+
+function formatFechaHora(valor) {
+  if (!valor) return ''
+  const fecha = new Date(valor)
+  if (Number.isNaN(fecha.getTime())) return String(valor)
+  return fecha.toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+async function verificar(evidencia) {
+  try {
+    await evidenciasStore.verificar(evidencia.id, {
+      estado: ESTADO_VERIFICADA,
+      comentario: '',
+    })
+    toast.success('Foto verificada', 'La evidencia quedó aceptada por el encargado.')
+  } catch (err) {
+    toast.error('No se pudo verificar la foto', 'Intentá de nuevo en unos minutos.')
+  }
+}
+
+async function rechazar(evidencia) {
+  const { value } = await Swal.fire({
+    icon: 'warning',
+    title: 'Rechazar la foto',
+    input: 'text',
+    inputPlaceholder: 'Por ejemplo: el horómetro no se ve en la pantalla',
+    inputValidator: (motivo) =>
+      String(motivo || '').trim().length >= 5
+        ? true
+        : 'Contá el motivo del rechazo (por lo menos 5 letras).',
+    showCancelButton: true,
+    confirmButtonText: 'Rechazar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#3d935d',
+  })
+  if (!value) return
+  try {
+    await evidenciasStore.verificar(evidencia.id, {
+      estado: ESTADO_RECHAZADA,
+      comentario: String(value).trim(),
+    })
+    toast.info('Foto rechazada', 'El registro queda observado: el operador puede subir otra foto.')
+  } catch (err) {
+    toast.error('No se pudo rechazar la foto', 'Intentá de nuevo en unos minutos.')
+  }
+}
+
 watch(
   () => [props.modelValue, props.registroId],
   async ([open, id]) => {
     if (open && id) {
       await store.fetchDetalle(id)
+      // El detalle dice cuantas fotos hay: si no hay evidencia, no se pide la
+      // lista (la mayoria de los registros no tienen fotos).
+      const total = Number(store.detalle?.evidencias_total || 0)
+      if (total > 0) {
+        await evidenciasStore.cargar(id)
+      } else {
+        evidenciasStore.limpiar()
+      }
     } else if (!open) {
       store.clearDetalle()
+      evidenciasStore.limpiar()
     }
   },
   { immediate: true },

@@ -48,6 +48,13 @@ class RegistroListItem(BaseModel):
     form_uuid: str = ""
     procesos_count: int = 1
 
+    # Resumen de la evidencia fotografica del registro (issue #204).
+    # El listado del dashboard lo usa para marcar los registros observados
+    # (una foto rechazada) y para el filtro por estado de la evidencia.
+    evidencias_total: int = 0
+    evidencias_pendientes: int = 0
+    evidencias_rechazadas: int = 0
+
     class Config:
         from_attributes = True
 
