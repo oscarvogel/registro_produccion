@@ -28,6 +28,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_admin_or_encargado, get_current_user, get_db
+from app.core.avisos import avisar_evidencia_pendiente
 from app.core.config import settings
 from app.core.evidencia import (
     ESTADO_PENDIENTE,
@@ -354,6 +355,11 @@ async def adjuntar_evidencia_a_registro(
         )
         db.commit()
         db.refresh(fila)
+
+    # Aviso al encargado (issue #206): la foto de correccion (D-F) tambien
+    # espera validacion. Va fuera del lock y nunca bloquea la subida.
+    if creada:
+        avisar_evidencia_pendiente(db, registro, [fila])
 
     if not creada:
         response.status_code = 200

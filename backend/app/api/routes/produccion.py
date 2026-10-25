@@ -4,8 +4,10 @@ from sqlalchemy import or_, and_, func, inspect
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List
 from datetime import date, datetime
+import logging
 
 from app.api.deps import get_db, get_current_user
+from app.core.avisos import avisar_evidencia_pendiente
 from app.core.evidencia import (
     mensaje_faltante,
     mensaje_faltante_horometro,
@@ -58,6 +60,8 @@ from app.schemas.produccion import (
 )
 
 router = APIRouter(prefix="/produccion", tags=["produccion"])
+
+logger = logging.getLogger(__name__)
 
 # Los locks con nombre viven en app/core/locks.py: el alta de un parte y la
 # carga de evidencia los usan. Se mantienen los nombres viejos acá porque los
@@ -908,7 +912,23 @@ async def create_produccion(
 
         db.commit()
         db.refresh(registro)
-        return registro
+
+    # Aviso al encargado (issue #206): hay fotos esperando validación. Va
+    # FUERA del lock: el aviso es cortesía y no puede bloquear el alta de
+    # otros partes. Si el aviso explota, el parte ya está guardado y el
+    # operador tiene que recibir el 201 igual.
+    if evidencias:
+        try:
+            avisar_evidencia_pendiente(db, registro, evidencias)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "No se pudo avisar del registro %s por WhatsApp: %s: %s",
+                registro.id,
+                type(exc).__name__,
+                exc,
+            )
+
+    return registro
 
 
 @router.get("/mis-registros", response_model=MisRegistrosResponse)

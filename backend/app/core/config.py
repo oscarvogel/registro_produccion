@@ -36,6 +36,15 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production-with-a-real-secret-key"
     ACCESS_TOKEN_EXPIRE_HOURS: int = 8
 
+    # Gateway de WhatsApp de Vogel (vogel_whatsapp_api). Sin API key o sin
+    # instancia el aviso no sale, pero el registro se guarda igual: la foto
+    # pendiente se sigue viendo en el dashboard.
+    WHATSAPP_BASE_URL: str = "https://whatsapp.vogelconsultoria.com.ar"
+    WHATSAPP_API_KEY: str = ""
+    WHATSAPP_INSTANCE: str = ""
+    WHATSAPP_SOURCE_APP: str = "registro-produccion"
+    WHATSAPP_TIMEOUT_SECONDS: int = 15
+
     # Evidencia fotografica de horas y produccion (issue #194).
     #
     # El default corresponde al volumen Docker que monta el compose
