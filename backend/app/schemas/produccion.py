@@ -286,7 +286,8 @@ class MiRegistroItem(BaseModel):
     fecha: date | None
     operacion: str
     equipo: str
-    combustible: int
+    cod_equipo: int = 0
+    combustible: float = 0
     tn_despachadas: float
     m3: int
     has: float
@@ -306,7 +307,10 @@ class MisRegistrosResponse(BaseModel):
     registros: list[MiRegistroItem]
     total: int
     total_horas: float
-    total_combustible: int
+    total_combustible: float
+    # Horas de todos los partes del equipo en el período. Se usa para el
+    # consumo por hora cuando la tarjeta de combustible tiene alcance equipo.
+    total_horas_equipo: float = 0
     # totales de producción por campo
     total_tn: float
     total_m3: int

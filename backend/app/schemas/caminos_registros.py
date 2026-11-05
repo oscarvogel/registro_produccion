@@ -11,7 +11,8 @@ class CaminosRegistroAgrupado(BaseModel):
     fecha: date | None = None
     operacion: str = ""
     equipo: str = ""
-    combustible: int = 0
+    cod_equipo: int = 0
+    combustible: float = 0
     tn_despachadas: float = 0
     m3: int = 0
     has: float = 0

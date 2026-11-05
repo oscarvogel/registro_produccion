@@ -11,6 +11,14 @@ class CombustibleMovilResponse(BaseModel):
     id_unidad_negocio: int
 
 
+class ResumenCombustibleEquiposResponse(BaseModel):
+    equipos: list[int] = Field(default_factory=list)
+    total_egresos: float = 0
+    total_ingresos: float = 0
+    total_horas: float = 0
+    consumo_por_hora: float | None = None
+
+
 class CargaCombustibleCreate(BaseModel):
     form_uuid: str = Field(min_length=1, max_length=36)
     fecha: date

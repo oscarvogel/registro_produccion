@@ -29,7 +29,7 @@ class RegistroListItem(BaseModel):
     hr_fin: float = 0
     hrs_no_op: int = 0
     motivo_no_op: str = ""
-    combustible: int = 0
+    combustible: float = 0
     aceite_cadena: int = 0
     tn_despachadas: float = 0
     m3: int = 0

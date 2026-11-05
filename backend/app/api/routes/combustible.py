@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import inspect
@@ -16,7 +16,9 @@ from app.schemas.combustible import (
     CargaCombustibleCreate,
     CargaCombustibleResponse,
     CombustibleMovilResponse,
+    ResumenCombustibleEquiposResponse,
 )
+from app.services.combustible_resumen import resumen_combustible_equipos
 
 router = APIRouter(prefix="/combustible", tags=["combustible"])
 
@@ -128,6 +130,49 @@ async def list_moviles_combustible(
 
     rows = query.order_by(Movil.Detalle).limit(limit).all()
     return [_to_movil_response(row) for row in rows]
+
+
+def _parse_equipos(equipos: str | None) -> list[int]:
+    if not equipos:
+        return []
+    ids: list[int] = []
+    for raw in equipos.split(","):
+        try:
+            value = int(raw.strip())
+        except (TypeError, ValueError):
+            continue
+        if value > 0 and value not in ids:
+            ids.append(value)
+    return ids
+
+
+@router.get("/resumen-equipos", response_model=ResumenCombustibleEquiposResponse)
+async def get_resumen_equipos(
+    equipos: str | None = None,
+    fecha_desde: date | None = None,
+    fecha_hasta: date | None = None,
+    db: Session = Depends(get_db),
+    user: Personal = Depends(get_current_user),
+):
+    ids = _parse_equipos(equipos)
+    if not ids:
+        return ResumenCombustibleEquiposResponse()
+
+    unidad_ids = _user_unidad_ids(db, user)
+    if not unidad_ids:
+        return ResumenCombustibleEquiposResponse()
+
+    permitidos = [
+        row[0]
+        for row in db.query(Movil.idMovil)
+        .filter(Movil.idMovil.in_(ids), Movil.idUnidadNegocio.in_(unidad_ids))
+        .all()
+    ]
+    if not permitidos:
+        return ResumenCombustibleEquiposResponse()
+
+    resumen = resumen_combustible_equipos(db, permitidos, fecha_desde, fecha_hasta)
+    return ResumenCombustibleEquiposResponse(**resumen)
 
 
 @router.post("/cargas", response_model=CargaCombustibleResponse, status_code=status.HTTP_201_CREATED)

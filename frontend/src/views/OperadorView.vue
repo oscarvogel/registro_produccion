@@ -65,12 +65,20 @@
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Registros" :value="store.totales.total" icon="records" tone="info" />
           <MetricCard label="Diferencia de horómetro" :value="fmt(store.totales.total_horas)" unit="hs" icon="timer" />
-          <MetricCard label="Combustible" :value="fmt(store.totales.total_combustible)" unit="lts" icon="fuel" tone="warning" />
+          <MetricCard
+            label="Combustible del equipo"
+            :value="fmt(store.totales.total_combustible)"
+            unit="lts"
+            description="Libro de combustible del equipo en el período"
+            icon="fuel"
+            tone="warning"
+          />
           <MetricCard
             v-if="store.totales.combustible_por_hora != null"
-            label="Combustible / hora"
+            label="Consumo del equipo"
             :value="fmt(store.totales.combustible_por_hora)"
             unit="lts/hs"
+            :description="`${fmt(store.totales.total_horas_equipo)} hs del equipo`"
             icon="fuel"
             tone="warning"
           />

@@ -31,4 +31,53 @@ describe('misRegistros store - toast suppression on local fallback', () => {
     expect(store.registros).toEqual([])
     expect(store.error).toBe('No se pudieron cargar los registros')
   })
+
+  it('uses the equipment stock summary for the fuel card', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/api/produccion/mis-registros') {
+        return Promise.resolve({
+          data: {
+            registros: [
+              {
+                id: 100,
+                fecha: '2026-11-03',
+                operacion: 'CARGA',
+                equipo: 'GRUA N11',
+                cod_equipo: 10,
+                combustible: 90,
+                hr_inicio: 4660,
+                hr_fin: 4665,
+              },
+            ],
+          },
+        })
+      }
+      if (url === '/api/produccion/caminos/mis-registros') {
+        return Promise.resolve({ data: { registros: [], child_ids: [] } })
+      }
+      if (url === '/api/combustible/resumen-equipos') {
+        return Promise.resolve({
+          data: { total_egresos: 415, total_horas: 26 },
+        })
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`))
+    })
+    const store = useMisRegistrosStore()
+    store.initFiltros()
+
+    await store.fetchMisRegistros()
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/combustible/resumen-equipos',
+      expect.objectContaining({
+        params: expect.objectContaining({ equipos: '10' }),
+        _suppressErrorToast: true,
+      }),
+    )
+    expect(store.totales.total_combustible).toBe(415)
+    expect(store.totales.total_horas_equipo).toBe(26)
+    expect(store.totales.combustible_por_hora).toBe(15.96)
+    // El detalle del parte sí muestra los litros del libro vinculado.
+    expect(store.registros[0].combustible).toBe(90)
+  })
 })

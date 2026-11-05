@@ -33,6 +33,7 @@ from app.schemas.registros import (
     RegistroListItem,
     RegistrosPagedResponse,
 )
+from app.services.combustible_resumen import litros_por_parte
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -682,9 +683,14 @@ async def list_registros(
     total = int(base.with_entities(func.count(TableroProduccion.id)).scalar() or 0)
     rows = base.order_by(TableroProduccion.fecha.desc(), TableroProduccion.id.desc()).offset((page - 1) * page_size).limit(page_size).all()
     resumen = _resumen_evidencia(db, [int(r.id) for r in rows])
+    litros = litros_por_parte(db, [int(r.id) for r in rows])
     items = []
     for r in rows:
         item = RegistroListItem.model_validate(r)
+        item.combustible = round(
+            float(litros.get(int(r.id), getattr(r, "combustible", 0) or 0)),
+            2,
+        )
         datos = resumen.get(int(r.id))
         if datos:
             item.evidencias_total = datos["total"]
@@ -719,6 +725,11 @@ async def get_registro_detalle(
             raise HTTPException(status_code=404, detail="Registro no encontrado")
 
     detalle = RegistroDetail.model_validate(row)
+    litros = litros_por_parte(db, [int(row.id)])
+    detalle.combustible = round(
+        float(litros.get(int(row.id), getattr(row, "combustible", 0) or 0)),
+        2,
+    )
     # Resumen de evidencia del registro (issue #204): el modal lo usa para
     # saber si tiene que mostrar la seccion de fotos.
     datos = _resumen_evidencia(db, [int(row.id)]).get(int(row.id))

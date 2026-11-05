@@ -31,6 +31,22 @@ conservar el mismo `form_uuid`: el segundo envío recupera el movimiento
 existente y no crea otro. La interfaz normal no transfiere cargas; dirige cada
 evento al formulario correspondiente según tenga o no un parte de producción.
 
+## Fuente de verdad en la UI operativa
+
+La tarjeta **Combustible del equipo** de Registro Producción y el **Control de
+combustible** de Forestal leen el mismo libro: `cargacomb`.
+
+- La app suma todos los egresos del equipo en el período: partes, cargas
+  independientes y cargas manuales o importadas.
+- El consumo por hora usa las horas de todos los partes del equipo, no solo las
+  del operador que está mirando la pantalla.
+- El campo `tablero_produccion.combustible` queda como dato declarado del parte
+  y no se usa para el KPI de combustible.
+- El detalle de cada parte muestra los litros del movimiento vinculado por
+  `tabla = 'tablero_produccion'`/`'PRODUCCION'` e `idtabla = <id del parte>`.
+  Así el mismo remito nunca muestra dos valores distintos entre la app y
+  Forestal.
+
 ## Datos históricos
 
 La migración `20260730_cargacomb_form_uuid.sql` agrega solamente la identidad
