@@ -73,4 +73,18 @@ describe('Caminos grouping', () => {
     expect(totals.total_hr_disposicion).toBe(2)
     expect(totals.total_hr_remolque).toBe(1.5)
   })
+
+  it('uses the equipment stock summary for fuel totals and fuel rate', () => {
+    const grouped = groupCaminosRows(siblings)
+    const totals = calculateGroupedTotals(grouped, {
+      total_egresos: 415,
+      total_horas: 26,
+    })
+
+    expect(totals.total_combustible).toBe(415)
+    expect(totals.total_horas_equipo).toBe(26)
+    expect(totals.combustible_por_hora).toBe(15.96)
+    // Las horas personales del operador no cambian.
+    expect(totals.total_horas).toBe(10)
+  })
 })

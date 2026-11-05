@@ -11,6 +11,7 @@ def _row(row_id, form_uuid, operacion, *, km=0, disposicion=0, remolque=0, combu
         fecha=date(2026, 8, 14),
         operacion=operacion,
         equipo="Motoniveladora 1",
+        cod_equipo=10,
         combustible=combustible,
         tn_despachadas=0,
         m3=0,
@@ -46,6 +47,16 @@ def test_group_operator_rows_collapses_siblings_and_sums_process_metrics_once():
     assert item.hr_disposicion == 2
     assert item.hr_remolque == 1.5
     assert item.combustible == 80
+
+
+def test_group_operator_rows_uses_the_linked_stock_liters():
+    result = _group_operator_rows(
+        [_row(30, "parte-2", "CARGA", combustible=90)],
+        {30: 95.0},
+    )
+
+    assert result.registros[0].combustible == 95.0
+    assert result.registros[0].cod_equipo == 10
 
 
 def test_group_operator_rows_keeps_legacy_caminos_row_as_single_record():

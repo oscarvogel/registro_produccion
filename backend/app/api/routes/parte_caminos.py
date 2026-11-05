@@ -22,6 +22,7 @@ from app.models.unidad_negocio import UnidadNegocio
 from app.schemas.caminos_registros import CaminosMisRegistrosResponse, CaminosRegistroAgrupado
 from app.schemas.parte_caminos import ParteCaminosCreate, ParteCaminosResponse
 from app.schemas.produccion import TableroProduccionCreate
+from app.services.combustible_resumen import litros_por_parte
 
 router = APIRouter(prefix="/produccion/caminos", tags=["produccion"])
 
@@ -76,7 +77,11 @@ def _validate_hours_warning(data: ParteCaminosCreate) -> None:
     return None
 
 
-def _group_operator_rows(rows: list[TableroProduccion]) -> CaminosMisRegistrosResponse:
+def _group_operator_rows(
+    rows: list[TableroProduccion],
+    litros_vinculados: dict[int, float] | None = None,
+) -> CaminosMisRegistrosResponse:
+    litros_vinculados = litros_vinculados or {}
     grouped: dict[str, list[TableroProduccion]] = {}
     for row in rows:
         key = (row.form_uuid or "").strip() or f"legacy:{row.id}"
@@ -101,7 +106,16 @@ def _group_operator_rows(rows: list[TableroProduccion]) -> CaminosMisRegistrosRe
                     else (first.operacion or "Caminos")
                 ),
                 equipo=first.equipo or "",
-                combustible=int(first.combustible or 0),
+                cod_equipo=int(getattr(first, "cod_equipo", 0) or 0),
+                combustible=round(
+                    float(
+                        litros_vinculados.get(
+                            int(first.id),
+                            getattr(first, "combustible", 0) or 0,
+                        )
+                    ),
+                    2,
+                ),
                 tn_despachadas=round(sum(float(row.tn_despachadas or 0) for row in siblings), 2),
                 m3=sum(int(row.m3 or 0) for row in siblings),
                 has=round(sum(float(row.has or 0) for row in siblings), 2),
@@ -137,7 +151,8 @@ async def get_mis_registros_caminos(
     if fecha_hasta is not None:
         query = query.filter(TableroProduccion.fecha <= fecha_hasta)
     rows = query.order_by(TableroProduccion.fecha.desc(), TableroProduccion.id.desc()).all()
-    return _group_operator_rows(rows)
+    litros = litros_por_parte(db, [r.id for r in rows])
+    return _group_operator_rows(rows, litros)
 
 
 @router.post("", response_model=ParteCaminosResponse, status_code=201)

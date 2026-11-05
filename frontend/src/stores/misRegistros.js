@@ -5,6 +5,7 @@ function emptyTotals() {
   return {
     total: 0,
     total_horas: 0,
+    total_horas_equipo: 0,
     total_combustible: 0,
     total_tn: 0,
     total_m3: 0,
@@ -32,14 +33,24 @@ function round2(value) {
   return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100
 }
 
-export function calculateGroupedTotals(registros = []) {
+export function calculateGroupedTotals(registros = [], resumenEquipo = null) {
   const totals = emptyTotals()
   totals.total = registros.length
   totals.total_horas = round2(registros.reduce(
     (acc, row) => acc + Math.max(Number(row.hr_fin || 0) - Number(row.hr_inicio || 0), 0),
     0,
   ))
-  totals.total_combustible = round2(registros.reduce((acc, row) => acc + Number(row.combustible || 0), 0))
+  const combustiblePersonal = round2(
+    registros.reduce((acc, row) => acc + Number(row.combustible || 0), 0),
+  )
+  // El libro de combustible (cargacomb) es la fuente de verdad del equipo:
+  // incluye las cargas de los partes, las independientes y las manuales.
+  totals.total_combustible = resumenEquipo
+    ? round2(Number(resumenEquipo.total_egresos || 0))
+    : combustiblePersonal
+  totals.total_horas_equipo = resumenEquipo
+    ? round2(Number(resumenEquipo.total_horas || 0))
+    : totals.total_horas
   totals.total_tn = round2(registros.reduce((acc, row) => acc + Number(row.tn_despachadas || 0), 0))
   totals.total_m3 = round2(registros.reduce((acc, row) => acc + Number(row.m3 || 0), 0))
   totals.total_has = round2(registros.reduce((acc, row) => acc + Number(row.has || 0), 0))
@@ -54,7 +65,9 @@ export function calculateGroupedTotals(registros = []) {
     ? round2(Number(value) / totals.total_horas)
     : null
 
-  totals.combustible_por_hora = perHour(totals.total_combustible)
+  totals.combustible_por_hora = totals.total_horas_equipo > 0 && Number(totals.total_combustible) > 0
+    ? round2(Number(totals.total_combustible) / totals.total_horas_equipo)
+    : null
   totals.tn_por_hora = perHour(totals.total_tn)
   totals.m3_por_hora = perHour(totals.total_m3)
   totals.has_por_hora = perHour(totals.total_has)
@@ -71,6 +84,7 @@ export const useMisRegistrosStore = defineStore('misRegistros', {
   state: () => ({
     registros: [],
     totales: emptyTotals(),
+    resumenEquipo: null,
     filtros: {
       fecha_desde: null,
       fecha_hasta: null,
@@ -87,6 +101,23 @@ export const useMisRegistrosStore = defineStore('misRegistros', {
       this.filtros.fecha_desde = `${y}-${m}-01`
       const lastDay = new Date(y, now.getMonth() + 1, 0).getDate()
       this.filtros.fecha_hasta = `${y}-${m}-${String(lastDay).padStart(2, '0')}`
+    },
+
+    async fetchResumenEquipo(equipoIds) {
+      if (!equipoIds.length) return null
+      const params = { equipos: equipoIds.join(',') }
+      if (this.filtros.fecha_desde) params.fecha_desde = this.filtros.fecha_desde
+      if (this.filtros.fecha_hasta) params.fecha_hasta = this.filtros.fecha_hasta
+      try {
+        const { data } = await api.get('/api/combustible/resumen-equipos', {
+          params,
+          _suppressErrorToast: true,
+        })
+        return data
+      } catch (err) {
+        console.warn('No se pudo cargar el resumen de combustible por equipo:', err)
+        return null
+      }
     },
 
     async fetchMisRegistros() {
@@ -113,11 +144,20 @@ export const useMisRegistrosStore = defineStore('misRegistros', {
           if (fechaA !== fechaB) return fechaB.localeCompare(fechaA)
           return Number(b.id || 0) - Number(a.id || 0)
         })
-        this.totales = calculateGroupedTotals(this.registros)
+        const equipoIds = [
+          ...new Set(
+            this.registros
+              .map((row) => Number(row.cod_equipo || 0))
+              .filter((id) => id > 0),
+          ),
+        ]
+        this.resumenEquipo = await this.fetchResumenEquipo(equipoIds)
+        this.totales = calculateGroupedTotals(this.registros, this.resumenEquipo)
       } catch (err) {
         console.error('Error cargando mis registros:', err)
         this.error = 'No se pudieron cargar los registros'
         this.registros = []
+        this.resumenEquipo = null
         this.totales = emptyTotals()
       } finally {
         this.loading = false

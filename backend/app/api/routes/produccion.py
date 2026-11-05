@@ -42,6 +42,7 @@ from app.models.asignacion_operativa import AsignacionOperativa
 from app.models.evidencia import ProduccionEvidencia
 from app.models.lugar_carga import LugarCarga
 from app.models.lugar_carga_unidad_negocio import LugarCargaUnidadNegocio
+from app.services.combustible_resumen import litros_por_parte
 from app.schemas.produccion import (
     OperadorResponse,
     UnidadNegocioResponse,
@@ -957,6 +958,7 @@ async def get_mis_registros(
     )
 
     rows = query.order_by(TableroProduccion.fecha.desc(), TableroProduccion.id.desc()).all()
+    litros = litros_por_parte(db, [r.id for r in rows])
 
     registros = [
         MiRegistroItem(
@@ -964,7 +966,11 @@ async def get_mis_registros(
             fecha=r.fecha,
             operacion=r.operacion or "",
             equipo=r.equipo or "",
-            combustible=int(r.combustible or 0),
+            cod_equipo=int(r.cod_equipo or 0),
+            combustible=round(
+                float(litros.get(int(r.id), getattr(r, "combustible", 0) or 0)),
+                2,
+            ),
             tn_despachadas=float(r.tn_despachadas or 0),
             m3=int(r.m3 or 0),
             has=float(r.has or 0),

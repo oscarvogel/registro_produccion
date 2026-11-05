@@ -558,7 +558,7 @@ const operatorSummaryCards = computed(() => [
     detail: `Cargas ${rangeShortLabel.value}`,
     icon: 'records',
   },
-  { label: 'Combustible', value: fmt(recordsStore.totales.total_combustible), unit: 'lts', detail: 'Consumo cargado', icon: 'fuel' },
+  { label: 'Combustible del equipo', value: fmt(recordsStore.totales.total_combustible), unit: 'lts', detail: `Libro del equipo (${rangeShortLabel.value})`, icon: 'fuel' },
 ])
 
 const syncText = computed(() => {
