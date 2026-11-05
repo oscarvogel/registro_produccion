@@ -3,6 +3,7 @@ from fastapi import APIRouter, status
 from app.api.routes import admin_legacy
 from app.schemas.admin import (
     ActaAdminResponse,
+    ClienteResponse,
     DeleteResponse,
     LugarCargaResponse,
     MovilResponse,
@@ -36,6 +37,8 @@ router.add_api_route("/lugares-carga", admin_legacy.list_lugares_carga, methods=
 router.add_api_route("/lugares-carga", admin_legacy.create_lugar_carga, methods=["POST"], response_model=LugarCargaResponse, status_code=status.HTTP_201_CREATED)
 router.add_api_route("/lugares-carga/{idLugarCarga}", admin_legacy.update_lugar_carga, methods=["PUT"], response_model=LugarCargaResponse)
 router.add_api_route("/lugares-carga/{idLugarCarga}", admin_legacy.delete_lugar_carga, methods=["DELETE"], response_model=DeleteResponse)
+
+router.add_api_route("/clientes", admin_legacy.list_clientes, methods=["GET"], response_model=list[ClienteResponse])
 
 router.add_api_route("/predios", admin_legacy.list_predios, methods=["GET"], response_model=list[PredioResponse])
 router.add_api_route("/predios", admin_legacy.create_predio, methods=["POST"], response_model=PredioResponse, status_code=status.HTTP_201_CREATED)
