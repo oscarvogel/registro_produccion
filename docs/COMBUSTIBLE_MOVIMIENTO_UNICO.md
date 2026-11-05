@@ -46,6 +46,10 @@ combustible** de Forestal leen el mismo libro: `cargacomb`.
   `tabla = 'tablero_produccion'`/`'PRODUCCION'` e `idtabla = <id del parte>`.
   Así el mismo remito nunca muestra dos valores distintos entre la app y
   Forestal.
+- El dashboard operativo (KPIs, evolución diaria y ranking de máquinas) también
+  lee `cargacomb` para la métrica de combustible. Si se filtra por proceso,
+  suma solo los movimientos vinculados a los partes de ese proceso; las cargas
+  manuales sin parte no se atribuyen a un proceso.
 
 ## Datos históricos
 

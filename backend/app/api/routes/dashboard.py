@@ -16,6 +16,7 @@ from app.models.personal_unidad_negocio import PersonalUnidadNegocio
 from app.models.produccion import TableroProduccion
 from app.models.tipo_proceso import TipoDeProceso, UnidadNegocioTipoProceso
 from app.models.movil import Movil
+from app.models.carga_comb import CargaComb
 from app.models.dashboard import KpiDefinicion, TipoProcesoKpi
 from app.models.evidencia import ProduccionEvidencia
 from app.schemas.dashboard import (
@@ -129,6 +130,51 @@ def _apply_data_filters(base, process_filter: dict | None, movil_id: int | None,
     return base
 
 
+FUENTES_PARTE = ("tablero_produccion", "PRODUCCION", "produccion")
+
+
+def _parte_ids_for_scope(db: Session, process_filter: dict | None, movil_id: int | None, fecha_desde: date | None, fecha_hasta: date | None, un_id: int) -> list[int]:
+    base = db.query(TableroProduccion).filter(TableroProduccion.cod_un == un_id)
+    base = _apply_data_filters(base, process_filter, movil_id, fecha_desde, fecha_hasta)
+    return [int(row[0]) for row in base.with_entities(TableroProduccion.id).all()]
+
+
+def _fuel_query(db: Session, un_id: int, process_filter: dict | None, movil_id: int | None, fecha_desde: date | None, fecha_hasta: date | None):
+    """Libro de combustible (cargacomb) para el mismo alcance del dashboard."""
+    query = db.query(CargaComb).filter(
+        CargaComb.UnidadNegocio == un_id,
+        CargaComb.tipo_mov == "E",
+    )
+    if movil_id is not None:
+        query = query.filter(CargaComb.idMovil == movil_id)
+    if fecha_desde is not None:
+        query = query.filter(CargaComb.Fecha >= fecha_desde)
+    if fecha_hasta is not None:
+        query = query.filter(CargaComb.Fecha <= fecha_hasta)
+    if process_filter:
+        parte_ids = _parte_ids_for_scope(
+            db, process_filter, movil_id, fecha_desde, fecha_hasta, un_id
+        )
+        if not parte_ids:
+            return query.filter(CargaComb.idCargaComb == -1)
+        candidatos = set()
+        for parte_id in parte_ids:
+            candidatos.add(str(parte_id))
+            candidatos.add(str(parte_id).zfill(12))
+        query = query.filter(
+            CargaComb.tabla.in_(FUENTES_PARTE),
+            CargaComb.idtabla.in_(candidatos),
+        )
+    return query
+
+
+def _fuel_total(db: Session, un_id: int, process_filter: dict | None, movil_id: int | None, fecha_desde: date | None, fecha_hasta: date | None) -> float:
+    value = _fuel_query(
+        db, un_id, process_filter, movil_id, fecha_desde, fecha_hasta
+    ).with_entities(func.coalesce(func.sum(CargaComb.Litros), 0)).scalar()
+    return round(float(value or 0), 2)
+
+
 def _jornada_key(registro_id, form_uuid) -> str:
     """Clave lógica de jornada: form_uuid para multiproceso, id para legacy."""
     normalized = str(form_uuid or "").strip()
@@ -181,6 +227,9 @@ def _compute_kpi_value(db: Session, kpi: KpiDefinicion, process_filter: dict | N
 
     base = db.query(TableroProduccion).filter(TableroProduccion.cod_un == un_id)
     base = _apply_data_filters(base, process_filter, movil_id, fecha_desde, fecha_hasta)
+
+    if campo == "combustible" and kpi.agregacion == "SUM":
+        return _fuel_total(db, un_id, process_filter, movil_id, fecha_desde, fecha_hasta)
 
     if campo == "CUSTOM:horas_trabajadas":
         hrs_trab, _ = _jornada_totals(base)
@@ -248,7 +297,7 @@ def _fallback_kpis(db: Session, process_filter: dict | None, movil_id: int | Non
 
     registros = float(row.registros or 0)
     produccion = round(float(row.produccion or 0), 2)
-    combustible = round(float(row.combustible or 0), 2)
+    combustible = _fuel_total(db, un_id, process_filter, movil_id, fecha_desde, fecha_hasta)
     horas, _ = _jornada_totals(base)
     principal = produccion > 0
 
@@ -501,6 +550,24 @@ async def get_evolucion(
     base = db.query(TableroProduccion).filter(TableroProduccion.cod_un == un_id)
     base = _apply_data_filters(base, filter_tp_ids, movil_id, fecha_desde, fecha_hasta)
 
+    if metric == "combustible":
+        fuel = _fuel_query(db, un_id, process_filter, movil_id, fecha_desde, fecha_hasta)
+        rows = (
+            fuel.with_entities(CargaComb.Fecha, func.sum(CargaComb.Litros).label("valor"))
+            .group_by(CargaComb.Fecha)
+            .order_by(CargaComb.Fecha)
+            .all()
+        )
+        return EvolucionResponse(
+            labels=[str(row[0]) if row[0] else "" for row in rows],
+            datasets=[
+                DatasetItem(
+                    nombre="Combustible",
+                    valores=[round(float(row[1] or 0), 2) for row in rows],
+                )
+            ],
+        )
+
     if campo in ("CUSTOM:horas_trabajadas", "CUSTOM:eficiencia"):
         grouped = _aggregate_jornadas(_jornada_rows(base, TableroProduccion.fecha), (0,))
         by_date: dict[date, float] = {}
@@ -573,6 +640,30 @@ async def get_ranking_maquinas(
         .filter(TableroProduccion.cod_un == un_id)
     )
     base = _apply_data_filters(base, filter_tp_ids, movil_id, fecha_desde, fecha_hasta)
+
+    if metric == "combustible":
+        fuel = _fuel_query(db, un_id, process_filter, movil_id, fecha_desde, fecha_hasta)
+        rows = (
+            fuel.join(Movil, Movil.idMovil == CargaComb.idMovil)
+            .with_entities(
+                Movil.Patente,
+                Movil.Detalle,
+                func.sum(CargaComb.Litros).label("valor"),
+                func.count(CargaComb.idCargaComb).label("registros"),
+            )
+            .group_by(Movil.idMovil, Movil.Patente, Movil.Detalle)
+            .order_by(func.sum(CargaComb.Litros).desc())
+            .all()
+        )
+        return [
+            RankingMaquinaItem(
+                patente=row[0],
+                detalle=row[1],
+                valor=round(float(row[2] or 0), 2),
+                registros=int(row[3]),
+            )
+            for row in rows
+        ]
 
     if campo in ("CUSTOM:horas_trabajadas", "CUSTOM:eficiencia"):
         rows = _jornada_rows(base, Movil.idMovil, Movil.Patente, Movil.Detalle)
