@@ -325,6 +325,22 @@ class PredioResponse(BaseModel):
     codigo_kobo: str | None = None
 
 
+class ClienteResponse(BaseModel):
+    """Cliente del catalogo legacy.
+
+    Se expone solo para que el administrador pueda elegir el CUIT de la
+    empresa de un predio: `predios.empresa` es FK contra `cliente.cuit`.
+    """
+
+    cuit: str
+    razon_social: str
+    localidad: str = ""
+    operaciones: int = 0
+
+    class Config:
+        from_attributes = True
+
+
 class RodalCreate(BaseModel):
     rodal: str = Field(min_length=1)
     idPredio: int

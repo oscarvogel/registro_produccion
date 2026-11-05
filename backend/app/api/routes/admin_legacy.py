@@ -9,6 +9,7 @@ from app.api.deps import get_current_admin, get_db
 from app.core.legacy_columns import RODAL_MAX_LENGTH
 from app.core.security import get_password_hash
 from app.models.asignacion_operativa import AsignacionOperativa
+from app.models.cliente import Cliente
 from app.models.lugar_carga import LugarCarga
 from app.models.lugar_carga_unidad_negocio import LugarCargaUnidadNegocio
 from app.models.movil import Movil
@@ -33,6 +34,7 @@ from app.schemas.admin import (
     AsignacionOperativaCreate,
     AsignacionOperativaResponse,
     AsignacionOperativaUpdate,
+    ClienteResponse,
     ConfiguracionAccesoUpdate,
     ConfiguracionUsuarioResponse,
     DashboardResumenItem,
@@ -1598,6 +1600,57 @@ async def delete_lugar_carga(
     return DeleteResponse()
 
 
+@router.get("/clientes", response_model=list[ClienteResponse])
+async def list_clientes(
+    skip: int = 0,
+    limit: int = 50,
+    buscar: str | None = None,
+    db: Session = Depends(get_db),
+    _: Personal = Depends(get_current_admin),
+):
+    """Clientes del catalogo legacy (`cliente`).
+
+    `predios.empresa` es clave foranea contra `cliente.cuit`, asi que este
+    listado es la unica forma de que el administrador vea que CUITs existen
+    antes de cargar un predio. La app no tiene ABM de clientes: el alta se
+    hace en el sistema legacy.
+    """
+    query = db.query(Cliente)
+    if buscar:
+        pattern = f"%{buscar.strip()}%"
+        query = query.filter(or_(Cliente.cuit.ilike(pattern), Cliente.razon_social.ilike(pattern)))
+    rows = query.order_by(Cliente.razon_social, Cliente.cuit).offset(skip).limit(min(limit, 5000)).all()
+    return [
+        ClienteResponse(
+            cuit=row.cuit,
+            razon_social=row.razon_social,
+            localidad=row.localidad or "",
+            operaciones=int(row.operaciones or 0),
+        )
+        for row in rows
+    ]
+
+
+def _validar_empresa_cliente(db: Session, empresa: str) -> None:
+    """Verifica que la empresa exista en `cliente` antes de tocar `predios`.
+
+    `predios.empresa` es FK contra `cliente.cuit`. Sin esta validacion, un
+    CUIT inexistente lo rechaza MySQL al commit y el error sale como 503
+    ("no se pudo conectar con el servidor"), que no dice nada de la causa
+    real. Aqui se corta antes, con un mensaje que el operador puede usar.
+    """
+    existe = db.query(Cliente.id).filter(Cliente.cuit == empresa).first()
+    if not existe:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"La empresa {empresa} no existe en la tabla de clientes. "
+                "El campo Empresa es el CUIT del cliente: elegi uno del listado "
+                "o cargalo primero en el sistema de clientes."
+            ),
+        )
+
+
 @router.get("/predios", response_model=list[PredioResponse])
 async def list_predios(
     skip: int = 0,
@@ -1624,6 +1677,7 @@ async def create_predio(
     empresa = payload.empresa.strip()
     if not nombre or not empresa:
         raise HTTPException(status_code=400, detail="Nombre y empresa son obligatorios")
+    _validar_empresa_cliente(db, empresa)
 
     next_id = payload.idPredio
     if next_id is None:
@@ -1662,6 +1716,7 @@ async def update_predio(
         empresa = (data.pop("empresa") or "").strip()
         if not empresa:
             raise HTTPException(status_code=400, detail="Empresa es obligatoria")
+        _validar_empresa_cliente(db, empresa)
         row.empresa = empresa
     if "codigo_kobo" in data:
         row.codigo_kobo = data.pop("codigo_kobo")

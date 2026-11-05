@@ -819,7 +819,17 @@ const ENTITY_DEFINITIONS = {
     fields: [
       { key: 'idPredio', label: 'ID (opcional)', type: 'number', nullable: true, section: 'principal' },
       { key: 'nombre', label: 'Nombre', type: 'text', required: true, section: 'principal' },
-      { key: 'empresa', label: 'Empresa', type: 'text', required: true, section: 'principal' },
+      {
+        key: 'empresa',
+        label: 'Empresa (CUIT del cliente)',
+        type: 'autocomplete',
+        optionsEntity: 'clientes',
+        optionValue: 'cuit',
+        optionLabel: 'razon_social',
+        required: true,
+        placeholder: 'Escribí el CUIT o la razón social',
+        section: 'principal',
+      },
       { key: 'codigo_kobo', label: 'Codigo Kobo', type: 'text', nullable: true, section: 'principal' },
     ],
   },
@@ -1071,7 +1081,8 @@ async function loadReferences() {
     }
 
     try {
-      const data = await adminStore.fetchEntity(refEntity, { skip: 0, limit: 1000 })
+      const referenceLimit = adminStore.getEntityConfig(refEntity)?.referenceLimit || 1000
+      const data = await adminStore.fetchEntity(refEntity, { skip: 0, limit: referenceLimit })
       referenceCache.set(refEntity, data)
       referenceData[refEntity] = data
     } catch {
@@ -1556,7 +1567,14 @@ function toggleMultiValue(key, value, checked) {
 }
 
 function findReference(refEntity, value, key) {
-  return (referenceData[refEntity] || []).find((item) => Number(item[key]) === Number(value))
+  return (referenceData[refEntity] || []).find((item) => {
+    const itemValue = item[key]
+    if (itemValue === value) return true
+    // Los CUITs son texto ("30-12345678-9"): la comparacion numerica no
+    // aplica y `Number()` devuelve NaN.
+    const numeric = Number(itemValue)
+    return !Number.isNaN(numeric) && numeric === Number(value)
+  })
 }
 
 function lookupLabel(value, column) {
@@ -1586,6 +1604,7 @@ function formatOptionLabel(option, field) {
   if (!option) return ''
   if (field.optionsEntity === 'moviles') return [option.patente, option.detalle].filter(Boolean).join(' - ')
   if (field.optionsEntity === 'personal') return [option.nombre, option.dni ? `DNI ${option.dni}` : ''].filter(Boolean).join(' - ')
+  if (field.optionsEntity === 'clientes') return [option.razon_social, option.cuit].filter(Boolean).join(' - ')
   return option[field.optionLabel] ?? option.nombre ?? option.detalle ?? option.id
 }
 
