@@ -35,7 +35,7 @@ def test_group_operator_rows_collapses_siblings_and_sums_process_metrics_once():
         _row(12, "parte-1", "REMOLQUE", remolque=1.5),
     ]
 
-    result = _group_operator_rows(rows)
+    result = _group_operator_rows(rows, {10: 80.0})
 
     assert result.child_ids == [10, 11, 12]
     assert len(result.registros) == 1
@@ -57,6 +57,12 @@ def test_group_operator_rows_uses_the_linked_stock_liters():
 
     assert result.registros[0].combustible == 95.0
     assert result.registros[0].cod_equipo == 10
+
+
+def test_group_operator_rows_sin_movimiento_vinculado_no_usa_litros_declarados():
+    result = _group_operator_rows([_row(40, "parte-3", "CARGA", combustible=7)])
+
+    assert result.registros[0].combustible == 0
 
 
 def test_group_operator_rows_keeps_legacy_caminos_row_as_single_record():

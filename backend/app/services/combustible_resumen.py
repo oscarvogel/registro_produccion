@@ -8,11 +8,10 @@ datos ni deciden reglas de negocio transaccionales.
 
 from datetime import date
 
-from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.models.carga_comb import CargaComb
-from app.models.produccion import TableroProduccion
+from app.models.movil import Movil
 
 FUENTES_PARTE = ("tablero_produccion", "PRODUCCION", "produccion")
 
@@ -65,73 +64,134 @@ def litros_por_parte(db: Session, parte_ids) -> dict[int, float]:
     return litros
 
 
+def _resumen_equipo(
+    db: Session,
+    id_movil: int,
+    fecha_desde: date | None,
+    fecha_hasta: date | None,
+) -> dict:
+    """Libro de combustible y horómetro real de un equipo en el período.
+
+    El horómetro se calcula igual que "Control de combustible" de Forestal:
+    se parte de la última carga anterior al período y se suma ``KM`` de cada
+    movimiento (sin sumar el salto de los ``pase``). Así el consumo por hora
+    usa el avance real del equipo y no la suma de horas de los partes, que se
+    duplica cuando hay más de un operador.
+    """
+    query = db.query(CargaComb).filter(CargaComb.idMovil == id_movil)
+    if fecha_desde is not None:
+        query = query.filter(CargaComb.Fecha >= fecha_desde)
+    if fecha_hasta is not None:
+        query = query.filter(CargaComb.Fecha <= fecha_hasta)
+    cargas = query.order_by(
+        CargaComb.Fecha,
+        CargaComb.KM,
+        CargaComb.idCargaComb,
+    ).all()
+
+    total_egresos = sum(
+        float(carga.Litros or 0) for carga in cargas if carga.tipo_mov == "E"
+    )
+    total_ingresos = sum(
+        float(carga.Litros or 0) for carga in cargas if carga.tipo_mov == "I"
+    )
+
+    km_inicio = None
+    if fecha_desde is not None:
+        anterior = (
+            db.query(CargaComb)
+            .filter(
+                CargaComb.idMovil == id_movil,
+                CargaComb.Fecha < fecha_desde,
+            )
+            .order_by(
+                CargaComb.Fecha.desc(),
+                CargaComb.KM.desc(),
+                CargaComb.idCargaComb.desc(),
+            )
+            .first()
+        )
+        if anterior is not None:
+            km_inicio = float(anterior.KM or 0)
+
+    km_fin = None
+    km_anterior = km_inicio
+    km_recorrido = 0.0
+    for carga in cargas:
+        km = float(carga.KM or 0)
+        if km_anterior is None:
+            km_anterior = km
+        if carga.pase:
+            km_recorrido = 0.0
+        else:
+            km_recorrido += km - km_anterior
+        km_anterior = km
+        km_fin = km
+
+    if km_inicio is None and cargas:
+        km_inicio = float(cargas[0].KM or 0)
+
+    total_horas = km_recorrido if km_recorrido > 0 else 0.0
+    return {
+        "id_movil": int(id_movil),
+        "nombre": "",
+        "total_egresos": round(total_egresos, 2),
+        "total_ingresos": round(total_ingresos, 2),
+        "km_inicio": km_inicio,
+        "km_fin": km_fin,
+        "total_horas": round(total_horas, 2),
+        "consumo_por_hora": (
+            round(total_egresos / total_horas, 2) if total_horas > 0 else None
+        ),
+    }
+
+
 def resumen_combustible_equipos(
     db: Session,
     equipo_ids,
     fecha_desde: date | None = None,
     fecha_hasta: date | None = None,
 ) -> dict:
-    """Totales del libro de combustible y horas para un conjunto de equipos.
+    """Totales del libro de combustible por equipo, con consumo individual.
 
-    - ``total_egresos``/``total_ingresos``: suma de ``cargacomb`` del período,
-      sin importar el origen (parte, carga independiente o manual). Es el mismo
-      alcance que "Control de combustible" de Forestal.
-    - ``total_horas``: horas de todos los partes de esos equipos en el período,
-      para que el consumo por hora del equipo no se calcule contra las horas de
-      un solo operador.
+    Cada equipo se calcula por separado: sumar equipos distintos mezcla
+    consumos de máquinas que no tienen nada que ver. El total agregado se
+    mantiene para compatibilidad, pero la UI usa ``por_equipo``.
     """
     ids = sorted({int(i) for i in equipo_ids if int(i or 0) > 0})
     if not ids:
         return {
             "equipos": [],
+            "por_equipo": [],
             "total_egresos": 0.0,
             "total_ingresos": 0.0,
             "total_horas": 0.0,
             "consumo_por_hora": None,
         }
 
-    cargas = db.query(
-        func.coalesce(
-            func.sum(case((CargaComb.tipo_mov == "E", CargaComb.Litros), else_=0)),
-            0,
-        ),
-        func.coalesce(
-            func.sum(case((CargaComb.tipo_mov == "I", CargaComb.Litros), else_=0)),
-            0,
-        ),
-    ).filter(CargaComb.idMovil.in_(ids))
-    if fecha_desde is not None:
-        cargas = cargas.filter(CargaComb.Fecha >= fecha_desde)
-    if fecha_hasta is not None:
-        cargas = cargas.filter(CargaComb.Fecha <= fecha_hasta)
-    egresos, ingresos = cargas.one()
+    nombres = {
+        int(row.idMovil): row.Detalle or ""
+        for row in db.query(Movil.idMovil, Movil.Detalle)
+        .filter(Movil.idMovil.in_(ids))
+        .all()
+    }
 
-    horas_query = db.query(
-        func.coalesce(
-            func.sum(
-                case(
-                    (
-                        TableroProduccion.hr_fin > TableroProduccion.hr_inicio,
-                        TableroProduccion.hr_fin - TableroProduccion.hr_inicio,
-                    ),
-                    else_=0,
-                )
-            ),
-            0,
-        )
-    ).filter(TableroProduccion.cod_equipo.in_(ids))
-    if fecha_desde is not None:
-        horas_query = horas_query.filter(TableroProduccion.fecha >= fecha_desde)
-    if fecha_hasta is not None:
-        horas_query = horas_query.filter(TableroProduccion.fecha <= fecha_hasta)
-    horas = horas_query.scalar() or 0
+    por_equipo = []
+    for id_movil in ids:
+        item = _resumen_equipo(db, id_movil, fecha_desde, fecha_hasta)
+        item["nombre"] = nombres.get(id_movil, "")
+        por_equipo.append(item)
 
-    total_egresos = float(egresos or 0)
-    total_horas = float(horas or 0)
+    total_egresos = round(sum(item["total_egresos"] for item in por_equipo), 2)
+    total_ingresos = round(sum(item["total_ingresos"] for item in por_equipo), 2)
+    total_horas = round(sum(item["total_horas"] for item in por_equipo), 2)
     return {
         "equipos": ids,
+        "por_equipo": por_equipo,
         "total_egresos": total_egresos,
-        "total_ingresos": float(ingresos or 0),
+        "total_ingresos": total_ingresos,
         "total_horas": total_horas,
-        "consumo_por_hora": round(total_egresos / total_horas, 2) if total_horas > 0 else None,
+        "consumo_por_hora": (
+            round(total_egresos / total_horas, 2) if total_horas > 0 else None
+        ),
     }

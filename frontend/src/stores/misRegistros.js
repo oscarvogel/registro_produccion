@@ -7,6 +7,7 @@ function emptyTotals() {
     total_horas: 0,
     total_horas_equipo: 0,
     total_combustible: 0,
+    por_equipo: [],
     total_tn: 0,
     total_m3: 0,
     total_has: 0,
@@ -40,17 +41,19 @@ export function calculateGroupedTotals(registros = [], resumenEquipo = null) {
     (acc, row) => acc + Math.max(Number(row.hr_fin || 0) - Number(row.hr_inicio || 0), 0),
     0,
   ))
-  const combustiblePersonal = round2(
-    registros.reduce((acc, row) => acc + Number(row.combustible || 0), 0),
-  )
   // El libro de combustible (cargacomb) es la fuente de verdad del equipo:
   // incluye las cargas de los partes, las independientes y las manuales.
+  // Si no hay resumen del equipo no se usa el dato declarado del parte: se
+  // muestra 0 para no mezclar litros personales con los del equipo.
   totals.total_combustible = resumenEquipo
     ? round2(Number(resumenEquipo.total_egresos || 0))
-    : combustiblePersonal
+    : 0
   totals.total_horas_equipo = resumenEquipo
     ? round2(Number(resumenEquipo.total_horas || 0))
-    : totals.total_horas
+    : 0
+  totals.por_equipo = Array.isArray(resumenEquipo?.por_equipo)
+    ? resumenEquipo.por_equipo
+    : []
   totals.total_tn = round2(registros.reduce((acc, row) => acc + Number(row.tn_despachadas || 0), 0))
   totals.total_m3 = round2(registros.reduce((acc, row) => acc + Number(row.m3 || 0), 0))
   totals.total_has = round2(registros.reduce((acc, row) => acc + Number(row.has || 0), 0))

@@ -967,10 +967,7 @@ async def get_mis_registros(
             operacion=r.operacion or "",
             equipo=r.equipo or "",
             cod_equipo=int(r.cod_equipo or 0),
-            combustible=round(
-                float(litros.get(int(r.id), getattr(r, "combustible", 0) or 0)),
-                2,
-            ),
+            combustible=round(float(litros.get(int(r.id), 0)), 2),
             tn_despachadas=float(r.tn_despachadas or 0),
             m3=int(r.m3 or 0),
             has=float(r.has or 0),
