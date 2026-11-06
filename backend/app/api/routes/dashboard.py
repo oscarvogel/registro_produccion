@@ -778,10 +778,7 @@ async def list_registros(
     items = []
     for r in rows:
         item = RegistroListItem.model_validate(r)
-        item.combustible = round(
-            float(litros.get(int(r.id), getattr(r, "combustible", 0) or 0)),
-            2,
-        )
+        item.combustible = round(float(litros.get(int(r.id), 0)), 2)
         datos = resumen.get(int(r.id))
         if datos:
             item.evidencias_total = datos["total"]
@@ -817,10 +814,7 @@ async def get_registro_detalle(
 
     detalle = RegistroDetail.model_validate(row)
     litros = litros_por_parte(db, [int(row.id)])
-    detalle.combustible = round(
-        float(litros.get(int(row.id), getattr(row, "combustible", 0) or 0)),
-        2,
-    )
+    detalle.combustible = round(float(litros.get(int(row.id), 0)), 2)
     # Resumen de evidencia del registro (issue #204): el modal lo usa para
     # saber si tiene que mostrar la seccion de fotos.
     datos = _resumen_evidencia(db, [int(row.id)]).get(int(row.id))

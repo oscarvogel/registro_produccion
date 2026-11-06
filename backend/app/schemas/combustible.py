@@ -11,8 +11,20 @@ class CombustibleMovilResponse(BaseModel):
     id_unidad_negocio: int
 
 
+class ResumenCombustibleEquipoItem(BaseModel):
+    id_movil: int
+    nombre: str = ""
+    total_egresos: float = 0
+    total_ingresos: float = 0
+    km_inicio: float | None = None
+    km_fin: float | None = None
+    total_horas: float = 0
+    consumo_por_hora: float | None = None
+
+
 class ResumenCombustibleEquiposResponse(BaseModel):
     equipos: list[int] = Field(default_factory=list)
+    por_equipo: list[ResumenCombustibleEquipoItem] = Field(default_factory=list)
     total_egresos: float = 0
     total_ingresos: float = 0
     total_horas: float = 0

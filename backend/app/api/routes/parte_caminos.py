@@ -108,12 +108,7 @@ def _group_operator_rows(
                 equipo=first.equipo or "",
                 cod_equipo=int(getattr(first, "cod_equipo", 0) or 0),
                 combustible=round(
-                    float(
-                        litros_vinculados.get(
-                            int(first.id),
-                            getattr(first, "combustible", 0) or 0,
-                        )
-                    ),
+                    float(litros_vinculados.get(int(first.id), 0)),
                     2,
                 ),
                 tn_despachadas=round(sum(float(row.tn_despachadas or 0) for row in siblings), 2),

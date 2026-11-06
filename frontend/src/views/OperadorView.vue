@@ -57,6 +57,13 @@
         </div>
       </FilterBar>
 
+      <FeedbackMessage
+        v-if="mensajeMultiEquipo"
+        tone="warning"
+        title="Más de un equipo en el período"
+        :message="mensajeMultiEquipo"
+      />
+
       <div v-if="store.loading" class="flex justify-center py-10">
         <div class="h-8 w-8 animate-spin rounded-full border-3 border-primary border-t-transparent"></div>
       </div>
@@ -65,23 +72,25 @@
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Registros" :value="store.totales.total" icon="records" tone="info" />
           <MetricCard label="Diferencia de horómetro" :value="fmt(store.totales.total_horas)" unit="hs" icon="timer" />
-          <MetricCard
-            label="Combustible del equipo"
-            :value="fmt(store.totales.total_combustible)"
-            unit="lts"
-            description="Libro de combustible del equipo en el período"
-            icon="fuel"
-            tone="warning"
-          />
-          <MetricCard
-            v-if="store.totales.combustible_por_hora != null"
-            label="Consumo del equipo"
-            :value="fmt(store.totales.combustible_por_hora)"
-            unit="lts/hs"
-            :description="`${fmt(store.totales.total_horas_equipo)} hs del equipo`"
-            icon="fuel"
-            tone="warning"
-          />
+          <template v-for="eq in store.totales.por_equipo" :key="eq.id_movil">
+            <MetricCard
+              :label="`Combustible · ${nombreEquipo(eq)}`"
+              :value="fmt(eq.total_egresos)"
+              unit="lts"
+              description="Libro de combustible del equipo en el período"
+              icon="fuel"
+              tone="warning"
+            />
+            <MetricCard
+              v-if="eq.consumo_por_hora != null"
+              :label="`Consumo · ${nombreEquipo(eq)}`"
+              :value="fmt(eq.consumo_por_hora)"
+              unit="lts/hs"
+              :description="`${fmt(eq.total_horas)} hs del equipo`"
+              icon="fuel"
+              tone="warning"
+            />
+          </template>
 
           <MetricCard
             v-for="metric in productionMetrics"
@@ -159,6 +168,7 @@ import { useMisRegistrosStore } from '@/stores/misRegistros'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import FeedbackMessage from '@/components/ui/FeedbackMessage.vue'
 import FilterBar from '@/components/ui/FilterBar.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -206,6 +216,21 @@ const productionMetrics = computed(() => {
 function fmt(val) {
   return Number(val || 0).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
+
+function nombreEquipo(eq) {
+  const nombre = String(eq?.nombre || '').trim()
+  const match = nombre.match(/(GRUA\s*-?\s*N[°º]?\s*\d+)\s*$/i)
+  if (match) return match[1].replace(/\s+/g, ' ').trim()
+  return nombre || `Equipo ${eq?.id_movil ?? ''}`.trim()
+}
+
+const mensajeMultiEquipo = computed(() => {
+  const nombres = (store.totales.por_equipo || [])
+    .map((eq) => nombreEquipo(eq))
+    .filter(Boolean)
+  if (nombres.length <= 1) return ''
+  return `El combustible y el consumo se calculan por separado para cada equipo (${nombres.join(', ')}); no se suman.`
+})
 
 function formatFecha(fecha) {
   if (!fecha) return '---'

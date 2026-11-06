@@ -68,7 +68,8 @@ describe('Caminos grouping', () => {
 
     expect(totals.total).toBe(1)
     expect(totals.total_horas).toBe(10)
-    expect(totals.total_combustible).toBe(100)
+    // Sin resumen del equipo no se usan los litros declarados del parte.
+    expect(totals.total_combustible).toBe(0)
     expect(totals.total_km_perfilado).toBe(8.5)
     expect(totals.total_hr_disposicion).toBe(2)
     expect(totals.total_hr_remolque).toBe(1.5)
@@ -79,11 +80,22 @@ describe('Caminos grouping', () => {
     const totals = calculateGroupedTotals(grouped, {
       total_egresos: 415,
       total_horas: 26,
+      por_equipo: [
+        {
+          id_movil: 10,
+          nombre: 'GRUA N11',
+          total_egresos: 415,
+          total_horas: 26,
+          consumo_por_hora: 15.96,
+        },
+      ],
     })
 
     expect(totals.total_combustible).toBe(415)
     expect(totals.total_horas_equipo).toBe(26)
     expect(totals.combustible_por_hora).toBe(15.96)
+    expect(totals.por_equipo).toHaveLength(1)
+    expect(totals.por_equipo[0].consumo_por_hora).toBe(15.96)
     // Las horas personales del operador no cambian.
     expect(totals.total_horas).toBe(10)
   })

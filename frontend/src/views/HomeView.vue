@@ -543,23 +543,32 @@ const rangeLongLabel = computed(() => {
   return `del ${rangeLabel.value}`
 })
 
-const operatorSummaryCards = computed(() => [
-  {
-    label: 'Producción',
-    value: fmt(productionToday.value.value),
-    unit: productionToday.value.unit,
-    detail: `${productionToday.value.label} (${rangeShortLabel.value})`,
-    icon: 'production',
-  },
-  { label: 'Diferencia de horómetro', value: fmt(recordsStore.totales.total_horas), unit: 'hs', detail: 'Diferencia acumulada', icon: 'timer' },
-  {
-    label: 'Registros',
-    value: fmt(recordsStore.totales.total),
-    detail: `Cargas ${rangeShortLabel.value}`,
-    icon: 'records',
-  },
-  { label: 'Combustible del equipo', value: fmt(recordsStore.totales.total_combustible), unit: 'lts', detail: `Libro del equipo (${rangeShortLabel.value})`, icon: 'fuel' },
-])
+const operatorSummaryCards = computed(() => {
+  const equipos = (recordsStore.totales.por_equipo || []).map((eq) => ({
+    label: `Consumo · ${nombreEquipo(eq)}`,
+    value: eq.consumo_por_hora != null ? fmt(eq.consumo_por_hora) : '---',
+    unit: 'lts/hs',
+    detail: `${fmt(eq.total_egresos)} lts / ${fmt(eq.total_horas)} hs (${rangeShortLabel.value})`,
+    icon: 'fuel',
+  }))
+  return [
+    {
+      label: 'Producción',
+      value: fmt(productionToday.value.value),
+      unit: productionToday.value.unit,
+      detail: `${productionToday.value.label} (${rangeShortLabel.value})`,
+      icon: 'production',
+    },
+    { label: 'Diferencia de horómetro', value: fmt(recordsStore.totales.total_horas), unit: 'hs', detail: 'Diferencia acumulada', icon: 'timer' },
+    {
+      label: 'Registros',
+      value: fmt(recordsStore.totales.total),
+      detail: `Cargas ${rangeShortLabel.value}`,
+      icon: 'records',
+    },
+    ...equipos,
+  ]
+})
 
 const syncText = computed(() => {
   if (!isOnline.value) return 'Sin conexión'
@@ -747,6 +756,13 @@ const RecentRecordsPanel = defineComponent({
 function fmt(val) {
   const n = Number(val || 0)
   return n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+}
+
+function nombreEquipo(eq) {
+  const nombre = String(eq?.nombre || '').trim()
+  const match = nombre.match(/(GRUA\s*-?\s*N[°º]?\s*\d+)\s*$/i)
+  if (match) return match[1].replace(/\s+/g, ' ').trim()
+  return nombre || `Equipo ${eq?.id_movil ?? ''}`.trim()
 }
 
 function normalizeSearch(value) {

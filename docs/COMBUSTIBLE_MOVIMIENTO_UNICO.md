@@ -38,8 +38,12 @@ combustible** de Forestal leen el mismo libro: `cargacomb`.
 
 - La app suma todos los egresos del equipo en el período: partes, cargas
   independientes y cargas manuales o importadas.
-- El consumo por hora usa las horas de todos los partes del equipo, no solo las
-  del operador que está mirando la pantalla.
+- El resumen se calcula **por equipo**, no sumando todos los equipos que tocó el
+  operador. La app muestra una tarjeta de combustible/consumo por equipo.
+- El consumo por hora usa el avance real de horómetro del libro de combustible
+  del equipo (`KM` final − `KM` de la última carga anterior al período), igual
+  que "Control de combustible" de Forestal. No se suman las horas de los partes
+  porque se duplican cuando hay más de un operador por equipo.
 - El campo `tablero_produccion.combustible` queda como dato declarado del parte
   y no se usa para el KPI de combustible.
 - El detalle de cada parte muestra los litros del movimiento vinculado por
